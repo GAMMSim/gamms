@@ -1,5 +1,6 @@
 from gamms.VisualizationEngine import Color, Shape
 from gamms.VisualizationEngine.Nodes.render_node import RenderNode
+from gamms.VisualizationEngine.agent_visual import AgentVisual
 from gamms.typing.graph_engine import IGraph
 from gamms.context import Context
 import pygame
@@ -19,10 +20,10 @@ class RenderManager:
             del self._render_nodes[name]
         else:
             print(f"Warning: Render node {name} not found.")
-        # self._render_nodes.pop(name)
 
     def handle_render(self):
         for render_node in self._render_nodes.values():
+            # if use custom drawer
             if 'drawer' in render_node.data:
                 drawer = render_node.drawer
                 drawer(self.ctx, render_node.data)
@@ -34,24 +35,23 @@ class RenderManager:
             elif shape == Shape.Graph:
                 RenderManager.render_graph(self.ctx, render_node.data['graph'])
             elif shape == Shape.Agent:
-                RenderManager.render_agent(self.ctx, render_node.data)
+                RenderManager.render_agent(self.ctx, render_node.data['agent_visual'])
             else:
                 raise NotImplementedError("Render node not implemented")
 
     @staticmethod
     def render_circle(ctx: Context, x: float, y: float, radius: float, color: tuple=Color.Black):
         (x, y) = ctx.visual._graph_visual.ScalePositionToScreen((x, y))
-        pygame.draw.circle(ctx.visual._screen, color, (x, y), radius)
+        pygame.draw.circle(ctx.visual.screen, color, (x, y), radius)
 
     @staticmethod
-    def render_agent(ctx: Context, render_data: dict):
-        screen = ctx.visual._screen
-        agent_visual = render_data['agent_visual']
+    def render_agent(ctx: Context, agent_visual: AgentVisual):
+        screen = ctx.visual.screen
         position = agent_visual.position
         size = agent_visual.size
         (scaled_x, scaled_y) = ctx.visual._graph_visual.ScalePositionToScreen(position)
         color = agent_visual.color
-        if agent_visual.name == ctx.visual._waiting_agent_name:
+        if agent_visual.name == ctx.visual.waiting_agent_name:
             color = Color.Magenta
 
         # Draw each agent as a triangle at its current position
@@ -62,24 +62,9 @@ class RenderManager:
 
         pygame.draw.polygon(screen, color, [point1, point2, point3])
 
-    # @staticmethod
-    # def render_agents(ctx: Context):
-    #     screen = ctx.visual._screen
-    #     for agent_visual in ctx.visual._agent_visuals.values():
-    #         color = agent_visual.color
-    #         if agent_visual.name == ctx.visual._waiting_agent_name:
-    #             color = Color.Magenta
-            
-    #         RenderManager._render_agent(ctx, screen, agent_visual, color)
-
     @staticmethod
     def render_graph(ctx: Context, graph: IGraph):
-        # x_min = min(node.x for node in graph.nodes.values())
-        # x_max = max(node.x for node in graph.nodes.values())
-        # y_min = min(node.y for node in graph.nodes.values())
-        # y_max = max(node.y for node in graph.nodes.values())
-        screen = ctx.visual._screen
-
+        screen = ctx.visual.screen
         for edge in graph.edges.values():
             RenderManager._draw_edge(ctx, screen, graph, edge)
         for node in graph.nodes.values():

@@ -12,13 +12,6 @@ from typing import Dict, Any
 
 import pygame
 
-def _circle_artist(ctx, data):
-    x = data['x']
-    y = data['y']
-    scale = data['scale']
-    color = data.get('color', Color.Black)
-    (x, y) = ctx.visual._graph_visual.ScalePositionToScreen((x, y))
-    pygame.draw.circle(ctx.visual._screen, color, (x,y), scale)
 
 class PygameVisualizationEngine(IVisualizationEngine):
     def __init__(self, ctx, tick_callback = None, width=1980, height=1080, simulation_time_constant=2.0):
@@ -50,7 +43,15 @@ class PygameVisualizationEngine(IVisualizationEngine):
     
     @property
     def height(self):
-        return self._height    
+        return self._height
+    
+    @property
+    def screen(self):
+        return self._screen
+    
+    @property
+    def waiting_agent_name(self):
+        return self._waiting_agent_name
     
     def set_graph_visual(self, **kwargs):
         data = {}
@@ -76,28 +77,14 @@ class PygameVisualizationEngine(IVisualizationEngine):
     
     def add_artist(self, name: str, data: Dict[str, Any]) -> None:
         if 'shape' not in data:
+            # default to circle
             data['shape'] = Shape.Circle
 
         render_node = RenderNode(data)
         self._render_manager.add_render_node(name, render_node)
-        # self._artists[name] = render_node
-        # self._artists[name] = {
-        #     'data': data,
-        #     'draw': _circle_artist
-        # }
     
     def remove_artist(self, name):
         self._render_manager.remove_render_node(name)
-        # if name in self._artists:
-        #     del self._artists[name]
-        # else:
-        #     print(f"Warning: Artist {name} not found.")
-
-    # def add_render_node(self, name: str, render_node: RenderNode) -> None:
-    #     self._render_manager.add_render_node(name, render_node)
-
-    # def remove_render_node(self, name: str) -> None:
-    #     self._render_manager.remove_render_node(name)
 
     def handle_input(self):
         for event in pygame.event.get():
@@ -183,11 +170,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         # Note: Draw in layer order of back layer -> front layer
         self._draw_grid()
-        # self._graph_visual.draw_graph(self._screen)
-        # self.draw_agents()
-        # for artist in self._artists.values():
-        #     artist['draw'](self.ctx, artist['data'])
+
         self._render_manager.handle_render()
+        
         self.draw_input_overlay()
         self.draw_hud()
 
@@ -209,7 +194,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         for key_id, node_id in self._input_options.items():
             node = self.ctx.graph.graph.get_node(node_id)
             self._render_manager._draw_node(self.ctx, self._screen, node)
-            # self._graph_visual.draw_node(self._screen, node, Color.Purple)
 
             position = (node.x, node.y)
             (x, y) = self._graph_visual.ScalePositionToScreen(position)

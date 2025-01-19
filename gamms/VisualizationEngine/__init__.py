@@ -28,7 +28,6 @@ class Space:
 
 class Shape(Enum):
     Circle = auto()
-    Rectangle = auto()
     Graph = auto()
     Agent = auto()
 

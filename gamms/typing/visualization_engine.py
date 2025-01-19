@@ -91,33 +91,6 @@ class IVisualizationEngine(ABC):
         """
         pass
 
-    # @abstractmethod
-    # def add_render_node(self, name: str, render_node) -> None:
-    #     """
-    #     Add a render node to the visualization engine.
-
-    #     This method adds a render node to the visualization engine, allowing
-    #     for custom rendering of specific elements within the visualization.
-
-    #     Args:
-    #         name (str): The unique name identifier for the render node.
-    #         render_node (RenderNode): The render node object to add to the engine.
-    #     """
-    #     pass
-
-    # @abstractmethod
-    # def remove_render_node(self, name: str) -> None:
-    #     """
-    #     Remove a render node from the visualization engine.
-
-    #     This method removes a render node from the visualization engine, effectively
-    #     hiding or deleting the element from the display.
-
-    #     Args:
-    #         name (str): The unique name identifier of the render node to remove.
-    #     """
-    #     pass
-
     @abstractmethod
     def simulate(self) -> None:
         """

@@ -18,12 +18,6 @@ class NoEngine(IVisualizationEngine):
     
     def remove_artist(self, name: str):
         return
-    
-    # def add_render_node(self, name: str, render_node) -> None:
-    #     return
-    
-    # def remove_render_node(self, name: str) -> None:
-    #     return
 
     def simulate(self):
         return

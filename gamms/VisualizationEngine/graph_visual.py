@@ -1,5 +1,3 @@
-import pygame
-
 
 class GraphVisual:
     def __init__(self, graph, width=1980, height=1080):
@@ -40,48 +38,3 @@ class GraphVisual:
         map_position = self.camera.world_to_screen(map_position[0] + self.camera.x, map_position[1] + self.camera.y)
         #map_position = (map_position[0] + self.offset[0], map_position[1] + self.offset[1])
         return map_position
-
-    # def draw_node(self, screen, node, color=(173, 255, 47)):
-    #     # """Draw a node as a circle with a light greenish color."""
-    #     position = (node.x, node.y)
-    #     (x, y) = self.ScalePositionToScreen(position)
-    #     pygame.draw.circle(screen, color, (int(x), int(y)), 4)  # Light greenish color
-
-    # def draw_edge(self, screen, edge):
-    #     """Draw an edge as a curve or straight line based on the linestring."""
-    #     source = self.graph.nodes[edge.source]
-    #     target = self.graph.nodes[edge.target]
-    #     # for x,y in edge.linestring.coords:
-    #     #     print("Linestring: ",x,y)
-        
-    #     # If linestring is present, draw it as a curve
-    #     if edge.linestring:
-    #         #linestring[1:-1]
-    #         linestring = [(source.x, source.y)] + [(x, y) for (x, y) in edge.linestring.coords] + [(target.x, target.y)]
-    #         scaled_points = [
-    #             (self.ScalePositionToScreen((x, y)))
-    #             for x, y in linestring
-    #         ]
-    #         pygame.draw.aalines(screen, (0, 0, 0), False, scaled_points, 2)
-    #     else:
-    #         # Straight line
-    #         source_position = (source.x, source.y)
-    #         target_position = (target.x, target.y)
-    #         (x1, y1) = self.ScalePositionToScreen(source_position)
-    #         (x2, y2) = self.ScalePositionToScreen(target_position)
-    #         pygame.draw.line(screen, (0, 0, 0), (int(x1), int(y1)), (int(x2), int(y2)), 2)
-
-    def MoveGraphPosition(self, direction: tuple[float, float]):
-        self.offset = (self.offset[0] + direction[0], self.offset[1] + direction[1])
-        
-    # def draw_graph(self, screen):
-    #     """Draw the entire graph (edges and nodes)."""
-    #     # Center of Graph:
-    #     self.screen = screen
-    #     for edge in self.graph.edges.values():
-    #         self.draw_edge(screen, edge)
-    #     for node in self.graph.nodes.values():
-    #         self.draw_node(screen, node)
-        
-
-
