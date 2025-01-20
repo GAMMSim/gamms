@@ -13,6 +13,7 @@ import red_strategy
 import pickle
 
 ctx = gamms.create_context(vis_engine=vis_engine)
+ctx.record.start(path="recording.pkl")
 
 # Load the graph
 with open(graph_path, 'rb') as f:
@@ -29,6 +30,7 @@ for name, sensor in sensor_config.items():
 for name, agent in agent_config.items():
     ctx.agent.create_agent(name, **agent)
 
+
 # Create the strategies
 strategies = {}
 
@@ -44,6 +46,7 @@ strategies.update(red_strategy.map_strategy(
 # Set the strategies
 for agent in ctx.agent.create_iter():
     agent.register_strategy(strategies.get(agent._name, None))
+
 
 #  # Set visualization configurations
 ctx.visual.set_graph_visual(**graph_vis_config)
@@ -69,7 +72,8 @@ turn_count = 0
 def rule_terminate(ctx):
     global turn_count
     turn_count += 1
-    if turn_count > 100:
+    # if turn_count > 100:
+    if turn_count > 2:
         ctx.terminate()
 
 def agent_reset(ctx):
@@ -94,6 +98,8 @@ def valid_step(ctx):
 
 # Run the game
 while not ctx.is_terminated():
+    if turn_count > 2:
+        ctx.record.stop()
     for agent in ctx.agent.create_iter():
         if agent.strategy is not None:
             agent.step()
@@ -112,6 +118,10 @@ while not ctx.is_terminated():
         data['x'] = n2.x
         data['y'] = n2.y
     ctx.visual.simulate()
-
     # ctx.save_frame()
+
     rule_terminate(ctx)
+
+
+
+

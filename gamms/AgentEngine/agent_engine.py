@@ -7,7 +7,7 @@ from typing import Callable, Dict, Any, Optional, List
 #I think state might also have to be a property
 
 class Agent(IAgent):
-    def __init__(self, ctx, name, start_node_id, **kwargs):
+    def __init__(self, ctx: IContext, name, replay , start_node_id, **kwargs):
         """Initialize the agent at a specific node with access to the graph and set the color."""
         self._ctx = ctx
         self._graph = self._ctx.graph
@@ -17,37 +17,57 @@ class Agent(IAgent):
         self._current_node_id = start_node_id
         self._strategy: Optional[Callable[[Dict[str, Any]], None]] = None
         self._state = {}
+        self._replay = replay
         for k, v in kwargs.items():
             setattr(self, k, v)
     
     @property
     def current_node_id(self):
+        if self._ctx.record.record():
+            self._ctx.record.write(
+                opCode=op.AGENT_CURRENT_NODE,
+                data={
+                    "agent_name": self._name,
+                    "node_id": self._current_node_id,
+                }
+            )
         return self._current_node_id
     
     @current_node_id.setter
     def current_node_id(self, node_id):
-        if self._ctx.record.record():
-            self._ctx.write(opCode=op.AGENT_CURRENT_NODE, data=node_id)
         self._current_node_id = node_id
-    
+
     @property
     def prev_node_id(self):
+        if self._ctx.record.record():
+            self._ctx.record.write(
+                opCode=op.AGENT_PREV_NODE,
+                data={
+                    "agent_name": self._name,
+                    "node_id": self._prev_node_id
+                }
+            )
         return self._prev_node_id
     
     @prev_node_id.setter
     def prev_node_id(self, node_id):
-        if self._ctx.record.record():
-            self._ctx.write(opCode=op.AGENT_PREV_NODE, data=node_id)
         self._prev_node_id = node_id
+
     
     @property
     def state(self):
+        if self._ctx.record.record():
+            self._ctx.record.write(
+                opCode=op.AGENT_STATE,
+                data={
+                    "agent_name": self._name,
+                    "state": self._state
+                }
+            )
         return self._state
     
     @state.setter
     def state(self, state):
-        if self._ctx.record.record():
-            self._ctx.write(opCode=op.AGENT_STATE, data=state)
         self._state = state
     
     @property
@@ -56,8 +76,8 @@ class Agent(IAgent):
 
     @strategy.setter
     def strategy(self, strategy):
-        if self._ctx.record.record():
-            self._ctx.write(opCode=op.AGENT_STRATEGY, data=strategy)
+        # if self._ctx.record.record():
+        #     self._ctx.record.write(opCode=op.AGENT_STRATEGY, data=strategy)
         self._strategy = strategy
     
     def register_sensor(self, name, sensor):
@@ -66,19 +86,24 @@ class Agent(IAgent):
     def register_strategy(self, strategy):
         self.strategy = strategy
     
-    def step(self, state: dict):
-        if self._ctx.record.record():
-            self._ctx.write(opCode=op.AGENT_STEP, data=state)
-        if self._strategy is None:
-            raise AttributeError("Strategy is not set.")
-        state = self.get_state()
-        self._strategy(state)
-        self.set_state()
-
+    def step(self):
+        if not self._replay:
+            if self._strategy is None:
+                raise AttributeError("Strategy is not set.")
+            state = self.get_state()
+            self._strategy(state)
+            self.set_state()
+            if self._ctx.record.record():
+                self._ctx.record.write(opCode=op.AGENT_STEP, data=state)
+        else:
+            pass
 
     def get_state(self) -> dict:
         if self._ctx.record.record():
-            self._ctx.write(opCode=op.AGENT_GET_STATE, data=state)
+            self._ctx.record.write(
+                opCode=op.AGENT_GET_STATE,
+                data={"agent_name": self._name}
+            )
 
         for sensor in self._sensor_list.values():
             sensor.sense(self._current_node_id)
@@ -94,7 +119,13 @@ class Agent(IAgent):
 
     def set_state(self) -> None:
         if self._ctx.record.record():
-            self._ctx.write(opCode=op.AGENT_SET_STATE, data=self._state)
+           self._ctx.record.write(
+                opCode=op.AGENT_SET_STATE,
+                data={
+                    "agent_name": self._name,
+                    "state": self._state
+                }
+            )
         self.prev_node_id = self._current_node_id
         self.current_node_id = self._state['action']
     
@@ -108,22 +139,24 @@ class AgentEngine(IAgentEngine):
     def create_iter(self):
         return self.agents.values()
     
-    def create_agent(self, name, **kwargs):
+    def create_agent(self, name, replay=False, **kwargs):
         if self.ctx.record.record():
-            self.ctx.write(opCode=op.AGENT_CREATE, data=[name, kwargs])
-
+            self.ctx.record.write(opCode=op.AGENT_CREATE, data={"name": name, "kwargs": kwargs})
         start_node_id = kwargs.pop('start_node_id')
-        agent = Agent(self.ctx, name, start_node_id, **kwargs)
+        agent = Agent(self.ctx, name, replay, start_node_id, **kwargs)
+        #for replay
+        kwargs["start_node_id"] = start_node_id
         for sensor in kwargs['sensors']:
             agent.register_sensor(sensor, self.ctx.sensor.get_sensor(sensor))
         if name in self.agents:
             raise ValueError(f"Agent {name} already exists.")
         self.agents[name] = agent
+       
         return agent
     
     def get_agent(self, name: str) -> IAgent:
         if self.ctx.record.record():
-            self.ctx.write(opCode=op.AGENT_GET, data=name)
+            self.ctx.record.write(opCode=op.AGENT_GET, data=name)
 
         if name in self.agents:
             return self.agents[name]
@@ -132,7 +165,7 @@ class AgentEngine(IAgentEngine):
 
     def delete_agent(self, name) -> None:
         if self.ctx.record.record():
-            self.ctx.write(opCode=op.AGENT_DELETE, data=name)
+            self.ctx.record.write(opCode=op.AGENT_DELETE, data=name)
             
         if name not in self.agents:
             print("Warning: Deleting non-existent agent")

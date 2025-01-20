@@ -1,4 +1,5 @@
-from typing import List, Union, Iterator, Enum
+from typing import List, Union, Iterator
+from enum import Enum
 from abc import ABC, abstractmethod
 import numpy as np
 

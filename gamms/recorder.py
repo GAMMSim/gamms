@@ -5,7 +5,7 @@ import pickle
 import numpy as np
 
 class Recorder(IRecorder):
-    def __init__(self, to_record: bool = False):
+    def __init__(self):
         self.is_recording = False
         self.is_paused = False
         self.file_path = None
@@ -29,7 +29,7 @@ class Recorder(IRecorder):
         self.record_buffer = []
         #print(f"Recording started: {path}")
 
-    def stop(self, path: str) -> None:
+    def stop(self) -> None:
         if not self.is_recording:
             raise RuntimeError("Recording has not started.")
         self.is_recording = False

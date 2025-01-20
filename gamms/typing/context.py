@@ -4,9 +4,9 @@ from gamms.typing import (
     ISensorEngine,
     IVisualizationEngine,
     IAgentEngine,
-    IGraphEngine,
-    IRecorder
+    IGraphEngine
 )
+from gamms.typing.recorder import IRecorder
 
 
 class IContext(ABC):

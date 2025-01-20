@@ -16,10 +16,10 @@ class NeighborSensor(ISensor):
     def data(self):
         return self.data
     
-    @data.setter
+    #setter
     def sense(self, node_id: int) -> None:
         if self.ctx.record.record():
-            self.ctx.write(opCode=op.NEIGHBOR_SENSOR_SENSE, data=node_id)
+            self.ctx.record.write(opCode=op.NEIGHBOR_SENSOR_SENSE, data=node_id)
 
         nearest_neighbors = {node_id,}
         for edge in self.edges.values():
@@ -28,7 +28,6 @@ class NeighborSensor(ISensor):
                         
         self.data = list(nearest_neighbors)
     
-    @data.setter
     def update(self, data: Dict[str, Any]) -> None:
         return 
 
@@ -43,14 +42,12 @@ class MapSensor(ISensor):
     
     def data(self):
         return self.data
-    
-    @data.setter
+
     def sense(self, node_id: int) -> None:
         if self.ctx.record.record():
-            self.ctx.write(opCode=op.MAP_SENSOR_SENSE, data=node_id)
+            self.ctx.record.write(opCode=op.MAP_SENSOR_SENSE, data=node_id)
         self.data = (self.nodes, self.edges)
     
-    @data.setter
     def update(self, data: Dict[str, Any]) -> None:
         return
     
@@ -65,16 +62,14 @@ class AgentSensor(ISensor):
     def data(self):
         return self.data
     
-    @data.setter
     def sense(self, node_id: int) -> None:
         if self.ctx.record.record():
-            self.ctx.write(opCode=op.AGENT_SENSOR_SENSE, data=node_id)
+            self.ctx.record.write(opCode=op.AGENT_SENSOR_SENSE, data=node_id)
         agent_data = {}
         for agent in self.agent.create_iter():
-            agent_data[agent.name] = agent.current_node_id
+            agent_data[agent._name] = agent.current_node_id
         self.data = agent_data
-    
-    @data.setter
+
     def update(self, data: Dict[str, Any]) -> None:
         return 
     
@@ -82,15 +77,16 @@ class SensorEngine(ISensorEngine):
     def __init__(self, ctx: IContext):
         self.ctx = ctx  
         self.sensors = {}
+        
     def create_sensor(self, id, type: SensorType, **kwargs):
         if self.ctx.record.record():
-            self.ctx.write(opCode=op.SENSOR_CREATE, data=[id, type, kwargs])
+            self.ctx.record.write(opCode=op.SENSOR_CREATE, data={"id": id, "type":type, "kwargs":kwargs})
         if type == SensorType.NEIGHBOR:
-            sensor = NeighborSensor(id, type, self.ctx.graph_engine.graph.nodes, self.ctx.graph_engine.graph.edges)
+            sensor = NeighborSensor(self.ctx, id, type, self.ctx.graph_engine.graph.nodes, self.ctx.graph_engine.graph.edges)
         elif type == SensorType.MAP:
-            sensor = MapSensor(id, type, self.ctx.graph_engine.graph.nodes, self.ctx.graph_engine.graph.edges)
+            sensor = MapSensor(self.ctx, id, type, self.ctx.graph_engine.graph.nodes, self.ctx.graph_engine.graph.edges)
         elif type == SensorType.AGENT:
-            sensor = AgentSensor(id, type, self.ctx.agent)
+            sensor = AgentSensor(self.ctx, id, type, self.ctx.agent)
         else:
             raise ValueError("Invalid sensor type")
         self.sensors[id] = sensor
