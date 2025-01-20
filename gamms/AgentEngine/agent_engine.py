@@ -1,6 +1,6 @@
 from gamms.typing import IContext
 from gamms.typing.agent_engine import IAgent, IAgentEngine
-
+from gamms.typing.recorder import OpCodes as op
 from typing import Callable, Dict, Any, Optional, List
 
 
@@ -27,7 +27,7 @@ class Agent(IAgent):
     @current_node_id.setter
     def current_node_id(self, node_id):
         if self._ctx.record.record():
-            self._ctx.write(opCode=5, data=node_id)
+            self._ctx.write(opCode=op.AGENT_CURRENT_NODE, data=node_id)
         self._current_node_id = node_id
     
     @property
@@ -37,7 +37,7 @@ class Agent(IAgent):
     @prev_node_id.setter
     def prev_node_id(self, node_id):
         if self._ctx.record.record():
-            self._ctx.write(opCode=6, data=node_id)
+            self._ctx.write(opCode=op.AGENT_PREV_NODE, data=node_id)
         self._prev_node_id = node_id
     
     @property
@@ -47,7 +47,7 @@ class Agent(IAgent):
     @state.setter
     def state(self, state):
         if self._ctx.record.record():
-            self._ctx.write(opCode=7, data=state)
+            self._ctx.write(opCode=op.AGENT_STATE, data=state)
         self._state = state
     
     @property
@@ -57,7 +57,7 @@ class Agent(IAgent):
     @strategy.setter
     def strategy(self, strategy):
         if self._ctx.record.record():
-            self._ctx.write(opCode=8, data=strategy)
+            self._ctx.write(opCode=op.AGENT_STRATEGY, data=strategy)
         self._strategy = strategy
     
     def register_sensor(self, name, sensor):
@@ -69,15 +69,16 @@ class Agent(IAgent):
     def step(self, state: dict):
         if self._strategy is None:
             raise AttributeError("Strategy is not set.")
-        state = self.get_agent_state()
+        state = self.get_state()
         self._strategy(state)
-        self.set_agent_state()
+        self.set_state()
         if self._ctx.record.record():
             self._ctx.write(opCode=2, data=state)
 
-    def get_agent_state(self) -> dict:
+    def get_state(self) -> dict:
         if self._ctx.record.record():
-            self._ctx.write(opCode=3, data=state)
+            self._ctx.write(opCode=op.AGENT_GET_STATE, data=state)
+
         for sensor in self._sensor_list.values():
             sensor.sense(self._current_node_id)
 
@@ -90,9 +91,9 @@ class Agent(IAgent):
     #     self._prev_node_id = self._current_node_id
     #     self._current_node_id = self._state['action']
 
-    def set_agent_state(self) -> None:
+    def set_state(self) -> None:
         if self._ctx.record.record():
-            self._ctx.write(opCode=4, data=self._state)
+            self._ctx.write(opCode=op.AGENT_SET_STATE, data=self._state)
         self.prev_node_id = self._current_node_id
         self.current_node_id = self._state['action']
     
@@ -107,6 +108,9 @@ class AgentEngine(IAgentEngine):
         return self.agents.values()
     
     def create_agent(self, name, **kwargs):
+        if self.ctx.record.record():
+            self.ctx.write(opCode=op.AGENT_CREATE, data=name)
+
         start_node_id = kwargs.pop('start_node_id')
         agent = Agent(self.ctx, name, start_node_id, **kwargs)
         for sensor in kwargs['sensors']:
@@ -118,7 +122,7 @@ class AgentEngine(IAgentEngine):
     
     def get_agent(self, name: str) -> IAgent:
         if self.ctx.record.record():
-            self.ctx.write(opCode=0, data=name)
+            self.ctx.write(opCode=op.AGENT_GET, data=name)
 
         if name in self.agents:
             return self.agents[name]
@@ -127,7 +131,8 @@ class AgentEngine(IAgentEngine):
 
     def delete_agent(self, name) -> None:
         if self.ctx.record.record():
-            self.ctx.write(opCode=1, data=name)
+            self.ctx.write(opCode=op.AGENT_DELETE, data=name)
+            
         if name not in self.agents:
             print("Warning: Deleting non-existent agent")
         self.agents.pop(name, None)

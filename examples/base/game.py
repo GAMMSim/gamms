@@ -98,10 +98,10 @@ while not ctx.is_terminated():
         if agent.strategy is not None:
             agent.step()
         else:
-            state = agent.get_agent_state()
+            state = agent.get_state()
             node = ctx.visual.human_input(agent._name, state)
             state['action'] = node
-            agent.set_agent_state()
+            agent.set_state()
 
     #valid_step(ctx)
     #agent_reset(ctx)

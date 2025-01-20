@@ -60,7 +60,7 @@ class IAgent(ABC):
         pass
 
     @abstractmethod
-    def get_agent_state(self) -> Dict[str, Any]:
+    def get_state(self) -> Dict[str, Any]:
         """
         Retrieve the current state of the agent.
 
@@ -70,7 +70,7 @@ class IAgent(ABC):
         pass
 
     @abstractmethod
-    def set_agent_state(self, state):
+    def set_state(self, state):
         """
         Update the agent's state.
 

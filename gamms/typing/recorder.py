@@ -3,13 +3,17 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 class OpCodes(Enum):
+
     AGENT_CREATE = 0
-    AGENT_DELETE = 1
-    AGENT_STEP = 2
-    AGENT_SET_STATE = 3
-    AGENT_GET_STATE = 4
+    AGENT_GET = 1
+    AGENT_DELETE = 2
+    AGENT_STEP = 3
+    AGENT_SET_STATE = 4
+    AGENT_GET_STATE = 5
     AGENT_CURRENT_NODE = 5
-    AGENT_PREV_NODE = 6
+    AGENT_PREV_NODE = 7
+    AGENT_STRATEGY = 8
+    AGENT_STATE = 9
     
 
 
