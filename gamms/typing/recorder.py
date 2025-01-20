@@ -3,6 +3,7 @@ from enum import Enum
 from abc import ABC, abstractmethod
 import numpy as np
 
+
 class OpCodes(Enum):
 
     AGENT_CREATE = 0
@@ -11,7 +12,7 @@ class OpCodes(Enum):
     AGENT_STEP = 3
     AGENT_SET_STATE = 4
     AGENT_GET_STATE = 5
-    AGENT_CURRENT_NODE = 5
+    AGENT_CURRENT_NODE = 6
     AGENT_PREV_NODE = 7
     AGENT_STRATEGY = 8
     AGENT_STATE = 9
@@ -19,6 +20,7 @@ class OpCodes(Enum):
     NEIGHBOR_SENSOR_SENSE = 11
     MAP_SENSOR_SENSE = 12
     AGENT_SENSOR_SENSE = 13
+    
     
 
 

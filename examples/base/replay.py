@@ -48,18 +48,19 @@ for event in recorded_data:
         ctx.visual.set_agent_visual(name=data["name"], **agent_vis_config[data["name"]])
 
     elif opcode == op.AGENT_CURRENT_NODE:
-        print(data)
+        print(f"op: {opcode} data: {data}")
+        
         agent_name = data["agent_name"]
         node_id = data["node_id"]
         agent_map[agent_name].current_node_id = node_id
 
     elif opcode == op.AGENT_PREV_NODE:
-        print(data)
+        print(f"op: {opcode} data: {data}")
         agent_name = data["agent_name"]
         node_id = data["node_id"]
         agent_map[agent_name].prev_node_id = node_id
     
-    ctx.visual.simulate()
+    #ctx.visual.simulate()
     # time.sleep(0.25)
 
 #ctx.visual.simulate()

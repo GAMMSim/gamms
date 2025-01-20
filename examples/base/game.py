@@ -73,7 +73,8 @@ def rule_terminate(ctx):
     global turn_count
     turn_count += 1
     # if turn_count > 100:
-    if turn_count > 2:
+    if turn_count > 5:
+        ctx.record.stop()
         ctx.terminate()
 
 def agent_reset(ctx):
@@ -98,8 +99,9 @@ def valid_step(ctx):
 
 # Run the game
 while not ctx.is_terminated():
-    if turn_count > 2:
-        ctx.record.stop()
+    if turn_count > 5:
+         ctx.record.stop()
+         break
     for agent in ctx.agent.create_iter():
         if agent.strategy is not None:
             agent.step()
