@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Iterable, Dict, Any
+from typing import Iterable, Dict, Any, Optional, Callable
 
 class IAgent(ABC):
     """
@@ -10,6 +10,44 @@ class IAgent(ABC):
     """
 
     _name: str
+    
+    @property
+    @abstractmethod
+    def current_node_id(self) -> int:
+        """
+        Get the current node ID of the agent.
+        """
+        pass
+    
+    @property
+    @abstractmethod
+    def prev_node_id(self) -> int:
+        """
+        Get the previous node ID of the agent.
+        """
+        pass
+    
+    @property
+    @abstractmethod
+    def state(self) -> Dict[str, Any]:
+        """
+        Get the current state of the agent.
+
+        Returns:
+            Dict[str, Any]: The current state data of the agent.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def strategy(self) -> Optional[Callable[[Dict[str, Any]], None]]:
+        """
+        Get the current strategy of the agent.
+
+        Returns:
+            Optional[Callable[[Dict[str, Any]], None]]: The current strategy function or None if no strategy is set.
+        """
+        pass
 
     @abstractmethod
     def step(self):
@@ -22,7 +60,7 @@ class IAgent(ABC):
         pass
 
     @abstractmethod
-    def get_state(self) -> Dict[str, Any]:
+    def get_agent_state(self) -> Dict[str, Any]:
         """
         Retrieve the current state of the agent.
 
@@ -32,7 +70,7 @@ class IAgent(ABC):
         pass
 
     @abstractmethod
-    def set_state(self, state):
+    def set_agent_state(self, state):
         """
         Update the agent's state.
 
@@ -141,20 +179,7 @@ class IAgentEngine(ABC):
         """
         pass
     
-    @property
-    @abstractmethod
-    def current_node_id(self) -> int:
-        """
-        Get the current node ID of the agent.
-        """
-        pass
-    
-    @property
-    @abstractmethod
-    def prev_node_id(self) -> int:
-        """
-        Get the previous node ID of the agent.
-        """
-        pass
+
+
 
 
