@@ -13,6 +13,10 @@ class NeighborSensor(ISensor):
         self.edges = edges
         self.data = []
     
+    def data(self):
+        return self.data
+    
+    @data.setter
     def sense(self, node_id: int) -> None:
         if self.ctx.record.record():
             self.ctx.write(opCode=op.NEIGHBOR_SENSOR_SENSE, data=[self.id, node_id])
@@ -23,6 +27,7 @@ class NeighborSensor(ISensor):
                         
         self.data = list(nearest_neighbors)
     
+    @data.setter
     def update(self, data: Dict[str, Any]) -> None:
         return 
 
@@ -35,11 +40,16 @@ class MapSensor(ISensor):
         self.edges = edges
         self.data = ((), ())
     
+    def data(self):
+        return self.data
+    
+    @data.setter
     def sense(self, node_id: int) -> None:
         if self.ctx.record.record():
             self.ctx.write(opCode=op.MAP_SENSOR_SENSE, data=[self.id, node_id])
         self.data = (self.nodes, self.edges)
     
+    @data.setter
     def update(self, data: Dict[str, Any]) -> None:
         return
     
@@ -51,10 +61,10 @@ class AgentSensor(ISensor):
         self.agent = agent
         self.data = {}
     
-    @property
     def data(self):
         return self.data
     
+    @data.setter
     def sense(self, node_id: int) -> None:
         if self.ctx.record.record():
             self.ctx.write(opCode=op.AGENT_SENSOR_SENSE, data=[self.id, node_id])
@@ -63,6 +73,7 @@ class AgentSensor(ISensor):
             agent_data[agent.name] = agent.current_node_id
         self.data = agent_data
     
+    @data.setter
     def update(self, data: Dict[str, Any]) -> None:
         return 
     
