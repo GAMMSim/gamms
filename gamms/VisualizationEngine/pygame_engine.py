@@ -151,7 +151,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
                 alpha = self._simulation_time / self._sim_time_constant
                 alpha = pygame.math.clamp(alpha, 0, 1)
                 for agent in self.ctx.agent.create_iter():
-                    self._agent_visuals[agent.name].update_simulation(alpha)
+                    self._agent_visuals[agent._name].update_simulation(alpha)
 
     def handle_single_draw(self):
         self._screen.fill(Color.White)
@@ -168,7 +168,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
     def draw_agents(self):
         waiting_agent_visual = None
         for agent in self.ctx.agent.create_iter():
-            agent_visual = self._agent_visuals[agent.name]
+            agent_visual = self._agent_visuals[agent._name]
             agent_visual.draw_agent(self._screen, self._graph_visual.ScalePositionToScreen)
             if agent_visual.name == self._waiting_agent_name:
                 waiting_agent_visual = agent_visual
@@ -283,7 +283,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
     
     def update_agent_visual_pos(self):
         for agent in self.ctx.agent.create_iter():
-            agent_visual = self._agent_visuals[agent.name]
+            agent_visual = self._agent_visuals[agent._name]
             agent_visual.set_postions(agent.prev_node_id, agent.current_node_id)
 
     def human_input(self, agent_name, state: Dict[str, Any]) -> int:
@@ -325,7 +325,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
                 if edge.source == agent.prev_node_id and edge.target == agent.current_node_id:
                     current_edge = edge
             
-            self._agent_visuals[agent.name].start_simulation_lerp((prev_node.x, prev_node.y), (target_node.x, target_node.y), current_edge.linestring if current_edge is not None else None)
+            self._agent_visuals[agent._name].start_simulation_lerp((prev_node.x, prev_node.y), (target_node.x, target_node.y), current_edge.linestring if current_edge is not None else None)
 
         while self._waiting_simulation:
             self.update()

@@ -3,8 +3,13 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 class OpCodes(Enum):
-    mov = 0
-    elim = 1
+    AGENT_CREATE = 0
+    AGENT_DELETE = 1
+    AGENT_STEP = 2
+    AGENT_SET_STATE = 3
+    AGENT_GET_STATE = 4
+    AGENT_CURRENT_NODE = 5
+    AGENT_PREV_NODE = 6
     
 
 

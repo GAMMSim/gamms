@@ -9,7 +9,7 @@ class IAgent(ABC):
         name (str): The name identifier for the agent.
     """
 
-    name: str
+    _name: str
 
     @abstractmethod
     def step(self):
@@ -140,3 +140,21 @@ class IAgentEngine(ABC):
             KeyError: If no agent with the specified name exists.
         """
         pass
+    
+    @property
+    @abstractmethod
+    def current_node_id(self) -> int:
+        """
+        Get the current node ID of the agent.
+        """
+        pass
+    
+    @property
+    @abstractmethod
+    def prev_node_id(self) -> int:
+        """
+        Get the previous node ID of the agent.
+        """
+        pass
+
+

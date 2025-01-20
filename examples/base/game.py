@@ -43,7 +43,7 @@ strategies.update(red_strategy.map_strategy(
 
 # Set the strategies
 for agent in ctx.agent.create_iter():
-    agent.register_strategy(strategies.get(agent.name, None))
+    agent.register_strategy(strategies.get(agent._name, None))
 
 #  # Set visualization configurations
 ctx.visual.set_graph_visual(**graph_vis_config)
@@ -99,7 +99,7 @@ while not ctx.is_terminated():
             agent.step()
         else:
             state = agent.get_state()
-            node = ctx.visual.human_input(agent.name, state)
+            node = ctx.visual.human_input(agent._name, state)
             state['action'] = node
             agent.set_state()
 

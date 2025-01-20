@@ -3,45 +3,105 @@ from gamms.typing.agent_engine import IAgent, IAgentEngine
 
 from typing import Callable, Dict, Any, Optional, List
 
+
+#I think state might also have to be a property
+
 class Agent(IAgent):
-    def __init__(self, graph, name, start_node_id, **kwargs):
+    def __init__(self, ctx, name, start_node_id, **kwargs):
         """Initialize the agent at a specific node with access to the graph and set the color."""
-        self.graph = graph
-        self.name = name
-        self.sensor_list = {}
-        self.prev_node_id = start_node_id
-        self.current_node_id = start_node_id
-        self.strategy: Optional[Callable[[Dict[str, Any]], None]] = None
+        self._ctx = ctx
+        self._graph = self._ctx.graph
+        self._name = name
+        self._sensor_list = {}
+        self._prev_node_id = start_node_id
+        self._current_node_id = start_node_id
+        self._strategy: Optional[Callable[[Dict[str, Any]], None]] = None
         self._state = {}
         for k, v in kwargs.items():
             setattr(self, k, v)
     
     def register_sensor(self, name, sensor):
-        self.sensor_list[name] = sensor
+        self._sensor_list[name] = sensor
     
-
     def register_strategy(self, strategy):
-        self.strategy = strategy
-        
+        self._strategy = strategy
+    
+    def current_node_id(self):
+        return self._current_node_id
+    
+    @current_node_id.setter
+    def current_node_id(self, node_id):
+        if self._ctx.record.record():
+            self._ctx.write(opCode=5, data=node_id)
+        self._current_node_id = node_id
+    
+    def prev_node_id(self):
+        return self._prev_node_id
+    
+    @prev_node_id.setter
+    def prev_node_id(self, node_id):
+        if self._ctx.record.record():
+            self._ctx.write(opCode=6, data=node_id)
+        self._prev_node_id = node_id
+    
+    
+    @property
     def step(self):
-        if self.strategy is None:
+        if self._strategy is None:
             raise AttributeError("Strategy is not set.")
         state = self.get_state()
-        self.strategy(state)
+        self._strategy(state)
         self.set_state()
+    
+    @step.setter
+    def step(self, state: dict):
+        if self._strategy is None:
+            raise AttributeError("Strategy is not set.")
+        state = self.get_state()
+        self._strategy(state)
+        self.set_state()
+        if self._ctx.record.record():
+            self._ctx.write(opCode=2, data=state)
 
+    @property
     def get_state(self) -> dict:
-        for sensor in self.sensor_list.values():
-            sensor.sense(self.current_node_id)
+        for sensor in self._sensor_list.values():
+            sensor.sense(self._current_node_id)
 
-        state = {'curr_pos': self.current_node_id}
-        state['sensor'] = {k:(sensor.type, sensor.data) for k, sensor in self.sensor_list.items()}
+        state = {'curr_pos': self._current_node_id}
+        state['sensor'] = {k:(sensor.type, sensor.data) for k, sensor in self._sensor_list.items()}
         self._state = state
         return self._state
     
-    def set_state(self):
-        self.prev_node_id = self.current_node_id
+    @get_state.setter
+    def get_state(self) -> dict:
+        if self._ctx.record.record():
+            self._ctx.write(opCode=3, data=state)
+        for sensor in self._sensor_list.values():
+            sensor.sense(self._current_node_id)
+
+        state = {'curr_pos': self._current_node_id}
+        state['sensor'] = {k:(sensor.type, sensor.data) for k, sensor in self._sensor_list.items()}
+        self._state = state
+        return self._state
+    
+    # def set_state(self) -> None:
+    #     self._prev_node_id = self._current_node_id
+    #     self._current_node_id = self._state['action']
+
+    def set_state(self) -> None:
+        self.prev_node_id = self._current_node_id
         self.current_node_id = self._state['action']
+    
+    @set_state.setter
+    def set_state(self) -> None:
+        if self._ctx.record.record():
+            self._ctx.write(opCode=4, data=self._state)
+        self.prev_node_id = self._current_node_id
+        self.current_node_id = self._state['action']
+    
+
+
 
 
 class AgentEngine(IAgentEngine):
@@ -54,7 +114,7 @@ class AgentEngine(IAgentEngine):
     
     def create_agent(self, name, **kwargs):
         start_node_id = kwargs.pop('start_node_id')
-        agent = Agent(self.ctx.graph, name, start_node_id, **kwargs)
+        agent = Agent(self.ctx, name, start_node_id, **kwargs)
         for sensor in kwargs['sensors']:
             agent.register_sensor(sensor, self.ctx.sensor.get_sensor(sensor))
         if name in self.agents:
@@ -65,13 +125,33 @@ class AgentEngine(IAgentEngine):
     def terminate(self):
         return
     
+    @property
     def get_agent(self, name: str) -> IAgent:
         if name in self.agents:
             return self.agents[name]
         else:
             raise ValueError(f"Agent {name} not found.")
     
+    @get_agent.setter
+    def get_agent(self, name: str) -> IAgent:
+        if self.ctx.record.record():
+            self.ctx.write(opCode=0, data=name)
+
+        if name in self.agents:
+            return self.agents[name]
+        else:
+            raise ValueError(f"Agent {name} not found.")
+
+    @property
     def delete_agent(self, name) -> None:
+        if name not in self.agents:
+            print("Warning: Deleting non-existent agent")
+        self.agents.pop(name, None)
+    
+    @delete_agent.setter
+    def delete_agent(self, name) -> None:
+        if self.ctx.record.record():
+            self.ctx.write(opCode=1, data=name)
         if name not in self.agents:
             print("Warning: Deleting non-existent agent")
         self.agents.pop(name, None)
