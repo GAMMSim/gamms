@@ -20,6 +20,7 @@ class Agent(IAgent):
         for k, v in kwargs.items():
             setattr(self, k, v)
     
+    @property
     def current_node_id(self):
         return self._current_node_id
     
@@ -29,6 +30,7 @@ class Agent(IAgent):
             self._ctx.write(opCode=5, data=node_id)
         self._current_node_id = node_id
     
+    @property
     def prev_node_id(self):
         return self._prev_node_id
     
@@ -38,6 +40,7 @@ class Agent(IAgent):
             self._ctx.write(opCode=6, data=node_id)
         self._prev_node_id = node_id
     
+    @property
     def state(self):
         return self._state
     
@@ -47,6 +50,7 @@ class Agent(IAgent):
             self._ctx.write(opCode=7, data=state)
         self._state = state
     
+    @property
     def strategy(self):
         return self._strategy
 
