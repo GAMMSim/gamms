@@ -34,7 +34,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._waiting_simulation = False
         self._simulation_time = 0
         self._will_quit = False
-        self._artists = {}
         self._render_manager = RenderManager(ctx)
 
     @property
@@ -176,17 +175,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self.draw_input_overlay()
         self.draw_hud()
 
-    def draw_agents(self):
-        waiting_agent_visual = None
-        for agent in self.ctx.agent.create_iter():
-            agent_visual = self._agent_visuals[agent.name]
-            agent_visual.draw_agent(self._screen, self._graph_visual.ScalePositionToScreen)
-            if agent_visual.name == self._waiting_agent_name:
-                waiting_agent_visual = agent_visual
-        
-        if waiting_agent_visual is not None:
-            waiting_agent_visual.draw_agent(self._screen, self._graph_visual.ScalePositionToScreen, True)
-
     def draw_input_overlay(self):
         if not self._waiting_user_input:
             return
@@ -236,11 +224,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         else:
             raise ValueError("Invalid coord_space value. Must be one of the values in the Space enum.")
 
-    def render_circle(self, x: float, y: float, radius: float, color: tuple=Color.Black):
-        screen_x, screen_y = self._camera.world_to_screen(x, y)
-        screen_radius = self._camera.world_to_screen_scale(radius)
-        pygame.draw.circle(self._screen, color, (screen_x, screen_y), screen_radius)
-
     def render_rectangle(self, x: float, y: float, width: float, height: float, color: tuple=Color.Black):
         screen_x, screen_y = self._camera.world_to_screen(x, y)
         screen_width = self._camera.world_to_screen_scale(width)
@@ -268,21 +251,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         for y in range(int(y_min), int(y_max) + 1, step):
             self.render_line(x_min, y, x_max, y, Color.LightGray, 3 if y % 5 == 0 else 1, False)
 
-    def run_game_loop(self):
-        clock = pygame.time.Clock()
-        while True:
-            
-            self.handle_input()
-            self.handle_single_draw() 
-            if self._waiting_user_input:
-                self.draw_neig() 
-            # MoveAgents <
-            self.handle_tick() 
-            pygame.display.flip() 
-            delta_time = clock.tick(30)
-
-        self.cleanup()
-
     def update(self):
         if self._will_quit:
             return
@@ -291,11 +259,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self.handle_single_draw()
         self.handle_tick()
         pygame.display.flip()
-    
-    def update_agent_visual_pos(self):
-        for agent in self.ctx.agent.create_iter():
-            agent_visual = self._agent_visuals[agent.name]
-            agent_visual.set_postions(agent.prev_node_id, agent.current_node_id)
 
     def human_input(self, agent_name, state: Dict[str, Any]) -> int:
         self._waiting_user_input = True

@@ -13,15 +13,34 @@ class RenderManager:
         self._render_nodes: dict[str, RenderNode] = {}
 
     def add_render_node(self, name: str, render_node: RenderNode):
+        """
+        Add a render node to the render manager. A render node can draw one or more shapes on the screen and may have a customized drawer.
+
+        Args:
+            name (str): The unique name of the render node.
+            render_node (RenderNode): The render node to add to the render manager.
+        """
         self._render_nodes[name] = render_node
 
     def remove_render_node(self, name: str):
+        """
+        Remove a render node from the render manager.
+
+        Args:
+            name (str): The unique name of the render node to remove.
+        """
         if name in self._render_nodes:
             del self._render_nodes[name]
         else:
             print(f"Warning: Render node {name} not found.")
 
     def handle_render(self):
+        """
+        Render all render nodes in the render manager. This should be called every frame from the pygame engine to update the visualization.
+
+        Raises:
+            NotImplementedError: If the shape of a render node is not implemented and a custom drawer is not provided.
+        """
         for render_node in self._render_nodes.values():
             # if use custom drawer
             if 'drawer' in render_node.data:
@@ -41,11 +60,28 @@ class RenderManager:
 
     @staticmethod
     def render_circle(ctx: Context, x: float, y: float, radius: float, color: tuple=Color.Black):
+        """
+        Render a circle at the given position with the given radius and color.
+
+        Args:
+            ctx (Context): The current simulation context.
+            x (float): The x coordinate of the circle's center.
+            y (float): The y coordinate of the circle's center.
+            radius (float): The radius of the circle.
+            color (tuple, optional): The color the the circle. Defaults to Color.Black.
+        """
         (x, y) = ctx.visual._graph_visual.ScalePositionToScreen((x, y))
         pygame.draw.circle(ctx.visual.screen, color, (x, y), radius)
 
     @staticmethod
     def render_agent(ctx: Context, agent_visual: AgentVisual):
+        """
+        Render an agent as a triangle at its current position on the screen. This is the default rendering method for agents.
+
+        Args:
+            ctx (Context): The current simulation context.
+            agent_visual (AgentVisual): The visual representation of the agent to render.
+        """
         screen = ctx.visual.screen
         position = agent_visual.position
         size = agent_visual.size
@@ -64,6 +100,13 @@ class RenderManager:
 
     @staticmethod
     def render_graph(ctx: Context, graph: IGraph):
+        """
+        Render the graph by drawing its nodes and edges on the screen. This is the default rendering method for graphs.
+
+        Args:
+            ctx (Context): The current simulation context.
+            graph (IGraph): The graph to render.
+        """
         screen = ctx.visual.screen
         for edge in graph.edges.values():
             RenderManager._draw_edge(ctx, screen, graph, edge)
