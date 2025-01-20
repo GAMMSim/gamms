@@ -1,4 +1,4 @@
-from typing.recorder import IRecorder
+from gamms.typing.recorder import IRecorder
 import os 
 import time
 import pickle

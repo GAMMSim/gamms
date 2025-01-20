@@ -5,6 +5,7 @@ from gamms.typing import (
     IVisualizationEngine,
     IAgentEngine,
     IGraphEngine,
+    IRecorder
 )
 
 
@@ -104,6 +105,24 @@ class IContext(ABC):
 
         Raises:
             RuntimeError: If the graph engine is not properly initialized.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def record(self) -> IRecorder:
+        """
+        Retrieve the recorder.
+
+        The recorder is responsible for recording and replaying system events.
+        It captures information about system states and interactions for analysis and
+        debugging purposes.
+
+        Returns:
+            IRecorder: An instance of the recorder engine.
+
+        Raises:
+            RuntimeError: If the recorder engine is not properly initialized.
         """
         pass
 
