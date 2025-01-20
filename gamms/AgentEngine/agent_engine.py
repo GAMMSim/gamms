@@ -3,11 +3,106 @@ from gamms.typing.agent_engine import IAgent, IAgentEngine
 from gamms.typing.recorder import OpCodes as op
 from typing import Callable, Dict, Any, Optional, List
 
+class NoOpAgent(IAgent):
+    def __init__(self, ctx: IContext, name, start_node_id, **kwargs):
+        """Initialize the agent at a specific node with access to the graph and set the color."""
+        self._ctx = ctx
+        self._name = name
+        self._prev_node_id = start_node_id
+        self._current_node_id = start_node_id
+    
+    @property
+    def current_node_id(self):
+        if self._ctx.record.record():
+            self._ctx.record.write(
+                opCode=op.AGENT_CURRENT_NODE,
+                data={
+                    "agent_name": self._name,
+                    "node_id": self._current_node_id,
+                }
+            )
+        return self._current_node_id
+    
+    @current_node_id.setter
+    def current_node_id(self, node_id):
+        self._current_node_id = node_id
 
-#I think state might also have to be a property
+    @property
+    def prev_node_id(self):
+        if self._ctx.record.record():
+            self._ctx.record.write(
+                opCode=op.AGENT_PREV_NODE,
+                data={
+                    "agent_name": self._name,
+                    "node_id": self._prev_node_id
+                }
+            )
+        return self._prev_node_id
+    
+    @prev_node_id.setter
+    def prev_node_id(self, node_id):
+        self._prev_node_id = node_id
+
+    
+    @property
+    def state(self):
+        if self._ctx.record.record():
+            self._ctx.record.write(
+                opCode=op.AGENT_STATE,
+                data={}
+            )
+        return {}
+    
+    @state.setter
+    def state(self, state):
+        return
+    
+    @property
+    def strategy(self):
+        return 
+
+    @strategy.setter
+    def strategy(self, strategy):
+        if self._ctx.record.record():
+            self._ctx.record.write(opCode=op.AGENT_STRATEGY, data={})
+        return
+    
+    def register_sensor(self, name, sensor):
+        return
+    
+    def register_strategy(self, strategy):
+        return
+    
+    def step(self):
+        if self._strategy is None:
+            raise AttributeError("Strategy is not set.")
+        state = self.get_state()
+        self._strategy(state)
+        self.set_state()
+
+
+    def get_state(self) -> dict:
+        if self._ctx.record.record():
+            self._ctx.record.write(
+                opCode=op.AGENT_GET_STATE,
+                data={"agent_name": self._name}
+            )
+
+        return {}
+    
+    def set_state(self) -> None:
+        if self._ctx.record.record():
+           self._ctx.record.write(
+                opCode=op.AGENT_SET_STATE,
+                data={
+                    "agent_name": self._name,
+                    "state": {}
+                }
+            )
+        return
 
 class Agent(IAgent):
-    def __init__(self, ctx: IContext, name, replay , start_node_id, **kwargs):
+    def __init__(self, ctx: IContext, name, start_node_id, **kwargs):
         """Initialize the agent at a specific node with access to the graph and set the color."""
         self._ctx = ctx
         self._graph = self._ctx.graph
@@ -17,7 +112,6 @@ class Agent(IAgent):
         self._current_node_id = start_node_id
         self._strategy: Optional[Callable[[Dict[str, Any]], None]] = None
         self._state = {}
-        self._replay = replay
         for k, v in kwargs.items():
             setattr(self, k, v)
     
@@ -76,8 +170,8 @@ class Agent(IAgent):
 
     @strategy.setter
     def strategy(self, strategy):
-        # if self._ctx.record.record():
-        #     self._ctx.record.write(opCode=op.AGENT_STRATEGY, data=strategy)
+        if self._ctx.record.record():
+            self._ctx.record.write(opCode=op.AGENT_STRATEGY, data=strategy)
         self._strategy = strategy
     
     def register_sensor(self, name, sensor):
@@ -87,16 +181,11 @@ class Agent(IAgent):
         self.strategy = strategy
     
     def step(self):
-        if not self._replay:
-            if self._strategy is None:
-                raise AttributeError("Strategy is not set.")
-            state = self.get_state()
-            self._strategy(state)
-            self.set_state()
-            if self._ctx.record.record():
-                self._ctx.record.write(opCode=op.AGENT_STEP, data=state)
-        else:
-            pass
+        if self._strategy is None:
+            raise AttributeError("Strategy is not set.")
+        state = self.get_state()
+        self._strategy(state)
+        self.set_state()
 
     def get_state(self) -> dict:
         if self._ctx.record.record():
@@ -113,9 +202,6 @@ class Agent(IAgent):
         self.state = state
         return self._state
     
-    # def set_state(self) -> None:
-    #     self._prev_node_id = self._current_node_id
-    #     self._current_node_id = self._state['action']
 
     def set_state(self) -> None:
         if self._ctx.record.record():
