@@ -67,13 +67,14 @@ class Agent(IAgent):
         self.strategy = strategy
     
     def step(self, state: dict):
+        if self._ctx.record.record():
+            self._ctx.write(opCode=op.AGENT_STEP, data=state)
         if self._strategy is None:
             raise AttributeError("Strategy is not set.")
         state = self.get_state()
         self._strategy(state)
         self.set_state()
-        if self._ctx.record.record():
-            self._ctx.write(opCode=2, data=state)
+
 
     def get_state(self) -> dict:
         if self._ctx.record.record():
@@ -109,7 +110,7 @@ class AgentEngine(IAgentEngine):
     
     def create_agent(self, name, **kwargs):
         if self.ctx.record.record():
-            self.ctx.write(opCode=op.AGENT_CREATE, data=name)
+            self.ctx.write(opCode=op.AGENT_CREATE, data=[name, kwargs])
 
         start_node_id = kwargs.pop('start_node_id')
         agent = Agent(self.ctx, name, start_node_id, **kwargs)

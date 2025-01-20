@@ -1,16 +1,21 @@
 from gamms.typing.sensor_engine import SensorType, ISensor, ISensorEngine
 from gamms.typing.context import IContext
+from gamms.typing.recorder import OpCodes as op
 from typing import Any, Dict
 
+
 class NeighborSensor(ISensor):
-    def __init__(self, id, type, nodes, edges):
+    def __init__(self, ctx, id, type, nodes, edges):
         self.id = id
+        self.ctx = ctx
         self.type = type
         self.nodes = nodes
         self.edges = edges
         self.data = []
     
     def sense(self, node_id: int) -> None:
+        if self.ctx.record.record():
+            self.ctx.write(opCode=op.NEIGHBOR_SENSOR_SENSE, data=[self.id, node_id])
         nearest_neighbors = {node_id,}
         for edge in self.edges.values():
             if edge.source == node_id:
@@ -22,27 +27,37 @@ class NeighborSensor(ISensor):
         return 
 
 class MapSensor(ISensor):
-    def __init__(self, id, type, nodes, edges):
+    def __init__(self, ctx, id, type, nodes, edges):
         self.id = id
+        self.ctx = ctx
         self.type = type
         self.nodes = nodes
         self.edges = edges
         self.data = ((), ())
     
     def sense(self, node_id: int) -> None:
+        if self.ctx.record.record():
+            self.ctx.write(opCode=op.MAP_SENSOR_SENSE, data=[self.id, node_id])
         self.data = (self.nodes, self.edges)
     
     def update(self, data: Dict[str, Any]) -> None:
         return
     
 class AgentSensor(ISensor):
-    def __init__(self, id, type, agent):
+    def __init__(self, ctx,  id, type, agent):
         self.id = id
+        self.ctx = ctx
         self.type = type
         self.agent = agent
         self.data = {}
     
+    @property
+    def data(self):
+        return self.data
+    
     def sense(self, node_id: int) -> None:
+        if self.ctx.record.record():
+            self.ctx.write(opCode=op.AGENT_SENSOR_SENSE, data=[self.id, node_id])
         agent_data = {}
         for agent in self.agent.create_iter():
             agent_data[agent.name] = agent.current_node_id
@@ -56,6 +71,8 @@ class SensorEngine(ISensorEngine):
         self.ctx = ctx  
         self.sensors = {}
     def create_sensor(self, id, type: SensorType, **kwargs):
+        if self.ctx.record.record():
+            self.ctx.write(opCode=op.SENSOR_CREATE, data=[id, type, kwargs])
         if type == SensorType.NEIGHBOR:
             sensor = NeighborSensor(id, type, self.ctx.graph_engine.graph.nodes, self.ctx.graph_engine.graph.edges)
         elif type == SensorType.MAP:
