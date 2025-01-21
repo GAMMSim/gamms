@@ -71,6 +71,13 @@ class RenderManager:
             color (tuple, optional): The color the the circle. Defaults to Color.Black.
         """
         (x, y) = ctx.visual._graph_visual.ScalePositionToScreen((x, y))
+        
+        _screen = ctx.visual.screen
+        _width = _screen.get_width()
+        _height = _screen.get_height()
+        if (x < 0 or x > _width or y < 0 or y > _height):
+            return
+
         pygame.draw.circle(ctx.visual.screen, color, (x, y), radius)
 
     @staticmethod
@@ -96,6 +103,14 @@ class RenderManager:
         point2 = (scaled_x + size * math.cos(angle + 2.5), scaled_y + size * math.sin(angle + 2.5))
         point3 = (scaled_x + size * math.cos(angle - 2.5), scaled_y + size * math.sin(angle - 2.5))
 
+        _width = screen.get_width()
+        _height = screen.get_height()
+        # Check points to cull
+        if(point1[0] < 0 and point2[0] < 0 and point3[0] < 0) or (point1[0] > _width and point2[0] > _width and point3[0] > _width):
+            return
+        if(point1[1] < 0 and point2[1] < 0 and point3[1] < 0) or (point1[1] > _height and point2[1] > _height and point3[1] > _height):
+            return
+
         pygame.draw.polygon(screen, color, [point1, point2, point3])
 
     @staticmethod
@@ -119,6 +134,17 @@ class RenderManager:
         source = graph.nodes[edge.source]
         target = graph.nodes[edge.target]
         
+        (_source_x, _source_y) = ctx.visual._graph_visual.ScalePositionToScreen((source.x, source.y))
+        (_target_x, _target_y) = ctx.visual._graph_visual.ScalePositionToScreen((target.x, target.y))
+
+        _width = screen.get_width()
+        _height = screen.get_height()
+        # Check points to cull
+        if(_source_x < 0 and _target_x < 0) or (_source_x > _width and _target_x > _width):
+            return
+        if(_source_y < 0 and _target_y < 0) or (_source_y > _height and _target_y > _height ):
+            return
+        
         # If linestring is present, draw it as a curve
         if edge.linestring:
             #linestring[1:-1]
@@ -134,10 +160,17 @@ class RenderManager:
             target_position = (target.x, target.y)
             (x1, y1) = ctx.visual._graph_visual.ScalePositionToScreen(source_position)
             (x2, y2) = ctx.visual._graph_visual.ScalePositionToScreen(target_position)
+
             pygame.draw.line(screen, (0, 0, 0), (int(x1), int(y1)), (int(x2), int(y2)), 2)
 
     @staticmethod
     def _draw_node(ctx, screen, node, color=(173, 255, 47)):
         position = (node.x, node.y)
         (x, y) = ctx.visual._graph_visual.ScalePositionToScreen(position)
+
+        _width = screen.get_width()
+        _height = screen.get_height()
+        if (x < 0 or x > _width or y < 0 or y > _height):
+            return
+        
         pygame.draw.circle(screen, color, (int(x), int(y)), 4)  # Light greenish color

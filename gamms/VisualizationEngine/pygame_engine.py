@@ -140,6 +140,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
                         self._zoom = self._graph_visual.setZoom(self._zoom)
             if event.type == pygame.QUIT:
                 self._will_quit = True
+                self._input_option_result = -1
             if event.type == pygame.VIDEORESIZE:
                 self._width = event.w
                 self._height = event.h
@@ -261,6 +262,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
         pygame.display.flip()
 
     def human_input(self, agent_name, state: Dict[str, Any]) -> int:
+        if self.ctx.is_terminated():
+            return state["curr_pos"]
+        
         self._waiting_user_input = True
 
         def get_neighbours(state):
@@ -279,6 +283,12 @@ class PygameVisualizationEngine(IVisualizationEngine):
             self.update()
 
             result = self._input_option_result
+
+            if result == -1:
+                self.end_handle_human_input()
+                self.ctx.terminate()
+                return state["curr_pos"]
+            
             if result is not None:
                 self.end_handle_human_input()
                 return result                
@@ -301,7 +311,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
             
             self._agent_visuals[agent.name].start_simulation_lerp((prev_node.x, prev_node.y), (target_node.x, target_node.y), current_edge.linestring if current_edge is not None else None)
 
-        while self._waiting_simulation:
+        while self._waiting_simulation and not self._will_quit:
             self.update()
 
     def terminate(self):
