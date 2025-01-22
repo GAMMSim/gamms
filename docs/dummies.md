@@ -147,6 +147,9 @@ agent_vis_config = {
 
 ---
 
+## Strategies 
+To see how to build strategies, see strategy.md
+
 ## blue_strategy.py
 
 The `blue_strategy.py` file defines the strategy logic for agents on the Blue team. This strategy determines how Blue agents behave based on sensor data.
