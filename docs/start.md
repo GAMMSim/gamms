@@ -85,13 +85,15 @@ Clone or download the `examples` directory from [GAMMSim/gamms](https://github.c
    rm -rf gamms-main main.zip
    ```
 
-Execute the script:
+<!-- Execute the script:
 ```sh
 python create_graph.py
 ```
-Verify that a `.pkl` file is successfully created. This indicates that the graph has been created properly.
+Verify that a `.pkl` file is successfully created. This indicates that the graph has been created properly. -->
 
 **Creating Strategy and Configuration Files**
+
+The next page discusses in depth how to build the files created in this section.
 
 **Step 1**: Create a folder named `games` (in the root of your project directory):
    ```sh
