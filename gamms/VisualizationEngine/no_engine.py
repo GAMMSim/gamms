@@ -4,7 +4,7 @@ from gamms.context import Context
 from typing import Dict, Any
 
 class NoEngine(IVisualizationEngine):
-    def __init__(self, ctx: Context):
+    def __init__(self, ctx: Context, **kwargs):
         self.ctx = ctx
     
     def set_graph_visual(self, **kwargs):
