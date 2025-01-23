@@ -1,4 +1,4 @@
-# GAMMS for Dummies
+# Programming your first GAMMS game
 
 Welcome to the **GAMMS** example guide! This documentation will walk you through creating and understanding the essential files needed to set up a sample adversarial game using **GAMMS**. Specifically, we'll cover:
 
