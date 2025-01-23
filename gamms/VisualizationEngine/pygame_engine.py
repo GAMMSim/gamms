@@ -19,7 +19,7 @@ def _circle_artist(ctx, data):
     pygame.draw.circle(ctx.visual._screen, color, (x,y), scale)
 
 class PygameVisualizationEngine(IVisualizationEngine):
-    def __init__(self, ctx, tick_callback = None, width=1980, height=1080, simulation_time_constant=2.0):
+    def __init__(self, ctx, tick_callback = None, width=1980, height=1080, simulation_time_constant=2.0, **kwargs):
         pygame.init()
         self.ctx: Context = ctx
         self._width = width
@@ -50,7 +50,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         return self._height    
     
     def set_graph_visual(self, **kwargs):
-        self._graph_visual = GraphVisual(self.ctx.graph.graph, kwargs['width'], kwargs['height'])
+        self._graph_visual = GraphVisual(self.ctx.graph.graph, kwargs['width'], kwargs['height'], kwargs.get('draw_id', False), kwargs.get('node_color', Color.LightGreen), kwargs.get('edge_color', Color.Black))
         self._graph_visual.setCamera(self._camera)
 
         print("Successfully set graph visual")
