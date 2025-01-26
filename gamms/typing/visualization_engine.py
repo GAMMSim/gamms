@@ -107,7 +107,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def human_input(self, state: Dict[str, Any]) -> None:
+    def human_input(self, agent_name: str, state: Dict[str, Any]) -> int:
         """
         Process input from a human player or user.
 
@@ -122,6 +122,9 @@ class IVisualizationEngine(ABC):
                 - `command` (str): The command issued by the user.
                 - `parameters` (Dict[str, Any]): Additional parameters related to the command.
                 - Other state-related information as needed.
+
+        Returns:
+            int: The target node id selected by the user.
 
         Raises:
             ValueError: If the input `state` contains invalid or unsupported commands.
