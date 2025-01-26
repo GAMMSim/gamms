@@ -22,9 +22,8 @@ class NoEngine(IVisualizationEngine):
     def simulate(self):
         return
     
-    def human_input(self, name: str, state: Dict[str, Any]):
-        state['action'] = state['current_node_id']
-        return
+    def human_input(self, agent_name: str, state: Dict[str, Any]) -> int:
+        return state["curr_pos"]
     
     def terminate(self):
         return
