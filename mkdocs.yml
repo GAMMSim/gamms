@@ -103,6 +103,7 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Getting Started: start.md
+  - Programming your first GAMMS game : dummies.md
   - Agent Strategy: strategy.md
   - API Reference:
     - Context: context.md

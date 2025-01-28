@@ -148,7 +148,9 @@ agent_vis_config = {
 ---
 
 ## Strategies 
-To see how to build strategies, see strategy.md
+## Strategies Overview
+
+In this section, we will discuss the strategies implemented for both the Blue and Red teams. Each team's strategy is defined in its respective Python file and dictates how agents make decisions based on sensor data.
 
 ## blue_strategy.py
 
@@ -221,11 +223,6 @@ def map_strategy(agent_config):
     - **Logic**:
         - Maps each agent's name to the `strategy` function.
         - Returns a dictionary of strategies keyed by agent names.
-
-### Customization Tips
-
-- **Strategy Logic**: Modify the `strategy` function to implement different behaviors. For example, prioritize certain actions over others or incorporate more complex decision-making processes.
-- **Assigning Strategies**: Ensure that each Blue agent in `agent_config` is mapped to the desired strategy function.
 
 ---
 
@@ -680,18 +677,3 @@ To manage and edit your project efficiently, consider using a code editor like *
    - Use breakpoints and the debugging tools to step through your code.
 
 ---
-
-## Summary
-
-By following the steps above, you can set up your **Gamms** project with the necessary configuration and strategy files. Here's a quick recap:
-
-- **Project Structure**: Organized directories and files for easy management.
-- **Configuration Files**: `config.py` sets up sensors, agents, and visualization.
-- **Strategy Files**: `blue_strategy.py` and `red_strategy.py` define agent behaviors.
-- **Game Orchestration**: `game.py` initializes and runs the simulation.
-- **Documentation**: `start.md` and `raw.md` provide guidance and explanations.
-- **Workspace Setup**: Using VS Code or another code editor for efficient development.
-
-Feel free to customize the strategies, configurations, and game rules to suit your specific simulation needs. If you have any further questions or need additional assistance, feel free to ask!
-
-Happy coding and simulating!
