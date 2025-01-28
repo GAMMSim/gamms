@@ -3,11 +3,11 @@
 
 ## Introduction
 
-In this case study, we explore the implementation of a coverage simulation using the GAMMS framework. The objective is to simulate agents patrolling a defined area to ensure complete coverage over time. This scenario is pertinent to applications such as surveillance, environmental monitoring, and search-and-rescue operations.
+This case study explores the implementation of a coverage simulation using the GAMMS framework. Agents are tasked with patrolling a graph-based environment to ensure all nodes are visited at least once. The simulation terminates when all nodes have been visited.
 
 ## Simulation Overview
 
-- **Objective:** Deploy multiple agents to patrol a specified area, ensuring that every point within the area is visited within a given timeframe.
+- **Objective:** Deploy multiple agents to patrol a specified area, ensuring that every point (node) within the area is visited.
 - **Environment:** A graph-based representation of the area, where nodes represent specific locations and edges denote possible paths between them.
 - **Agents:** Autonomous units capable of navigating the graph, equipped with sensors to detect their surroundings and other agents.
 
@@ -65,14 +65,17 @@ import random
 from gamms import sensor
 
 def strategy(state):
+def strategy(state):
     sensor_data = state['sensor']
     current_node = state['current_node_id']
     unvisited_neighbors = []
 
+    # Check neighbors and track unvisited ones
     for (type, data) in sensor_data.values():
         if type == sensor.SensorType.NEIGHBOR:
             for neighbor in data:
-                if not state['memory'].get(neighbor, False):  # Check if neighbor is unvisited
+                # Use state['memory'] to identify unvisited nodes
+                if not state['memory'].get(neighbor, False):
                     unvisited_neighbors.append(neighbor)
             break
 
@@ -84,6 +87,7 @@ def strategy(state):
         # If all neighbors are visited, move to a random neighbor
         state['action'] = random.choice(data)
 
+
 def map_strategy(agent_config):
     strategies = {}
     for name in agent_config.keys():
@@ -91,9 +95,9 @@ def map_strategy(agent_config):
     return strategies
 ```
 
-## Simulation Execution (`game.py`)
+## Game Execution (`game.py`)
 
-The `game.py` script orchestrates the coverage simulation, initializing the game context, loading the graph, creating sensors and agents, assigning strategies, and running the simulation loop.
+The simulation logic has been updated to include a termination condition based on node coverage. The simulation ends when all nodes in the graph are visited.
 
 ```python
 import gamms
@@ -103,7 +107,7 @@ from config import (
     sensor_config,
     agent_config,
     graph_vis_config,
-    agent_vis_config
+    agent_vis_config,
 )
 import coverage_strategy
 import pickle
@@ -138,23 +142,33 @@ ctx.visual.set_graph_visual(**graph_vis_config)
 for name, config in agent_vis_config.items():
     ctx.visual.set_agent_visual(name, **config)
 
-turn_count = 0
-
-# Rules for the game
-def rule_terminate(ctx):
-    global turn_count
-    turn_count += 1
-    if turn_count > 500:
-        ctx.terminate()
+# Track visited nodes
+visited_nodes = set()
+total_nodes = len(ctx.graph.graph.nodes)  # Total number of nodes in the graph
 
 # Run the simulation
 while not ctx.is_terminated():
     for agent in ctx.agent.create_iter():
-        agent.step()
+        # Update the visited nodes with the agent's current position
+        visited_nodes.add(agent.current_node_id)
+
+        state = agent.get_state()
+
+        # Initialize memory in the agent's state if it doesn't exist
+        if 'memory' not in state:
+            state['memory'] = {}
+
+        # Execute the agent's strategy
+        agent.strategy(state)
+
+        # Set the updated state back
+        agent.set_state()
+
+    # Check if all nodes have been visited
+    if len(visited_nodes) >= total_nodes:
+        print("All nodes have been visited! Terminating the game.")
+        ctx.terminate()
+
+    # Simulate visualization
     ctx.visual.simulate()
-    rule_terminate(ctx)
 ```
-
-## Results
-
-The simulation demonstrates how multiple agents can effectively collaborate to achieve complete area coverage. Adjustments to agent strategies, communication protocols, and movement algorithms can further optimize performance based on specific application requirements.
