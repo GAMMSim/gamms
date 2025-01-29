@@ -366,22 +366,6 @@ The `game.py` script orchestrates the game simulation. It initializes the game c
 
     - Applies graph and agent visualization settings from the configuration.
 
-9. **Adding Special Nodes**
-
-    ```python
-    n1 = ctx.graph.graph.get_node(0)
-    n2 = ctx.graph.graph.get_node(1)
-    data = {}
-    data['x'] = n1.x
-    data['y'] = n1.y
-    data['scale'] = 10.0
-    data['color'] = (255, 0, 0)
-
-    ctx.visual.add_artist('special_node', data)
-    ```
-
-    - Highlights specific nodes (`n1` and `n2`) with visual markers.
-
 10. **Game Rules and Mechanics**
 
     - **Turn Count and Termination**
