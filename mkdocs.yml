@@ -103,7 +103,7 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Getting Started: start.md
-  - Programming your first GAMMS game : dummies.md
+  - First Game : first_game.md
   - Advanced Concepts:
     - Agent Strategy: strategy.md
     - Adding Extra Information To Agent State: agent_state_addition.md
