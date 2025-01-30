@@ -9,7 +9,6 @@ from config import (
 )
 import blue_strategy
 import red_strategy
-
 import pickle
 
 ctx = gamms.create_context(vis_engine=vis_engine)

@@ -12,7 +12,7 @@ GAMMS allows you to pass custom information to agents via their state. This feat
 
 ## Adding Extra Information to Agent State
 
-You can pass custom variables to an agent's state by using the `state.update()` method. This can be done during each simulation step.
+You can pass custom variables to an agent's state by using the `state.update()` method. This can be done during each simulation step. This information can then be accessed to create your strategy.
 
 ### Example: Adding Custom Variables to State
 
@@ -34,50 +34,6 @@ for agent in ctx.agent.create_iter():
     agent.set_state()
 ```
 
----
-
-## Using Custom Information in Agent Strategies
-
-Once the custom variables are added to the state, they can be accessed and utilized within the agent's strategy function.
-
-### Example: Strategy Using Extra State Variables
-
-The following example demonstrates how an agent uses custom state variables to decide its next action:
-
-```python
-def strategy(state):
-    """
-    Strategy to move toward the closest food item based on food positions in the state.
-    """
-    current_node = state['curr_pos']
-    food_positions = state['food_positions']  # Node IDs of food
-
-    closest_food = None
-    min_distance = float('inf')
-
-    # Find the closest food item
-    for food_node in food_positions:
-        try:
-            dist = nx.shortest_path_length(
-                state['graph'], source=current_node, target=food_node
-            )
-            if dist < min_distance:
-                min_distance = dist
-                closest_food = food_node
-        except (nx.NetworkXNoPath, nx.NodeNotFound):
-            continue
-
-    # Set the action to move toward the closest food
-    if closest_food is not None:
-        state['action'] = closest_food
-    else:
-        # Default to a random neighbor
-        neighbors = state.get('neigh', [])
-        if neighbors:
-            state['action'] = random.choice(neighbors)
-```
-
----
 
 ## Dynamically Updating State Information
 

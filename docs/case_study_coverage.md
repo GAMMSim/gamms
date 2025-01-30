@@ -65,9 +65,7 @@ import random
 from gamms import sensor
 
 def strategy(state):
-def strategy(state):
     sensor_data = state['sensor']
-    current_node = state['current_node_id']
     unvisited_neighbors = []
 
     # Check neighbors and track unvisited ones

@@ -108,9 +108,9 @@ nav:
     - Agent Strategy: strategy.md
     - Adding Extra Information To Agent State: agent_state_addition.md
     - Artists: artists.md
-  - Case Studies:
-    - Coverage: case_study_coverage.md
-    - Collection: case_study_collection.md
+  # - Case Studies:
+  #   - Coverage: case_study_coverage.md
+  #   - Collection: case_study_collection.md
   - API Reference:
     - Context: context.md
     - Agent: agent.md
