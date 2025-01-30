@@ -56,6 +56,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         data = {}
         data['shape'] = Shape.Graph
         data['graph'] = self.ctx.graph.graph
+
+        #Add data for node ID and Color
         self.add_artist('graph', data)
 
         self._graph_visual = GraphVisual(self.ctx.graph.graph, kwargs['width'], kwargs['height'])
@@ -78,7 +80,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         if 'shape' not in data:
             # default to circle
             data['shape'] = Shape.Circle
-
+    
         render_node = RenderNode(data)
         self._render_manager.add_render_node(name, render_node)
     
@@ -170,10 +172,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         # Note: Draw in layer order of back layer -> front layer
         self._draw_grid()
-
-        self._render_manager.handle_render()
         
         self.draw_input_overlay()
+        self._render_manager.handle_render()
         self.draw_hud()
 
     def draw_input_overlay(self):
@@ -183,6 +184,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         for key_id, node_id in self._input_options.items():
             node = self.ctx.graph.graph.get_node(node_id)
             self._render_manager._draw_node(self.ctx, self._screen, node)
+
+            self.ctx.visual._graph_visual.setNodeColor(node, (255, 0, 0))
 
             position = (node.x, node.y)
             (x, y) = self._graph_visual.ScalePositionToScreen(position)
@@ -260,6 +263,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self.handle_single_draw()
         self.handle_tick()
         pygame.display.flip()
+        
 
     def human_input(self, agent_name, state: Dict[str, Any]) -> int:
         if self.ctx.is_terminated():
@@ -297,6 +301,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._waiting_user_input = False
         self._input_option_result = None
         self._waiting_agent_name = None
+        self.ctx.visual._graph_visual.resetGraphColor()
+        
+        
 
     def simulate(self):
         self._waiting_simulation = True
