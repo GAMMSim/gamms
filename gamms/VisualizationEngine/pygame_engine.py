@@ -185,7 +185,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
             node = self.ctx.graph.graph.get_node(node_id)
             self._render_manager._draw_node(self.ctx, self._screen, node)
 
-            self.ctx.visual._graph_visual.setNodeColor(node, (255, 0, 0))
+            self.ctx.visual._graph_visual.setNodeColor(node, (0, 255, 0))
 
             position = (node.x, node.y)
             (x, y) = self._graph_visual.ScalePositionToScreen(position)
@@ -275,9 +275,19 @@ class PygameVisualizationEngine(IVisualizationEngine):
             for (type, data) in state["sensor"].values():
                 if type == SensorType.NEIGHBOR:
                     return data
-
+        current_agent = self.ctx.agent.get_agent(agent_name)
+        
         self._waiting_agent_name = agent_name
         options: list[int] = get_neighbours(state)
+
+        for node_id in options:
+            if node_id != current_agent.current_node_id:
+                edge_id = (current_agent.current_node_id << 32) + node_id
+                self.ctx.visual._graph_visual.setEdgeColorByID(edge_id, (0, 255, 0))
+
+                edge_id = (node_id << 32) + current_agent.current_node_id
+                self.ctx.visual._graph_visual.setEdgeColorByID(edge_id, (0, 255, 0))
+
         self._input_options: dict[int, int] = {}
         for i in range(min(len(options), 10)):
             self._input_options[i] = options[i]
