@@ -35,7 +35,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._simulation_time = 0
         self._will_quit = False
         self._render_manager = RenderManager(ctx)
-
+        
     @property
     def width(self):
         return self._width
@@ -199,6 +199,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
         size_x, size_y = self.render_text(f"Camera size: {self._camera.size:.2f}", 10, top, Space.Screen)
         top += size_y + 10
         size_x, size_y = self.render_text(f"Current turn: {self._waiting_agent_name}", 10, top, Space.Screen)
+        top += size_y + 10
+        size_x, size_y = self.render_text(f"FPS: {int(self._clock.get_fps())}", 10, top, Space.Screen)
+
 
     def cleanup(self):
         pygame.quit()
@@ -263,6 +266,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self.handle_single_draw()
         self.handle_tick()
         pygame.display.flip()
+        
         
 
     def human_input(self, agent_name, state: Dict[str, Any]) -> int:
