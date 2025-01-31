@@ -200,7 +200,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         top += size_y + 10
         size_x, size_y = self.render_text(f"Current turn: {self._waiting_agent_name}", 10, top, Space.Screen)
         top += size_y + 10
-        size_x, size_y = self.render_text(f"FPS: {int(self._clock.get_fps())}", 10, top, Space.Screen)
+        size_x, size_y = self.render_text(f"FPS: {round(self._clock.get_fps(), 2)}", 10, top, Space.Screen)
 
 
     def cleanup(self):
