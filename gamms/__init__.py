@@ -10,9 +10,11 @@ def create_context(
 ) -> Context:
     ctx = Context()
     if vis_engine == visual.Engine.NO_VIS:
-        visual_engine = visual.no_engine.NoEngine(ctx)
+        from gamms.VisualizationEngine import no_engine
+        visual_engine = no_engine.NoEngine(ctx)
     elif vis_engine == visual.Engine.PYGAME:
-        visual_engine = visual.pygame_engine.PygameVisualizationEngine(ctx)
+        from gamms.VisualizationEngine import pygame_engine
+        visual_engine = pygame_engine.PygameVisualizationEngine(ctx)
     else:
         raise NotImplementedError(f"Visualization engine {vis_engine} not implemented")
     

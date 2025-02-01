@@ -47,4 +47,3 @@ def lazy(fullname):
     return module
 
 from gamms.VisualizationEngine import agent_visual, graph_visual
-from gamms.VisualizationEngine import no_engine, pygame_engine
