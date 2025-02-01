@@ -43,7 +43,7 @@ class GraphVisual:
     def setEdgeColor(self, source_id, target_id, color = (255, 255, 255)):
         """Edge id is a bitwise encoding."""
         edge_id = (source_id << 32) + target_id
-        if edge_id is self.__edge_list:
+        if edge_id in self.__edge_list:
             self.__edge_color_list[edge_id] = color
         else:
             print(f"Warning: setEdgeColor({edge_id}) not found.")
