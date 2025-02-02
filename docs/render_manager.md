@@ -6,6 +6,8 @@ The functions of `RenderManager` includes:
 - Manages the drawing of all `render_node`.
 - Handles the drawing of graph and agents.
 
+During the drawing of every frame, the `handle_render` function in `RenderManager` will be called to render all render nodes.
+
 ## Render Node
 `RenderNode` is an object defined and used internally in `RenderManager` to draw one or more visuals in the scene. It contains a dictionary data that's defined by the user. Some data in this dictionary are used internally to define the behaviour of the `RenderNode`, here are a list of them:
 - `drawer`: This should be None or a custom function that will handle all drawings of this render node. The function should takes context and data as arguments, where context is the current context of the game and data is the data dictionary of this render node. Note that if the `drawer` exists in render node data, it is expected to override the entire renderings for this node and none of the render method will be called internally.
