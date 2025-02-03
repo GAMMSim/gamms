@@ -108,9 +108,9 @@ class GraphVisual:
     
     def setGraph(self, graph):
         self.graph = graph
-    
-    def setCamera(self, camera):
-        self.camera = camera
+
+    def setRenderManager(self, render_manager):
+        self.render_manager = render_manager
 
     def ScalePositionToScreen(self, position: tuple[float, float]) -> tuple[float, float]:
         """Scale a coordinate value to fit within the screen."""
@@ -119,6 +119,6 @@ class GraphVisual:
         screen_scale = 111139 / 100
 
         map_position = (screen_scale * (position[0] - graph_center[0]),screen_scale * (position[1] - graph_center[1]))
-        map_position = self.camera.world_to_screen(map_position[0] + self.camera.x, map_position[1] + self.camera.y)
+        map_position = self.render_manager.world_to_screen(map_position[0] + self.render_manager.camera_x, map_position[1] + self.render_manager.camera_y)
         #map_position = (map_position[0] + self.offset[0], map_position[1] + self.offset[1])
         return map_position

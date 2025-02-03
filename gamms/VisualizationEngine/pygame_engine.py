@@ -1,6 +1,5 @@
 from gamms.typing import IVisualizationEngine
 from gamms.VisualizationEngine import Color, Space, Shape
-from gamms.VisualizationEngine.camera import Camera
 from gamms.VisualizationEngine.graph_visual import GraphVisual
 from gamms.VisualizationEngine.agent_visual import AgentVisual
 from gamms.VisualizationEngine.render_manager import RenderManager
@@ -14,7 +13,7 @@ import pygame
 
 
 class PygameVisualizationEngine(IVisualizationEngine):
-    def __init__(self, ctx, tick_callback = None, width=1980, height=1080, simulation_time_constant=2.0):
+    def __init__(self, ctx, width=1980, height=1080, simulation_time_constant=2.0):
         pygame.init()
         self.ctx: Context = ctx
         self._width = width
@@ -26,16 +25,14 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._screen = pygame.display.set_mode((self._width, self._height), pygame.RESIZABLE)
         self._clock = pygame.time.Clock()
         self._default_font = pygame.font.Font(None, 36)
-        self._camera = Camera(self, 0, 0, 15)
-        self._tick_callback = tick_callback
         self._waiting_user_input = False
         self._input_option_result = None
         self._waiting_agent_name = None
         self._waiting_simulation = False
         self._simulation_time = 0
         self._will_quit = False
-        self._render_manager = RenderManager(ctx)
-        
+        self._render_manager = RenderManager(ctx, 0, 0, 15, width, height)
+
     @property
     def width(self):
         return self._width
@@ -49,19 +46,27 @@ class PygameVisualizationEngine(IVisualizationEngine):
         return self._screen
     
     @property
+    def render_manager(self):
+        return self._render_manager
+    
+    @property
     def waiting_agent_name(self):
         return self._waiting_agent_name
     
     def set_graph_visual(self, **kwargs):
+        def graph_drawer(ctx, data):
+            graph = data['graph']
+            RenderManager.render_graph(ctx, graph)
+
         data = {}
-        data['shape'] = Shape.Graph
+        data['drawer'] = graph_drawer
         data['graph'] = self.ctx.graph.graph
 
         #Add data for node ID and Color
         self.add_artist('graph', data)
 
         self._graph_visual = GraphVisual(self.ctx.graph.graph, kwargs['width'], kwargs['height'])
-        self._graph_visual.setCamera(self._camera)
+        self._graph_visual.setRenderManager(self._render_manager)
 
         print("Successfully set graph visual")
     
@@ -71,8 +76,12 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._agent_visuals[name] = (AgentVisual(name, (node.x, node.y), **kwargs))
         print(f"Successfully set agent visual for {name}")
 
+        def agent_drawer(ctx, data):
+            agent_visual = data['agent_visual']
+            RenderManager.render_agent(ctx, agent_visual)
+
         data = {}
-        data['shape'] = Shape.Agent
+        data['drawer'] = agent_drawer
         data['agent_visual'] = self._agent_visuals[name]
         self.add_artist(name, data)
     
@@ -88,56 +97,31 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._render_manager.remove_render_node(name)
 
     def handle_input(self):
+        pressed_keys = pygame.key.get_pressed()
+        if pressed_keys[pygame.K_a] or pressed_keys[pygame.K_LEFT]:
+            self._render_manager.camera_x += 1 * self._clock.get_time() / 1000
+
+        if pressed_keys[pygame.K_d] or pressed_keys[pygame.K_RIGHT]:
+            self._render_manager.camera_x -= 1 * self._clock.get_time() / 1000
+
+        if pressed_keys[pygame.K_w] or pressed_keys[pygame.K_UP]:
+            self._render_manager.camera_y += 1 * self._clock.get_time() / 1000
+
+        if pressed_keys[pygame.K_s] or pressed_keys[pygame.K_DOWN]:
+            self._render_manager.camera_y -= 1 * self._clock.get_time() / 1000
+        
         for event in pygame.event.get():
-            pressed_keys = pygame.key.get_pressed()
-            # Multi key Event
-            if pressed_keys[pygame.K_a] and pressed_keys[pygame.K_w]:
-                self._camera.x += 1
-                self._camera.y += -1
-                return
-            if pressed_keys[pygame.K_a] and pressed_keys[pygame.K_s]:
-                self._camera.x += 1
-                self._camera.y += 1
-                return
-            if pressed_keys[pygame.K_s] and pressed_keys[pygame.K_d]:
-                self._camera.x += -1
-                self._camera.y += 1
-                return
-            if pressed_keys[pygame.K_d] and pressed_keys[pygame.K_w]:
-                self._camera.x += -1
-                self._camera.y += -1
-                return
-            if pressed_keys[pygame.K_a] and pressed_keys[pygame.K_d]:
-                return
-            if pressed_keys[pygame.K_w] and pressed_keys[pygame.K_s]:
-                return
-            
-            # Single Input Event
-            if pressed_keys[pygame.K_a]:
-                self._camera.x += 1
-                self._camera.y += 0
-                return
-            if pressed_keys[pygame.K_s]:
-                self._camera.x += 0
-                self._camera.y += 1
-                return
-            if pressed_keys[pygame.K_d]:
-                self._camera.x += -1
-                self._camera.y += 0
-                return
-            if pressed_keys[pygame.K_w]:
-                self._camera.x += 0
-                self._camera.y += -1
-                return
             if event.type == pygame.MOUSEWHEEL:
                 if event.y > 0:
-                    self._camera.size /= 1.05
-                    if(self._camera.size > 2):
+                    # self._camera.size /= 1.05
+                    self._render_manager.camera_size /= 1.05
+                    if(self._render_manager.camera_size > 2):
                         self._zoom *= 1.05
                         self._zoom = self._graph_visual.setZoom(self._zoom)
                 else:
-                    self._camera.size *= 1.05
-                    if(self._camera.size < 350):
+                    # self._camera.size *= 1.05
+                    self._render_manager.camera_size *= 1.05
+                    if(self._render_manager.camera_size < 350):
                         self._zoom /= 1.05
                         self._zoom = self._graph_visual.setZoom(self._zoom)
             if event.type == pygame.QUIT:
@@ -196,7 +180,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         top = 10
         size_x, size_y = self.render_text("Some instructions here", 10, top, Space.Screen)
         top += size_y + 10
-        size_x, size_y = self.render_text(f"Camera size: {self._camera.size:.2f}", 10, top, Space.Screen)
+        size_x, size_y = self.render_text(f"Camera size: {self._render_manager.camera_size:.2f}", 10, top, Space.Screen)
         top += size_y + 10
         size_x, size_y = self.render_text(f"Current turn: {self._waiting_agent_name}", 10, top, Space.Screen)
         top += size_y + 10
@@ -208,11 +192,11 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
     def render_text(self, text: str, x: int, y: int, coord_space: Space=Space.World, color: tuple=Color.Black):
         if coord_space == Space.World:
-            screen_x, screen_y = self._camera.world_to_screen(x, y)
+            screen_x, screen_y = self._render_manager.world_to_screen(x, y)
         elif coord_space == Space.Screen:
             screen_x, screen_y = x, y
         elif coord_space == Space.Viewport:
-            screen_x, screen_y = self._camera.viewport_to_screen(x, y)
+            screen_x, screen_y = self._render_manager.viewport_to_screen(x, y)
         else:
             raise ValueError("Invalid coord_space value. Must be one of the values in the Space enum.")
         
@@ -223,40 +207,50 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._screen.blit(text_surface, text_rect)
 
         if coord_space == Space.World:
-            return self._camera.screen_to_world_scale(text_size[0]), self._camera.screen_to_world_scale(text_size[1])
+            return self._render_manager.screen_to_world_scale(text_size[0]), self._render_manager.screen_to_world_scale(text_size[1])
         elif coord_space == Space.Screen:
             return text_size
         elif coord_space == Space.Viewport:
-            return self._camera.screen_to_viewport_scale(text_size[0]), self._camera.screen_to_viewport_scale(text_size[1])
+            return self._render_manager.screen_to_viewport_scale(text_size[0]), self._render_manager.screen_to_viewport_scale(text_size[1])
         else:
             raise ValueError("Invalid coord_space value. Must be one of the values in the Space enum.")
 
     def render_rectangle(self, x: float, y: float, width: float, height: float, color: tuple=Color.Black):
-        screen_x, screen_y = self._camera.world_to_screen(x, y)
-        screen_width = self._camera.world_to_screen_scale(width)
-        screen_height = self._camera.world_to_screen_scale(height)
-        pygame.draw.rect(self._screen, color, pygame.Rect(screen_x, screen_y, screen_width, screen_height))
+        pygame.draw.rect(self._screen, color, pygame.Rect(x, y, width, height))
 
+    def render_circle(self, x: float, y: float, radius: float, color: tuple=Color.Black):
+        pygame.draw.circle(self._screen, color, (x, y), radius)
 
     def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: tuple=Color.Black, width: int=1, isAA: bool=False):
-        screen_start_x, screen_start_y = self._camera.world_to_screen(start_x, start_y)
-        screen_end_x, screen_end_y = self._camera.world_to_screen(end_x, end_y)
         if isAA:
-            pygame.draw.aaline(self._screen, color, (screen_start_x, screen_start_y), (screen_end_x, screen_end_y))
+            pygame.draw.aaline(self._screen, color, (start_x, start_y), (end_x, end_y))
         else:
-            pygame.draw.line(self._screen, color, (screen_start_x, screen_start_y), (screen_end_x, screen_end_y), width)
+            pygame.draw.line(self._screen, color, (start_x, start_y), (end_x, end_y), width)
+
+    def render_lines(self, points: list[tuple[float, float]], color: tuple=Color.Black, width: int=1, closed=False, isAA: bool=False):
+        if isAA:
+            pygame.draw.aalines(self._screen, color, closed, points)
+        else:
+            pygame.draw.lines(self._screen, color, closed, points, width)
+
+    def render_polygon(self, points: list[tuple[float, float]], color: tuple=Color.Black, width: int=0):
+        pygame.draw.polygon(self._screen, color, points, width)
 
     def _draw_grid(self):
-        x_min = self._camera.x - self._camera.size * 4
-        x_max = self._camera.x + self._camera.size * 4
-        y_min = self._camera.y - self._camera.size_y * 4
-        y_max = self._camera.y + self._camera.size_y * 4
+        x_min = self._render_manager.camera_x - self._render_manager.camera_size * 4
+        x_max = self._render_manager.camera_x + self._render_manager.camera_size * 4
+        y_min = self._render_manager.camera_y - self._render_manager.camera_size_y * 4
+        y_max = self._render_manager.camera_y + self._render_manager.camera_size_y * 4
         step = 1
         for x in range(int(x_min), int(x_max) + 1, step):
-            self.render_line(x, y_min, x, y_max, Color.LightGray, 3 if x % 5 == 0 else 1, False)
+            screen_start_x, screen_start_y = self._render_manager.world_to_screen(x, y_min)
+            screen_end_x, screen_end_y = self._render_manager.world_to_screen(x, y_max)
+            self.render_line(screen_start_x, screen_start_y, screen_end_x, screen_end_y, Color.LightGray, 3 if x % 5 == 0 else 1, False)
 
         for y in range(int(y_min), int(y_max) + 1, step):
-            self.render_line(x_min, y, x_max, y, Color.LightGray, 3 if y % 5 == 0 else 1, False)
+            screen_start_x, screen_start_y = self._render_manager.world_to_screen(x_min, y)
+            screen_end_x, screen_end_y = self._render_manager.world_to_screen(x_max, y)
+            self.render_line(screen_start_x, screen_start_y, screen_end_x, screen_end_y, Color.LightGray, 3 if y % 5 == 0 else 1, False)
 
     def update(self):
         if self._will_quit:
@@ -266,8 +260,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self.handle_single_draw()
         self.handle_tick()
         pygame.display.flip()
-        
-        
 
     def human_input(self, agent_name, state: Dict[str, Any]) -> int:
         if self.ctx.is_terminated():
@@ -316,8 +308,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._input_option_result = None
         self._waiting_agent_name = None
         self.ctx.visual._graph_visual.resetGraphColor()
-        
-        
 
     def simulate(self):
         self._waiting_simulation = True

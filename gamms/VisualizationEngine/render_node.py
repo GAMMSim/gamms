@@ -27,5 +27,5 @@ class RenderNode:
         return self._data['shape']
     
     @property
-    def drawer(self) -> callable | None:
+    def drawer(self):
         return self._data['drawer']

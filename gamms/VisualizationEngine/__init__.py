@@ -28,8 +28,7 @@ class Space:
 
 class Shape(Enum):
     Circle = auto()
-    Graph = auto()
-    Agent = auto()
+    Rectangle = auto()
 
 
 import sys

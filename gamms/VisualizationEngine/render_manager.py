@@ -3,14 +3,130 @@ from gamms.VisualizationEngine.render_node import RenderNode
 from gamms.VisualizationEngine.agent_visual import AgentVisual
 from gamms.typing.graph_engine import IGraph
 from gamms.context import Context
-import pygame
 import math
 
 
 class RenderManager:
-    def __init__(self, ctx: Context):
+    def __init__(self, ctx: Context, camera_x: float, camera_y: float, camera_size: float, screen_width: int, screen_height: int):
         self.ctx: Context = ctx
+        self._camera_x = camera_x
+        self._camera_y = camera_y
+        self._camera_size = camera_size
+        self._screen_width = screen_width
+        self._screen_height = screen_height
         self._render_nodes: dict[str, RenderNode] = {}
+
+    @property
+    def camera_x(self):
+        return self._camera_x
+    
+    @camera_x.setter
+    def camera_x(self, value: float):
+        self._camera_x = value
+
+    @property
+    def camera_y(self):
+        return self._camera_y
+    
+    @camera_y.setter
+    def camera_y(self, value: float):
+        self._camera_y = value
+
+    @property
+    def camera_size(self):
+        """
+        The orthographic size of the camera represents half the width of the camera view.
+
+        Returns:
+            float: The orthographic size.
+        """
+        return self._camera_size
+    
+    @camera_size.setter
+    def camera_size(self, value: float):
+        self._camera_size = value
+    
+    @property
+    def camera_size_y(self):
+        """
+        The orthographic size of the camera represents half the height of the camera view.
+
+        Returns:
+            float: The verticle orthographic size.
+        """
+        return self.camera_size / self.aspect_ratio
+    
+    @property
+    def screen_width(self):
+        return self._screen_width
+    
+    @property
+    def screen_height(self):
+        return self._screen_height
+    
+    @property
+    def aspect_ratio(self):
+        return self.screen_width / self.screen_height
+
+    def world_to_screen_scale(self, world_size: float) -> float:
+        """
+        Transforms a world size to a screen size.
+        """
+        return world_size / self.camera_size * self.screen_width
+    
+    def screen_to_world_scale(self, screen_size: float) -> float:
+        """
+        Transforms a screen size to a world size.
+        """
+        return screen_size / self.screen_width * self.camera_size
+    
+    def world_to_screen(self, x: float, y: float) -> tuple[float, float]:
+        """
+        Transforms a world coordinate to a screen coordinate.
+        """
+        screen_x = (x + self.camera_size) / (2 * self.camera_size) * self.screen_width
+        screen_y = (-y + self.camera_size_y) / (2 * self.camera_size_y) * self.screen_height
+        return screen_x, screen_y
+    
+    def screen_to_world(self, x: float, y: float) -> tuple[float, float]:
+        """
+        Transforms a screen coordinate to a world coordinate.
+        """
+        world_x = x / self.screen_width * 2 * self.camera_size - self.camera_size
+        world_y = -y / self.screen_height * 2 * self.camera_size_y + self.camera_size_y
+        return world_x, world_y
+    
+    def viewport_to_screen(self, x: float, y: float) -> tuple[float, float]:
+        """
+        Transforms a viewport coordinate to a screen coordinate.
+        """
+        screen_x = x * self.screen_width
+        screen_y = y * self.screen_height
+        return screen_x, screen_y
+    
+    def screen_to_viewport(self, x: float, y: float) -> tuple[float, float]:
+        """
+        Transforms a screen coordinate to a viewport coordinate.
+        """
+        viewport_x = x / self.screen_width
+        viewport_y = y / self.screen_height
+        return viewport_x, viewport_y
+    
+    def viewport_to_screen_scale(self, viewport_size: float) -> float:
+        """
+        Transforms a viewport size to a screen size.
+        """
+        return viewport_size * self.screen_width
+    
+    def screen_to_viewport_scale(self, screen_size: float) -> float:
+        """
+        Transforms a screen size to a viewport size.
+        """
+        return screen_size / self.screen_width
+
+    # @property
+    # def visual_engine(self):
+    #     return self.ctx.visual_engine
 
     def add_render_node(self, name: str, render_node: RenderNode):
         """
@@ -51,10 +167,8 @@ class RenderManager:
             shape = render_node.shape
             if shape == Shape.Circle:
                 RenderManager.render_circle(self.ctx, render_node.x, render_node.y, render_node.data['scale'], render_node.color)
-            elif shape == Shape.Graph:
-                RenderManager.render_graph(self.ctx, render_node.data['graph'])
-            elif shape == Shape.Agent:
-                RenderManager.render_agent(self.ctx, render_node.data['agent_visual'])
+            elif shape == Shape.Rectangle:
+                RenderManager.render_rectangle(self.ctx, render_node.x, render_node.y, render_node.data['width'], render_node.data['height'], render_node.color)
             else:
                 raise NotImplementedError("Render node not implemented")
 
@@ -78,7 +192,26 @@ class RenderManager:
         if (x < 0 or x > _width or y < 0 or y > _height):
             return
 
-        pygame.draw.circle(ctx.visual.screen, color, (x, y), radius)
+        ctx.visual.render_circle(x, y, radius, color)
+
+    @staticmethod
+    def render_rectangle(ctx: Context, x: float, y: float, width: float, height: float, color: tuple=Color.Black):
+        """
+        Render a rectangle at the given position with the given width, height, and color.
+
+        Args:
+            ctx (Context): The current simulation context.
+            x (float): The x coordinate of the rectangle's center.
+            y (float): The y coordinate of the rectangle's center.
+            width (float): The width of the rectangle.
+            height (float): The height of the rectangle.
+            color (tuple, optional): The color of the rectangle. Defaults to Color.Black.
+        """
+        # render_manager = ctx.visual.render_manager
+        (x, y) = ctx.visual._graph_visual.ScalePositionToScreen((x, y))
+        # scaled_width = ctx.visual.render_manager.world_to_screen_scale(width)
+
+        ctx.visual.render_rectangle(x, y, width, height, color)
 
     @staticmethod
     def render_agent(ctx: Context, agent_visual: AgentVisual):
@@ -111,7 +244,8 @@ class RenderManager:
         if(point1[1] < 0 and point2[1] < 0 and point3[1] < 0) or (point1[1] > _height and point2[1] > _height and point3[1] > _height):
             return
 
-        pygame.draw.polygon(screen, color, [point1, point2, point3])
+        ctx.visual.render_polygon([point1, point2, point3], color)
+        # pygame.draw.polygon(screen, color, [point1, point2, point3])
 
     @staticmethod
     def render_graph(ctx: Context, graph: IGraph):
@@ -159,7 +293,7 @@ class RenderManager:
                 (ctx.visual._graph_visual.ScalePositionToScreen((x, y)))
                 for x, y in linestring
             ]
-            pygame.draw.aalines(screen, _color, False, scaled_points, 2)
+            ctx.visual.render_lines(scaled_points, _color, isAA=True)
         else:
             # Straight line
             source_position = (source.x, source.y)
@@ -167,7 +301,7 @@ class RenderManager:
             (x1, y1) = ctx.visual._graph_visual.ScalePositionToScreen(source_position)
             (x2, y2) = ctx.visual._graph_visual.ScalePositionToScreen(target_position)
 
-            pygame.draw.line(screen, (0, 0, 0), (int(x1), int(y1)), (int(x2), int(y2)), 2)
+            ctx.visual.render_line(x1, y1, x2, y2, _color, 2)
 
     @staticmethod
     def _draw_node(ctx, screen, node, color=(169, 169, 169)):
@@ -186,4 +320,4 @@ class RenderManager:
             color =  (128, 128, 128)
             scale = 4
 
-        pygame.draw.circle(screen, color, (int(x), int(y)), scale)  # Light greenish color
+        ctx.visual.render_circle(int(x), int(y), scale, color)
