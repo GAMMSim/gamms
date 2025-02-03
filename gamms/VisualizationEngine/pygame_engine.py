@@ -35,7 +35,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._simulation_time = 0
         self._will_quit = False
         self._render_manager = RenderManager(ctx)
-
+        
     @property
     def width(self):
         return self._width
@@ -56,6 +56,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         data = {}
         data['shape'] = Shape.Graph
         data['graph'] = self.ctx.graph.graph
+
+        #Add data for node ID and Color
         self.add_artist('graph', data)
 
         self._graph_visual = GraphVisual(self.ctx.graph.graph, kwargs['width'], kwargs['height'])
@@ -78,7 +80,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         if 'shape' not in data:
             # default to circle
             data['shape'] = Shape.Circle
-
+    
         render_node = RenderNode(data)
         self._render_manager.add_render_node(name, render_node)
     
@@ -170,10 +172,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         # Note: Draw in layer order of back layer -> front layer
         self._draw_grid()
-
-        self._render_manager.handle_render()
         
         self.draw_input_overlay()
+        self._render_manager.handle_render()
         self.draw_hud()
 
     def draw_input_overlay(self):
@@ -183,6 +184,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         for key_id, node_id in self._input_options.items():
             node = self.ctx.graph.graph.get_node(node_id)
             self._render_manager._draw_node(self.ctx, self._screen, node)
+
+            self.ctx.visual._graph_visual.setNodeColor(node, (0, 255, 0))
 
             position = (node.x, node.y)
             (x, y) = self._graph_visual.ScalePositionToScreen(position)
@@ -196,6 +199,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
         size_x, size_y = self.render_text(f"Camera size: {self._camera.size:.2f}", 10, top, Space.Screen)
         top += size_y + 10
         size_x, size_y = self.render_text(f"Current turn: {self._waiting_agent_name}", 10, top, Space.Screen)
+        top += size_y + 10
+        size_x, size_y = self.render_text(f"FPS: {round(self._clock.get_fps(), 2)}", 10, top, Space.Screen)
+
 
     def cleanup(self):
         pygame.quit()
@@ -260,6 +266,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self.handle_single_draw()
         self.handle_tick()
         pygame.display.flip()
+        
+        
 
     def human_input(self, agent_name, state: Dict[str, Any]) -> int:
         if self.ctx.is_terminated():
@@ -271,9 +279,19 @@ class PygameVisualizationEngine(IVisualizationEngine):
             for (type, data) in state["sensor"].values():
                 if type == SensorType.NEIGHBOR:
                     return data
-
+        current_agent = self.ctx.agent.get_agent(agent_name)
+        
         self._waiting_agent_name = agent_name
         options: list[int] = get_neighbours(state)
+
+        for node_id in options:
+            if node_id != current_agent.current_node_id:
+                edge_id = (current_agent.current_node_id << 32) + node_id
+                self.ctx.visual._graph_visual.setEdgeColorByID(edge_id, (0, 255, 0))
+
+                edge_id = (node_id << 32) + current_agent.current_node_id
+                self.ctx.visual._graph_visual.setEdgeColorByID(edge_id, (0, 255, 0))
+
         self._input_options: dict[int, int] = {}
         for i in range(min(len(options), 10)):
             self._input_options[i] = options[i]
@@ -297,6 +315,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._waiting_user_input = False
         self._input_option_result = None
         self._waiting_agent_name = None
+        self.ctx.visual._graph_visual.resetGraphColor()
+        
+        
 
     def simulate(self):
         self._waiting_simulation = True

@@ -10,6 +10,7 @@ class AgentVisual:
         """
         self.name = name
         color = kwargs.get('color', 'black')
+        
         self.color = string_to_color(color)
         self.size = kwargs.get('size', 8)
         # self.shape = kwargs.get('shape', None)
@@ -18,6 +19,14 @@ class AgentVisual:
         self._current_edge: Optional[LineString] = None
         self.position = start_position
 
+    def set_color(self, color = (255, 255, 255)):
+        self.color = color
+        return
+    
+    def set_size(self, size = 8):
+        self.size = size
+        return
+    
     def start_simulation_lerp(self, prev_position, target_position, edge):
         self.prev_position = prev_position
         self.target_position = target_position

@@ -96,7 +96,7 @@ class RenderManager:
         color = agent_visual.color
         if agent_visual.name == ctx.visual.waiting_agent_name:
             color = Color.Magenta
-
+            size = agent_visual.size * 1.5
         # Draw each agent as a triangle at its current position
         angle = math.radians(45)
         point1 = (scaled_x + size * math.cos(angle), scaled_y + size * math.sin(angle))
@@ -122,11 +122,13 @@ class RenderManager:
             ctx (Context): The current simulation context.
             graph (IGraph): The graph to render.
         """
+        
         screen = ctx.visual.screen
         for edge in graph.edges.values():
             RenderManager._draw_edge(ctx, screen, graph, edge)
         for node in graph.nodes.values():
             RenderManager._draw_node(ctx, screen, node)
+        
 
     @staticmethod
     def _draw_edge(ctx, screen, graph, edge):
@@ -145,6 +147,10 @@ class RenderManager:
         if(_source_y < 0 and _target_y < 0) or (_source_y > _height and _target_y > _height ):
             return
         
+        _color = ctx.visual._graph_visual.getEdgeColorById(edge.id)
+        if _color is None:
+            _color = (169, 169, 169)
+
         # If linestring is present, draw it as a curve
         if edge.linestring:
             #linestring[1:-1]
@@ -153,7 +159,7 @@ class RenderManager:
                 (ctx.visual._graph_visual.ScalePositionToScreen((x, y)))
                 for x, y in linestring
             ]
-            pygame.draw.aalines(screen, (0, 0, 0), False, scaled_points, 2)
+            pygame.draw.aalines(screen, _color, False, scaled_points, 2)
         else:
             # Straight line
             source_position = (source.x, source.y)
@@ -164,13 +170,20 @@ class RenderManager:
             pygame.draw.line(screen, (0, 0, 0), (int(x1), int(y1)), (int(x2), int(y2)), 2)
 
     @staticmethod
-    def _draw_node(ctx, screen, node, color=(173, 255, 47)):
+    def _draw_node(ctx, screen, node, color=(169, 169, 169)):
         position = (node.x, node.y)
         (x, y) = ctx.visual._graph_visual.ScalePositionToScreen(position)
 
         _width = screen.get_width()
         _height = screen.get_height()
+        # Check points to cull
         if (x < 0 or x > _width or y < 0 or y > _height):
             return
         
-        pygame.draw.circle(screen, color, (int(x), int(y)), 4)  # Light greenish color
+        color = ctx.visual._graph_visual.getNodeColorById(node.id)
+        scale = 8
+        if color is None:
+            color =  (128, 128, 128)
+            scale = 4
+
+        pygame.draw.circle(screen, color, (int(x), int(y)), scale)  # Light greenish color
