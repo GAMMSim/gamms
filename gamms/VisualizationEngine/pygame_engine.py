@@ -4,7 +4,7 @@ from gamms.VisualizationEngine.camera import Camera
 from gamms.VisualizationEngine.graph_visual import GraphVisual
 from gamms.VisualizationEngine.agent_visual import AgentVisual
 from gamms.VisualizationEngine.render_manager import RenderManager
-from gamms.VisualizationEngine.Nodes.render_node import RenderNode
+from gamms.VisualizationEngine.render_node import RenderNode
 from gamms.context import Context
 from gamms.typing.sensor_engine import SensorType
 

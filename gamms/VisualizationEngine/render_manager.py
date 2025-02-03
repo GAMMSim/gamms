@@ -1,5 +1,5 @@
 from gamms.VisualizationEngine import Color, Shape
-from gamms.VisualizationEngine.Nodes.render_node import RenderNode
+from gamms.VisualizationEngine.render_node import RenderNode
 from gamms.VisualizationEngine.agent_visual import AgentVisual
 from gamms.typing.graph_engine import IGraph
 from gamms.context import Context
