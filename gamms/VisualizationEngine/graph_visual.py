@@ -15,8 +15,8 @@ class GraphVisual:
         self.offset = (0.0, 0.0)
 
         # Data Storage. INTERNAL USE ONLY
-        self.__edge_list = []
-        self.__node_list = []
+        self.__edge_list = set()
+        self.__node_list = set()
         self.__node_color_list = {}
         self.__edge_color_list = {}
         self.__node_size_list = {}
@@ -28,10 +28,10 @@ class GraphVisual:
     # Internal Methouds
     def _initalize_data(self) -> None:
         for edge in self.graph.edges.values():
-            self.__edge_list.append(edge.id)
+            self.__edge_list.add(edge.id)
 
         for node in self.graph.nodes.values():
-            self.__node_list.append(node.id)
+            self.__node_list.add(node.id)
 
     # Color Set Methouds
     def setNodeColor(self, node, color = (255, 255, 255)):
