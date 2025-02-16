@@ -4,7 +4,7 @@ import os
 import time
 import pickle
 
-def _record_switch_case(opCode: OpCodes, data: JsonType) -> None:
+def _record_switch_case(ctx: IContext, opCode: OpCodes, data: JsonType) -> None:
     return
 
 class Recorder(IRecorder):
@@ -93,7 +93,7 @@ class Recorder(IRecorder):
             if record["opCode"] == OpCodes.TERMINATE:
                 self.is_replaying = False
             else:
-                _record_switch_case(record["opCode"], record.get("data", None))
+                _record_switch_case(self._ctx, record["opCode"], record.get("data", None))
 
             yield record
 
