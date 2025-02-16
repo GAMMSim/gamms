@@ -1,41 +1,54 @@
-from gamms.typing.recorder import IRecorder
+from gamms.typing.recorder import IRecorder, MAGIC_NUMBER, VERSION, OpCodes, JsonType
+from gamms.typing import IContext
 import os 
 import time
 import pickle
-import numpy as np
+
+def _record_switch_case(opCode: OpCodes, data: JsonType) -> None:
+    return
 
 class Recorder(IRecorder):
-    def __init__(self):
+    def __init__(self, ctx: IContext):
+        self.ctx = ctx
         self.is_recording = False
+        self.is_replaying = False
         self.is_paused = False
-        self.file_path = None
-        self.record_buffer = []
-        self.start_time = None
-        self.memory = {}
+        self._fp_record = None
+        self._fp_replay = None
+        self._time = None
     
     def record(self) -> bool:
-        if not self.is_paused and self.is_recording:
+        if not self.is_paused and self.is_recording and not self.ctx.is_terminated():
             return True
         else:
             return False
 
     def start(self, path: str) -> None:
+        if self._fp_record is not None:
+            raise RuntimeError("Recording file is already open. Stop recording before starting a new one.")
+        
+        # Check if path has extension .ggr
+        if not path.endswith('.ggr'):
+            path += '.ggr'
+
         if os.path.exists(path):
             raise FileExistsError(f"File {path} already exists.")
-        self.file_path = path
+
+        self._fp_record = open(path, 'wb')
         self.is_recording = True
         self.is_paused = False
-        self.start_time = time.time()
-        self.record_buffer = []
-        #print(f"Recording started: {path}")
+
+        # Add file validity header
+        self._fp_record.write(MAGIC_NUMBER)
+        self._fp_record.write(VERSION)
 
     def stop(self) -> None:
         if not self.is_recording:
             raise RuntimeError("Recording has not started.")
         self.is_recording = False
-        with open(self.file_path, 'wb') as file:
-            pickle.dump(self.record_buffer, file)
-        #print(f"Recording stopped and saved to: {self.file_path}")
+        self.is_paused = False
+        self.write(OpCodes.TERMINATE, None)
+        self._fp_record.close()
 
     def pause(self) -> None:
         if not self.is_recording:
@@ -56,40 +69,44 @@ class Recorder(IRecorder):
             print("Recording resumed.")
 
     def replay(self, path: str):
+        # Check if path has extension .ggr
+        if not path.endswith('.ggr'):
+            path += '.ggr'
+
         if not os.path.exists(path):
             raise FileNotFoundError(f"File {path} does not exist.")
-        with open(path, 'rb') as file:
-            record_buffer = pickle.load(file)
-        for call in record_buffer:
-            yield call
+
+        self._fp_replay = open(path, 'rb')
+
+        # Check file validity header
+        if self._fp_replay.read(4) != MAGIC_NUMBER:
+            raise ValueError("Invalid file format.")
+        
+        _version = self._fp_replay.read(4)
+
+        # Not checking version for now        
+        self.is_replaying = True
+
+        while self.is_replaying:
+            record = pickle.load(self._fp_replay)
+            self._time = record["timestamp"]
+            if record["opCode"] == OpCodes.TERMINATE:
+                self.is_replaying = False
+            else:
+                _record_switch_case(record["opCode"], record.get("data", None))
+
+            yield record
 
     def time(self):
-        if self.is_recording:
-            return np.int64(time.time() - self.start_time)
-        return np.int64(time.time())
+        if self.is_replaying:
+            return self._time
+        return time.monotonic_ns()
 
-    def write(self, opCode, data):
+    def write(self, opCode: OpCodes, data: JsonType) -> None:
         if not self.record():
             raise RuntimeError("Cannot write: Not currently recording.")
         timestamp = self.time()
-        self.record_buffer.append({"timestamp": timestamp, "opCode": opCode, "data": data})
-
-    def memory_get(self, keys):
-        value = self.memory
-        try:
-            for key in keys:
-                value = value[key]
-            return value
-        except KeyError:
-            raise KeyError(f"Key {keys} not found in memory.")
-
-    def memory_set(self, keys, value):
-        target = self.memory
-        for key in keys[:-1]:
-            if key not in target:
-                raise KeyError(f"Key {key} not found in memory for path {keys}.")
-            target = target[key]
-        target[keys[-1]] = value
-
-        if self.record():
-            self.write("memory_set", {"keys": keys, "value": value})
+        if data is None:
+            pickle.dump({"timestamp": timestamp, "opCode": opCode}, self._fp_record)
+        else:
+            pickle.dump({"timestamp": timestamp, "opCode": opCode, "data": data}, self._fp_record)

@@ -1,28 +1,28 @@
-from typing import List, Union, Iterator
+from typing import List, Union, Iterator, Dict
 from enum import Enum
 from abc import ABC, abstractmethod
-import numpy as np
 
 
 class OpCodes(Enum):
+    TERMINATE = 0x00000000
+    AGENT_CREATE = 0x01000000
+    AGENT_GET = 0x01000001
+    AGENT_DELETE = 0x01000002
+    AGENT_STEP = 0x01000003
+    AGENT_SET_STATE =  0x01000004
+    AGENT_GET_STATE = 0x01000005
+    AGENT_CURRENT_NODE = 0x01000006
+    AGENT_PREV_NODE =  0x01000007
+    AGENT_STRATEGY = 0x01000008
+    AGENT_STATE = 0x01000009
+    SENSOR_CREATE = 0x02000000
+    SENSOR_SENSE = 0x02000001
+    SENSOR_UPDATE = 0x02000002
 
-    AGENT_CREATE = 0
-    AGENT_GET = 1
-    AGENT_DELETE = 2
-    AGENT_STEP = 3
-    AGENT_SET_STATE = 4
-    AGENT_GET_STATE = 5
-    AGENT_CURRENT_NODE = 6
-    AGENT_PREV_NODE = 7
-    AGENT_STRATEGY = 8
-    AGENT_STATE = 9
-    SENSOR_CREATE = 10
-    NEIGHBOR_SENSOR_SENSE = 11
-    MAP_SENSOR_SENSE = 12
-    AGENT_SENSOR_SENSE = 13
-    
-    
+MAGIC_NUMBER = 0x4D4D4752.to_bytes(4, 'big')
+VERSION = 0x00000001.to_bytes(4, 'big')
 
+JsonType = Union[None, int, str, bool, List["JsonType"], Dict[str, "JsonType"]]
 
 class IRecorder(ABC):
     @abstractmethod
@@ -63,7 +63,7 @@ class IRecorder(ABC):
         """
         pass
     @abstractmethod
-    def time(self) -> np.float64:
+    def time(self) -> int:
         """
         Return record time if replaying. Else return the local time `(time.time())`
         """
@@ -72,17 +72,5 @@ class IRecorder(ABC):
     def write(self, opCode, data) -> None:
         """
         Write to record buffer if recording. If not recording raise error as it should not happen.
-        """
-        pass
-    @abstractmethod
-    def memory_get(self, keys: List[Union[str, int]]):
-        """
-        Return the value in the memory for the nested keys
-        """
-        pass
-    @abstractmethod
-    def memory_set(self, keys: List[Union[str, int]], value):
-        """
-        Set the value for the nested key. If second last key does not already exist then raise KeyError
         """
         pass
