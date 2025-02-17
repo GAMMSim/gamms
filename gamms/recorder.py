@@ -20,6 +20,7 @@ def _record_switch_case(ctx: IContext, opCode: OpCodes, data: JsonType) -> None:
     elif opCode == OpCodes.AGENT_PREV_NODE:
         ctx.agent.get_agent(data["agent_name"]).prev_node_id = data["node_id"]
     elif opCode == OpCodes.TERMINATE:
+        print("Terminating... Bye!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         ctx.terminate()
 
 class Recorder(IRecorder):
