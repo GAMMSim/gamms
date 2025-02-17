@@ -24,6 +24,6 @@ def create_context(
     ctx.graph_engine = graph_engine
     ctx.visual_engine = visual_engine
     ctx.sensor_engine = sensor_engine
-    ctx.recorder = Recorder()
+    ctx.recorder = Recorder(ctx)
     ctx.set_alive()
     return ctx

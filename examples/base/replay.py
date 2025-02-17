@@ -1,15 +1,10 @@
 import pickle 
 import gamms
-from gamms.typing.opcodes import OpCodes as op
 from gamms.recorder import _record_switch_case
-import time
 from config import (
     vis_engine,
     graph_path,
-    sensor_config,
-    agent_config,
     graph_vis_config,
-    agent_vis_config
 )
 
 ctx = gamms.create_context(vis_engine=vis_engine)

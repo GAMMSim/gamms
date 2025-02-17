@@ -225,11 +225,11 @@ class AgentEngine(IAgentEngine):
     def create_iter(self):
         return self.agents.values()
     
-    def create_agent(self, name, replay=False, **kwargs):
+    def create_agent(self, name, **kwargs):
         if self.ctx.record.record():
             self.ctx.record.write(opCode=op.AGENT_CREATE, data={"name": name, "kwargs": kwargs})
         start_node_id = kwargs.pop('start_node_id')
-        agent = Agent(self.ctx, name, replay, start_node_id, **kwargs)
+        agent = Agent(self.ctx, name, start_node_id, **kwargs)
         #for replay
         kwargs["start_node_id"] = start_node_id
         for sensor in kwargs['sensors']:

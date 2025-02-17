@@ -1,5 +1,6 @@
 from gamms.typing.recorder import IRecorder, JsonType
-from gamms.typing.opcodes import OpCodes as op , MAGIC_NUMBER, VERSION
+from gamms.typing.opcodes import OpCodes as op
+from gamms.typing.opcodes import MAGIC_NUMBER, VERSION
 from gamms.typing import IContext
 import os 
 import time
@@ -9,6 +10,9 @@ def _record_switch_case(ctx: IContext, opCode: op, data: JsonType) -> None:
     if opCode == op.AGENT_CREATE:
         print(f"Creating agent {data['name']} at node {data['start_node_id']}")
         ctx.agent.create_agent(data["name"], data["start_node_id"], **data["kwargs"])
+    elif opCode == op.AGENT_CREATE_VISUAL:
+        print(f"Creating visual for agent {data['name']}")
+        ctx.visual.set_agent_visual(data["name"], **data["kwargs"])
     elif opCode == op.SIMULATE:
         ctx.visual.simulate()
     elif opCode == op.AGENT_CURRENT_NODE:
@@ -102,7 +106,7 @@ class Recorder(IRecorder):
         while self.is_replaying:
             record = pickle.load(self._fp_replay)
             self._time = record["timestamp"]
-            if record["opCode"] == OpCodes.TERMINATE:
+            if record["opCode"] == op.TERMINATE:
                 self.is_replaying = False
             else:
                 _record_switch_case(self._ctx, record["opCode"], record.get("data", None))
@@ -114,7 +118,7 @@ class Recorder(IRecorder):
             return self._time
         return time.monotonic_ns()
 
-    def write(self, opCode: OpCodes, data: JsonType) -> None:
+    def write(self, opCode: op, data: JsonType) -> None:
         if not self.record():
             raise RuntimeError("Cannot write: Not currently recording.")
         timestamp = self.time()
