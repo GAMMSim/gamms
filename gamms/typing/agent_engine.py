@@ -5,11 +5,15 @@ class IAgent(ABC):
     """
     Abstract base class representing an agent in the system.
 
-    Attributes:
-        name (str): The name identifier for the agent.
     """
 
-    _name: str
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """
+        Get the name identifier of the agent.
+        """
+        pass
     
     @property
     @abstractmethod

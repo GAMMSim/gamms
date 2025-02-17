@@ -1,5 +1,5 @@
 from gamms.typing.recorder import IRecorder, JsonType
-from gamms.typing.opcodes import OpCodes ,MAGIC_NUMBER, VERSION
+from gamms.typing.opcodes import OpCodes, MAGIC_NUMBER, VERSION
 from gamms.typing import IContext
 import os 
 import time
@@ -7,11 +7,11 @@ import pickle
 
 def _record_switch_case(ctx: IContext, opCode: OpCodes, data: JsonType) -> None:
     if opCode == OpCodes.AGENT_CREATE:
-        print(f"Creating agent {data['name']} at node {data['start_node_id']}")
-        ctx.agent.create_agent(data["name"], data["start_node_id"], **data["kwargs"])
-    elif opCode == OpCodes.AGENT_CREATE_VISUAL:
-        print(f"Creating visual for agent {data['name']}")
-        ctx.visual.set_agent_visual(data["name"], **data["kwargs"])
+        print(f"Creating agent {data['name']} at node {data['kwargs']['start_node_id']}")
+        ctx.agent.create_agent(data["name"], **data["kwargs"])
+    elif opCode == OpCodes.AGENT_DELETE:
+        print(f"Deleting agent {data}")
+        ctx.agent.delete_agent(data)
     elif opCode == OpCodes.SIMULATE:
         ctx.visual.simulate()
     elif opCode == OpCodes.AGENT_CURRENT_NODE:
@@ -61,9 +61,9 @@ class Recorder(IRecorder):
     def stop(self) -> None:
         if not self.is_recording:
             raise RuntimeError("Recording has not started.")
+        self.write(OpCodes.TERMINATE, None)
         self.is_recording = False
         self.is_paused = False
-        self.write(OpCodes.TERMINATE, None)
         self._fp_record.close()
 
     def pause(self) -> None:
@@ -75,7 +75,7 @@ class Recorder(IRecorder):
             self.is_paused = True
             print("Recording paused.")
 
-    def play(self, path: str) -> None:
+    def play(self) -> None:
         if not self.is_recording:
             print("Warning: Recording has not started.")
         elif not self.is_paused:
@@ -104,12 +104,15 @@ class Recorder(IRecorder):
         self.is_replaying = True
 
         while self.is_replaying:
-            record = pickle.load(self._fp_replay)
+            try:
+                record = pickle.load(self._fp_replay)
+            except EOFError:
+                raise ValueError("Recording ended unexpectedly.")
             self._time = record["timestamp"]
             if record["opCode"] == OpCodes.TERMINATE:
                 self.is_replaying = False
             else:
-                _record_switch_case(self._ctx, record["opCode"], record.get("data", None))
+                _record_switch_case(self.ctx, record["opCode"], record.get("data", None))
 
             yield record
 

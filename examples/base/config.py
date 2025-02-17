@@ -3,7 +3,7 @@ import gamms
 
 
 # Visualization
-vis_engine = gamms.visual.Engine.PYGAME
+vis_engine = gamms.visual.Engine.NO_VIS
 
 # The path to the graph file
 location = "West Point, New York, USA"

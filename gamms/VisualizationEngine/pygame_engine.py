@@ -56,8 +56,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         print("Successfully set graph visual")
     
     def set_agent_visual(self, name, **kwargs):
-        if self.ctx.record.record():
-            self.ctx.record.write(opCode=OpCodes.AGENT_CREATE_VISUAL, data=kwargs)
         agent = self.ctx.agent.get_agent(name)
         node = self.ctx.graph.graph.get_node(agent.current_node_id)
         self._agent_visuals[name] = (AgentVisual(name, (node.x, node.y), **kwargs))

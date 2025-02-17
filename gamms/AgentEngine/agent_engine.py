@@ -12,59 +12,52 @@ class NoOpAgent(IAgent):
         self._current_node_id = start_node_id
     
     @property
+    def name(self):
+        return self._name
+    
+    @property
     def current_node_id(self):
-        if self._ctx.record.record():
-            self._ctx.record.write(
-                opCode=OpCodes.AGENT_CURRENT_NODE,
-                data={
-                    "agent_name": self._name,
-                    "node_id": self._current_node_id,
-                }
-            )
         return self._current_node_id
     
     @current_node_id.setter
     def current_node_id(self, node_id):
+        if self._ctx.record.record():
+            self._ctx.record.write(
+                opCode=OpCodes.AGENT_CURRENT_NODE,
+                data={
+                    "agent_name": self.name,
+                    "node_id": node_id,
+                }
+            )
         self._current_node_id = node_id
 
     @property
     def prev_node_id(self):
-        if self._ctx.record.record():
-            self._ctx.record.write(
-                opCode=OpCodes.AGENT_PREV_NODE,
-                data={
-                    "agent_name": self._name,
-                    "node_id": self._prev_node_id
-                }
-            )
         return self._prev_node_id
     
     @prev_node_id.setter
     def prev_node_id(self, node_id):
+        if self._ctx.record.record():
+            self._ctx.record.write(
+                opCode=OpCodes.AGENT_PREV_NODE,
+                data={
+                    "agent_name": self.name,
+                    "node_id": node_id
+                }
+            )
         self._prev_node_id = node_id
 
     
     @property
     def state(self):
-        if self._ctx.record.record():
-            self._ctx.record.write(
-                opCode=OpCodes.AGENT_STATE,
-                data={}
-            )
         return {}
-    
-    @state.setter
-    def state(self, state):
-        return
-    
+        
     @property
     def strategy(self):
         return 
 
     @strategy.setter
     def strategy(self, strategy):
-        if self._ctx.record.record():
-            self._ctx.record.write(opCode=OpCodes.AGENT_STRATEGY, data={})
         return
     
     def register_sensor(self, name, sensor):
@@ -82,23 +75,9 @@ class NoOpAgent(IAgent):
 
 
     def get_state(self) -> dict:
-        if self._ctx.record.record():
-            self._ctx.record.write(
-                opCode=OpCodes.AGENT_GET_STATE,
-                data={"agent_name": self._name}
-            )
-
         return {}
     
     def set_state(self) -> None:
-        if self._ctx.record.record():
-           self._ctx.record.write(
-                opCode=OpCodes.AGENT_SET_STATE,
-                data={
-                    "agent_name": self._name,
-                    "state": {}
-                }
-            )
         return
 
 class Agent(IAgent):
@@ -116,62 +95,52 @@ class Agent(IAgent):
             setattr(self, k, v)
     
     @property
+    def name(self):
+        return self._name
+    
+    @property
     def current_node_id(self):
-        if self._ctx.record.record():
-            self._ctx.record.write(
-                opCode=OpCodes.AGENT_CURRENT_NODE,
-                data={
-                    "agent_name": self._name,
-                    "node_id": self._current_node_id,
-                }
-            )
         return self._current_node_id
     
     @current_node_id.setter
     def current_node_id(self, node_id):
+        if self._ctx.record.record():
+            self._ctx.record.write(
+                opCode=OpCodes.AGENT_CURRENT_NODE,
+                data={
+                    "agent_name": self.name,
+                    "node_id": node_id,
+                }
+            )
         self._current_node_id = node_id
 
     @property
     def prev_node_id(self):
+        return self._prev_node_id
+    
+    @prev_node_id.setter
+    def prev_node_id(self, node_id):
         if self._ctx.record.record():
             self._ctx.record.write(
                 opCode=OpCodes.AGENT_PREV_NODE,
                 data={
                     "agent_name": self._name,
-                    "node_id": self._prev_node_id
+                    "node_id": node_id
                 }
             )
-        return self._prev_node_id
-    
-    @prev_node_id.setter
-    def prev_node_id(self, node_id):
         self._prev_node_id = node_id
 
     
     @property
     def state(self):
-        if self._ctx.record.record():
-            self._ctx.record.write(
-                opCode=OpCodes.AGENT_STATE,
-                data={
-                    "agent_name": self._name,
-                    "state": self._state
-                }
-            )
         return self._state
-    
-    @state.setter
-    def state(self, state):
-        self._state = state
-    
+        
     @property
     def strategy(self):
         return self._strategy
 
     @strategy.setter
     def strategy(self, strategy):
-        if self._ctx.record.record():
-            self._ctx.record.write(opCode=OpCodes.AGENT_STRATEGY, data=strategy)
         self._strategy = strategy
     
     def register_sensor(self, name, sensor):
@@ -188,30 +157,16 @@ class Agent(IAgent):
         self.set_state()
 
     def get_state(self) -> dict:
-        if self._ctx.record.record():
-            self._ctx.record.write(
-                opCode=OpCodes.AGENT_GET_STATE,
-                data={"agent_name": self._name}
-            )
-
         for sensor in self._sensor_list.values():
             sensor.sense(self._current_node_id)
 
         state = {'curr_pos': self._current_node_id}
         state['sensor'] = {k:(sensor.type, sensor.data) for k, sensor in self._sensor_list.items()}
-        self.state = state
+        self._state = state
         return self._state
     
 
     def set_state(self) -> None:
-        if self._ctx.record.record():
-           self._ctx.record.write(
-                opCode=OpCodes.AGENT_SET_STATE,
-                data={
-                    "agent_name": self._name,
-                    "state": self._state
-                }
-            )
         self.prev_node_id = self._current_node_id
         self.current_node_id = self._state['action']
     
@@ -230,10 +185,11 @@ class AgentEngine(IAgentEngine):
             self.ctx.record.write(opCode=OpCodes.AGENT_CREATE, data={"name": name, "kwargs": kwargs})
         start_node_id = kwargs.pop('start_node_id')
         agent = Agent(self.ctx, name, start_node_id, **kwargs)
-        #for replay
-        kwargs["start_node_id"] = start_node_id
         for sensor in kwargs['sensors']:
-            agent.register_sensor(sensor, self.ctx.sensor.get_sensor(sensor))
+            try:
+                agent.register_sensor(sensor, self.ctx.sensor.get_sensor(sensor))
+            except KeyError:
+                print(f"Ignoring sensor {sensor} for agent {name}")
         if name in self.agents:
             raise ValueError(f"Agent {name} already exists.")
         self.agents[name] = agent
@@ -241,9 +197,6 @@ class AgentEngine(IAgentEngine):
         return agent
     
     def get_agent(self, name: str) -> IAgent:
-        if self.ctx.record.record():
-            self.ctx.record.write(opCode=OpCodes.AGENT_GET, data=name)
-
         if name in self.agents:
             return self.agents[name]
         else:

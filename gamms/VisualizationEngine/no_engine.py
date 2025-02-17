@@ -1,4 +1,5 @@
 from gamms.typing import IVisualizationEngine
+from gamms.typing.opcodes import OpCodes
 from gamms.context import Context
 
 from typing import Dict, Any
@@ -20,11 +21,12 @@ class NoEngine(IVisualizationEngine):
         return
 
     def simulate(self):
+        if self.ctx.record.record():
+            self.ctx.record.write(opCode=OpCodes.SIMULATE, data={})
         return
     
     def human_input(self, name: str, state: Dict[str, Any]):
-        state['action'] = state['current_node_id']
-        return
+        return state['curr_pos']
     
     def terminate(self):
         return

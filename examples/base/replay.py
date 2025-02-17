@@ -15,14 +15,6 @@ ctx.graph.attach_networkx_graph(G)
 ctx.visual.set_graph_visual(**graph_vis_config)
 
 
-# 3) Load the recorded events
-with open('recording.pkl', 'rb') as f:
-    recorded_data = pickle.load(f)
-
-
-agent_map = {}
-
-for event in recorded_data:
-    opcode = event['opCode']
-    data = event['data']
-    _record_switch_case(ctx, opcode, data)
+# Replay the recording
+for _ in ctx.record.replay("recording.ggr"):
+    continue
