@@ -91,7 +91,7 @@ def valid_step(ctx):
     for agent in ctx.agent.create_iter():
         state = agent.get_state()
         sensor_name = agent_config[agent.name]['sensors'][0]
-        if agent.current_node_id not in state['sensor'][sensor_name]:
+        if agent.prev_node_id not in state['sensor'][sensor_name]:
             agent.current_node_id = agent.prev_node_id
 
 # Run the game
@@ -105,7 +105,7 @@ while not ctx.is_terminated():
             state['action'] = node
             agent.set_state()
 
-    valid_step(ctx)
+    # valid_step(ctx)
     agent_reset(ctx)
     if turn_count % 2 == 0:
         data['x'] = n1.x

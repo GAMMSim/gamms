@@ -5,10 +5,12 @@ from gamms.typing import (
     IVisualizationEngine,
     IInternalContext,
     IContext, 
-    IRecorder
+    IRecorder,
+    OpCodes
 )
 
 from typing import  Optional
+
 
 class Context(IContext):
     def __init__(
@@ -61,6 +63,8 @@ class Context(IContext):
     
     def terminate(self):
         if self._alive:
+            if self.record.record():
+                self.record.write(opCode=OpCodes.TERMINATE, data={})
             if self.internal_context is not None:
                 self.internal_context.terminate()
             self.agent_engine.terminate()

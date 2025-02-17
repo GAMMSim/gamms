@@ -170,7 +170,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
             if agent_visual is None:
                 continue
             if agent_visual.position is None:
-                agent = self.ctx.agent.get_agent(name)
                 node = self.ctx.graph.graph.get_node(agent.current_node_id)
                 agent_visual.position = (node.x, node.y)
             agent_visual.draw_agent(self._screen, self._graph_visual.ScalePositionToScreen)

@@ -5,6 +5,7 @@ from config import (
     vis_engine,
     graph_path,
     graph_vis_config,
+    agent_vis_config,
 )
 
 ctx = gamms.create_context(vis_engine=vis_engine)
