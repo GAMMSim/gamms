@@ -1,6 +1,6 @@
 from gamms.typing import IContext
 from gamms.typing.agent_engine import IAgent, IAgentEngine
-from gamms.typing.recorder import OpCodes as op
+from gamms.typing.opcodes import OpCodes as op
 from typing import Callable, Dict, Any, Optional, List
 
 class NoOpAgent(IAgent):

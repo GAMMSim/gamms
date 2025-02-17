@@ -1,6 +1,6 @@
 from gamms.typing.sensor_engine import SensorType, ISensor, ISensorEngine
 from gamms.typing.context import IContext
-from gamms.typing.recorder import OpCodes as op
+from gamms.typing.opcodes import OpCodes as op
 from typing import Any, Dict
 
 

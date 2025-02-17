@@ -1,26 +1,5 @@
 from typing import List, Union, Iterator, Dict
-from enum import Enum
 from abc import ABC, abstractmethod
-
-
-class OpCodes(Enum):
-    TERMINATE = 0x00000000
-    AGENT_CREATE = 0x01000000
-    AGENT_GET = 0x01000001
-    AGENT_DELETE = 0x01000002
-    AGENT_STEP = 0x01000003
-    AGENT_SET_STATE =  0x01000004
-    AGENT_GET_STATE = 0x01000005
-    AGENT_CURRENT_NODE = 0x01000006
-    AGENT_PREV_NODE =  0x01000007
-    AGENT_STRATEGY = 0x01000008
-    AGENT_STATE = 0x01000009
-    SENSOR_CREATE = 0x02000000
-    SENSOR_SENSE = 0x02000001
-    SENSOR_UPDATE = 0x02000002
-
-MAGIC_NUMBER = 0x4D4D4752.to_bytes(4, 'big')
-VERSION = 0x00000001.to_bytes(4, 'big')
 
 JsonType = Union[None, int, str, bool, List["JsonType"], Dict[str, "JsonType"]]
 

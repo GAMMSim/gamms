@@ -1,6 +1,7 @@
 import pickle 
 import gamms
-from gamms.typing.recorder import OpCodes as op
+from gamms.typing.opcodes import OpCodes as op
+from gamms.recorder import _record_switch_case
 import time
 from config import (
     vis_engine,
@@ -29,39 +30,4 @@ agent_map = {}
 for event in recorded_data:
     opcode = event['opCode']
     data = event['data']
-
-    if opcode == op.SENSOR_CREATE:
-        # Re-create sensor
-        ctx.sensor.create_sensor(
-            data['id'],
-            data['type'],
-            **data["kwargs"]
-        )
-    elif opcode == op.AGENT_CREATE:
-        agent = ctx.agent.create_agent(
-            name=data["name"],
-            replay=True,
-            **data["kwargs"]
-        )
-        agent_map[data["name"]] = agent
-        print(f"Agent {data['name']} created")
-        ctx.visual.set_agent_visual(name=data["name"], **agent_vis_config[data["name"]])
-
-    elif opcode == op.AGENT_CURRENT_NODE:
-        print(f"op: {opcode} data: {data}")
-        
-        agent_name = data["agent_name"]
-        node_id = data["node_id"]
-        agent_map[agent_name].current_node_id = node_id
-
-    elif opcode == op.AGENT_PREV_NODE:
-        print(f"op: {opcode} data: {data}")
-        agent_name = data["agent_name"]
-        node_id = data["node_id"]
-        agent_map[agent_name].prev_node_id = node_id
-    
-    #ctx.visual.simulate()
-    # time.sleep(0.25)
-
-#ctx.visual.simulate()
-# print("Replay complete. All agent movements have been restored.")
+    _record_switch_case(ctx, opcode, data)

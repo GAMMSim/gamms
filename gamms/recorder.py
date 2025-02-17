@@ -1,11 +1,23 @@
-from gamms.typing.recorder import IRecorder, MAGIC_NUMBER, VERSION, OpCodes, JsonType
+from gamms.typing.recorder import IRecorder, JsonType
+from gamms.typing.opcodes import OpCodes as op , MAGIC_NUMBER, VERSION
 from gamms.typing import IContext
 import os 
 import time
 import pickle
 
-def _record_switch_case(ctx: IContext, opCode: OpCodes, data: JsonType) -> None:
-    return
+def _record_switch_case(ctx: IContext, opCode: op, data: JsonType) -> None:
+    if opCode == op.AGENT_CREATE:
+        print(f"Creating agent {data['name']} at node {data['start_node_id']}")
+        ctx.agent.create_agent(data["name"], data["start_node_id"], **data["kwargs"])
+    elif opCode == op.SIMULATE:
+        ctx.visual.simulate()
+    elif opCode == op.AGENT_CURRENT_NODE:
+        print(f"Agent {data['agent_name']} moved to node {data['node_id']}")
+        ctx.agent.get_agent(data["agent_name"]).current_node_id = data["node_id"]
+    elif opCode == op.AGENT_PREV_NODE:
+        ctx.agent.get_agent(data["agent_name"]).prev_node_id = data["node_id"]
+    elif opCode == op.TERMINATE:
+        ctx.terminate()
 
 class Recorder(IRecorder):
     def __init__(self, ctx: IContext):
@@ -47,7 +59,7 @@ class Recorder(IRecorder):
             raise RuntimeError("Recording has not started.")
         self.is_recording = False
         self.is_paused = False
-        self.write(OpCodes.TERMINATE, None)
+        self.write(op.TERMINATE, None)
         self._fp_record.close()
 
     def pause(self) -> None:

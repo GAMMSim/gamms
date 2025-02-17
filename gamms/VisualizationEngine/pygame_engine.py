@@ -5,7 +5,7 @@ from gamms.VisualizationEngine.graph_visual import GraphVisual
 from gamms.VisualizationEngine.agent_visual import AgentVisual
 from gamms.context import Context
 from gamms.typing.sensor_engine import SensorType
-
+from gamms.typing.opcodes import OpCodes as op
 from typing import Dict, Any
 
 import pygame
@@ -315,6 +315,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._waiting_agent_name = None
 
     def simulate(self):
+        if self.ctx.record.record():
+            self.ctx.record.write(opCode=op.SIMULATE, data={})
         self._waiting_simulation = True
         for agent in self.ctx.agent.create_iter():
             prev_node = self.ctx.graph.graph.get_node(agent.prev_node_id)
