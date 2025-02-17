@@ -52,7 +52,6 @@ for agent in ctx.agent.create_iter():
 ctx.visual.set_graph_visual(**graph_vis_config)
 
 # Set agent visualization configurations
-
 for name, config in agent_vis_config.items():
     ctx.visual.set_agent_visual(name, **config)
 

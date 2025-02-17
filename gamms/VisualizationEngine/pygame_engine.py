@@ -56,9 +56,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         print("Successfully set graph visual")
     
     def set_agent_visual(self, name, **kwargs):
-        agent = self.ctx.agent.get_agent(name)
-        node = self.ctx.graph.graph.get_node(agent.current_node_id)
-        self._agent_visuals[name] = (AgentVisual(name, (node.x, node.y), **kwargs))
+        self._agent_visuals[name] = (AgentVisual(name, None, **kwargs))
         print(f"Successfully set agent visual for {name}")
     
     
@@ -168,7 +166,13 @@ class PygameVisualizationEngine(IVisualizationEngine):
     def draw_agents(self):
         waiting_agent_visual = None
         for agent in self.ctx.agent.create_iter():
-            agent_visual = self._agent_visuals[agent._name]
+            agent_visual = self._agent_visuals.get(agent.name, None)
+            if agent_visual is None:
+                continue
+            if agent_visual.position is None:
+                agent = self.ctx.agent.get_agent(name)
+                node = self.ctx.graph.graph.get_node(agent.current_node_id)
+                agent_visual.position = (node.x, node.y)
             agent_visual.draw_agent(self._screen, self._graph_visual.ScalePositionToScreen)
             if agent_visual.name == self._waiting_agent_name:
                 waiting_agent_visual = agent_visual
