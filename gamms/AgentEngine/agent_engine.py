@@ -1,7 +1,7 @@
 from gamms.typing import IContext
 from gamms.typing.agent_engine import IAgent, IAgentEngine
-from gamms.typing.opcodes import OpCodes as op
-from typing import Callable, Dict, Any, Optional, List
+from gamms.typing.opcodes import OpCodes
+from typing import Callable, Dict, Any, Optional
 
 class NoOpAgent(IAgent):
     def __init__(self, ctx: IContext, name, start_node_id, **kwargs):
@@ -15,7 +15,7 @@ class NoOpAgent(IAgent):
     def current_node_id(self):
         if self._ctx.record.record():
             self._ctx.record.write(
-                opCode=op.AGENT_CURRENT_NODE,
+                opCode=OpCodes.AGENT_CURRENT_NODE,
                 data={
                     "agent_name": self._name,
                     "node_id": self._current_node_id,
@@ -31,7 +31,7 @@ class NoOpAgent(IAgent):
     def prev_node_id(self):
         if self._ctx.record.record():
             self._ctx.record.write(
-                opCode=op.AGENT_PREV_NODE,
+                opCode=OpCodes.AGENT_PREV_NODE,
                 data={
                     "agent_name": self._name,
                     "node_id": self._prev_node_id
@@ -48,7 +48,7 @@ class NoOpAgent(IAgent):
     def state(self):
         if self._ctx.record.record():
             self._ctx.record.write(
-                opCode=op.AGENT_STATE,
+                opCode=OpCodes.AGENT_STATE,
                 data={}
             )
         return {}
@@ -64,7 +64,7 @@ class NoOpAgent(IAgent):
     @strategy.setter
     def strategy(self, strategy):
         if self._ctx.record.record():
-            self._ctx.record.write(opCode=op.AGENT_STRATEGY, data={})
+            self._ctx.record.write(opCode=OpCodes.AGENT_STRATEGY, data={})
         return
     
     def register_sensor(self, name, sensor):
@@ -84,7 +84,7 @@ class NoOpAgent(IAgent):
     def get_state(self) -> dict:
         if self._ctx.record.record():
             self._ctx.record.write(
-                opCode=op.AGENT_GET_STATE,
+                opCode=OpCodes.AGENT_GET_STATE,
                 data={"agent_name": self._name}
             )
 
@@ -93,7 +93,7 @@ class NoOpAgent(IAgent):
     def set_state(self) -> None:
         if self._ctx.record.record():
            self._ctx.record.write(
-                opCode=op.AGENT_SET_STATE,
+                opCode=OpCodes.AGENT_SET_STATE,
                 data={
                     "agent_name": self._name,
                     "state": {}
@@ -119,7 +119,7 @@ class Agent(IAgent):
     def current_node_id(self):
         if self._ctx.record.record():
             self._ctx.record.write(
-                opCode=op.AGENT_CURRENT_NODE,
+                opCode=OpCodes.AGENT_CURRENT_NODE,
                 data={
                     "agent_name": self._name,
                     "node_id": self._current_node_id,
@@ -135,7 +135,7 @@ class Agent(IAgent):
     def prev_node_id(self):
         if self._ctx.record.record():
             self._ctx.record.write(
-                opCode=op.AGENT_PREV_NODE,
+                opCode=OpCodes.AGENT_PREV_NODE,
                 data={
                     "agent_name": self._name,
                     "node_id": self._prev_node_id
@@ -152,7 +152,7 @@ class Agent(IAgent):
     def state(self):
         if self._ctx.record.record():
             self._ctx.record.write(
-                opCode=op.AGENT_STATE,
+                opCode=OpCodes.AGENT_STATE,
                 data={
                     "agent_name": self._name,
                     "state": self._state
@@ -171,7 +171,7 @@ class Agent(IAgent):
     @strategy.setter
     def strategy(self, strategy):
         if self._ctx.record.record():
-            self._ctx.record.write(opCode=op.AGENT_STRATEGY, data=strategy)
+            self._ctx.record.write(opCode=OpCodes.AGENT_STRATEGY, data=strategy)
         self._strategy = strategy
     
     def register_sensor(self, name, sensor):
@@ -190,7 +190,7 @@ class Agent(IAgent):
     def get_state(self) -> dict:
         if self._ctx.record.record():
             self._ctx.record.write(
-                opCode=op.AGENT_GET_STATE,
+                opCode=OpCodes.AGENT_GET_STATE,
                 data={"agent_name": self._name}
             )
 
@@ -206,7 +206,7 @@ class Agent(IAgent):
     def set_state(self) -> None:
         if self._ctx.record.record():
            self._ctx.record.write(
-                opCode=op.AGENT_SET_STATE,
+                opCode=OpCodes.AGENT_SET_STATE,
                 data={
                     "agent_name": self._name,
                     "state": self._state
@@ -227,7 +227,7 @@ class AgentEngine(IAgentEngine):
     
     def create_agent(self, name, **kwargs):
         if self.ctx.record.record():
-            self.ctx.record.write(opCode=op.AGENT_CREATE, data={"name": name, "kwargs": kwargs})
+            self.ctx.record.write(opCode=OpCodes.AGENT_CREATE, data={"name": name, "kwargs": kwargs})
         start_node_id = kwargs.pop('start_node_id')
         agent = Agent(self.ctx, name, start_node_id, **kwargs)
         #for replay
@@ -242,7 +242,7 @@ class AgentEngine(IAgentEngine):
     
     def get_agent(self, name: str) -> IAgent:
         if self.ctx.record.record():
-            self.ctx.record.write(opCode=op.AGENT_GET, data=name)
+            self.ctx.record.write(opCode=OpCodes.AGENT_GET, data=name)
 
         if name in self.agents:
             return self.agents[name]
@@ -251,7 +251,7 @@ class AgentEngine(IAgentEngine):
 
     def delete_agent(self, name) -> None:
         if self.ctx.record.record():
-            self.ctx.record.write(opCode=op.AGENT_DELETE, data=name)
+            self.ctx.record.write(opCode=OpCodes.AGENT_DELETE, data=name)
             
         if name not in self.agents:
             print("Warning: Deleting non-existent agent")

@@ -1,6 +1,6 @@
 from gamms.typing.sensor_engine import SensorType, ISensor, ISensorEngine
 from gamms.typing.context import IContext
-from gamms.typing.opcodes import OpCodes as op
+from gamms.typing.opcodes import OpCodes
 from typing import Any, Dict
 
 
@@ -19,7 +19,7 @@ class NeighborSensor(ISensor):
     #setter
     def sense(self, node_id: int) -> None:
         if self.ctx.record.record():
-            self.ctx.record.write(opCode=op.SENSOR_SENSE, data=node_id)
+            self.ctx.record.write(opCode=OpCodes.SENSOR_SENSE, data=node_id)
 
         nearest_neighbors = {node_id,}
         for edge in self.edges.values():
@@ -45,7 +45,7 @@ class MapSensor(ISensor):
 
     def sense(self, node_id: int) -> None:
         if self.ctx.record.record():
-            self.ctx.record.write(opCode=op.SENSOR_SENSE, data=node_id)
+            self.ctx.record.write(opCode=OpCodes.SENSOR_SENSE, data=node_id)
         self.data = (self.nodes, self.edges)
     
     def update(self, data: Dict[str, Any]) -> None:
@@ -64,7 +64,7 @@ class AgentSensor(ISensor):
     
     def sense(self, node_id: int) -> None:
         if self.ctx.record.record():
-            self.ctx.record.write(opCode=op.SENSOR_SENSE, data=node_id)
+            self.ctx.record.write(opCode=OpCodes.SENSOR_SENSE, data=node_id)
         agent_data = {}
         for agent in self.agent.create_iter():
             agent_data[agent._name] = agent.current_node_id
@@ -80,7 +80,7 @@ class SensorEngine(ISensorEngine):
         
     def create_sensor(self, id, type: SensorType, **kwargs):
         if self.ctx.record.record():
-            self.ctx.record.write(opCode=op.SENSOR_CREATE, data={"id": id, "type":type, "kwargs":kwargs})
+            self.ctx.record.write(opCode=OpCodes.SENSOR_CREATE, data={"id": id, "type":type, "kwargs":kwargs})
         if type == SensorType.NEIGHBOR:
             sensor = NeighborSensor(self.ctx, id, type, self.ctx.graph_engine.graph.nodes, self.ctx.graph_engine.graph.edges)
         elif type == SensorType.MAP:

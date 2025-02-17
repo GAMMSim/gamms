@@ -5,7 +5,7 @@ from gamms.VisualizationEngine.graph_visual import GraphVisual
 from gamms.VisualizationEngine.agent_visual import AgentVisual
 from gamms.context import Context
 from gamms.typing.sensor_engine import SensorType
-from gamms.typing.opcodes import OpCodes as op
+from gamms.typing.opcodes import OpCodes
 from typing import Dict, Any
 
 import pygame
@@ -57,7 +57,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
     
     def set_agent_visual(self, name, **kwargs):
         if self.ctx.record.record():
-            self.ctx.record.write(opCode=op.AGENT_CREATE_VISUAL, data=kwargs)
+            self.ctx.record.write(opCode=OpCodes.AGENT_CREATE_VISUAL, data=kwargs)
         agent = self.ctx.agent.get_agent(name)
         node = self.ctx.graph.graph.get_node(agent.current_node_id)
         self._agent_visuals[name] = (AgentVisual(name, (node.x, node.y), **kwargs))
@@ -318,7 +318,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
     def simulate(self):
         if self.ctx.record.record():
-            self.ctx.record.write(opCode=op.SIMULATE, data={})
+            self.ctx.record.write(opCode=OpCodes.SIMULATE, data={})
         self._waiting_simulation = True
         for agent in self.ctx.agent.create_iter():
             prev_node = self.ctx.graph.graph.get_node(agent.prev_node_id)

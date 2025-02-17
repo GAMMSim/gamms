@@ -1,26 +1,25 @@
 from gamms.typing.recorder import IRecorder, JsonType
-from gamms.typing.opcodes import OpCodes as op
-from gamms.typing.opcodes import MAGIC_NUMBER, VERSION
+from gamms.typing.opcodes import OpCodes ,MAGIC_NUMBER, VERSION
 from gamms.typing import IContext
 import os 
 import time
 import pickle
 
-def _record_switch_case(ctx: IContext, opCode: op, data: JsonType) -> None:
-    if opCode == op.AGENT_CREATE:
+def _record_switch_case(ctx: IContext, opCode: OpCodes, data: JsonType) -> None:
+    if opCode == OpCodes.AGENT_CREATE:
         print(f"Creating agent {data['name']} at node {data['start_node_id']}")
         ctx.agent.create_agent(data["name"], data["start_node_id"], **data["kwargs"])
-    elif opCode == op.AGENT_CREATE_VISUAL:
+    elif opCode == OpCodes.AGENT_CREATE_VISUAL:
         print(f"Creating visual for agent {data['name']}")
         ctx.visual.set_agent_visual(data["name"], **data["kwargs"])
-    elif opCode == op.SIMULATE:
+    elif opCode == OpCodes.SIMULATE:
         ctx.visual.simulate()
-    elif opCode == op.AGENT_CURRENT_NODE:
+    elif opCode == OpCodes.AGENT_CURRENT_NODE:
         print(f"Agent {data['agent_name']} moved to node {data['node_id']}")
         ctx.agent.get_agent(data["agent_name"]).current_node_id = data["node_id"]
-    elif opCode == op.AGENT_PREV_NODE:
+    elif opCode == OpCodes.AGENT_PREV_NODE:
         ctx.agent.get_agent(data["agent_name"]).prev_node_id = data["node_id"]
-    elif opCode == op.TERMINATE:
+    elif opCode == OpCodes.TERMINATE:
         ctx.terminate()
 
 class Recorder(IRecorder):
@@ -63,7 +62,7 @@ class Recorder(IRecorder):
             raise RuntimeError("Recording has not started.")
         self.is_recording = False
         self.is_paused = False
-        self.write(op.TERMINATE, None)
+        self.write(OpCodes.TERMINATE, None)
         self._fp_record.close()
 
     def pause(self) -> None:
@@ -106,7 +105,7 @@ class Recorder(IRecorder):
         while self.is_replaying:
             record = pickle.load(self._fp_replay)
             self._time = record["timestamp"]
-            if record["opCode"] == op.TERMINATE:
+            if record["opCode"] == OpCodes.TERMINATE:
                 self.is_replaying = False
             else:
                 _record_switch_case(self._ctx, record["opCode"], record.get("data", None))
@@ -118,7 +117,7 @@ class Recorder(IRecorder):
             return self._time
         return time.monotonic_ns()
 
-    def write(self, opCode: op, data: JsonType) -> None:
+    def write(self, opCode: OpCodes, data: JsonType) -> None:
         if not self.record():
             raise RuntimeError("Cannot write: Not currently recording.")
         timestamp = self.time()
