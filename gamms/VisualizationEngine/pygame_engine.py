@@ -5,7 +5,7 @@ from gamms.VisualizationEngine.graph_visual import GraphVisual
 from gamms.VisualizationEngine.agent_visual import AgentVisual
 from gamms.context import Context
 from gamms.typing.sensor_engine import SensorType
-
+from gamms.typing.opcodes import OpCodes
 from typing import Dict, Any
 
 import pygame
@@ -19,7 +19,7 @@ def _circle_artist(ctx, data):
     pygame.draw.circle(ctx.visual._screen, color, (x,y), scale)
 
 class PygameVisualizationEngine(IVisualizationEngine):
-    def __init__(self, ctx, tick_callback = None, width=1980, height=1080, simulation_time_constant=2.0, **kwargs):
+    def __init__(self, ctx, tick_callback = None, width=1980, height=1080, simulation_time_constant=2.0):
         pygame.init()
         self.ctx: Context = ctx
         self._width = width
@@ -50,15 +50,13 @@ class PygameVisualizationEngine(IVisualizationEngine):
         return self._height    
     
     def set_graph_visual(self, **kwargs):
-        self._graph_visual = GraphVisual(self.ctx.graph.graph, kwargs['width'], kwargs['height'], kwargs.get('draw_id', False), kwargs.get('node_color', Color.LightGreen), kwargs.get('edge_color', Color.Black))
+        self._graph_visual = GraphVisual(self.ctx.graph.graph, kwargs['width'], kwargs['height'])
         self._graph_visual.setCamera(self._camera)
 
         print("Successfully set graph visual")
     
     def set_agent_visual(self, name, **kwargs):
-        agent = self.ctx.agent.get_agent(name)
-        node = self.ctx.graph.graph.get_node(agent.current_node_id)
-        self._agent_visuals[name] = (AgentVisual(name, (node.x, node.y), **kwargs))
+        self._agent_visuals[name] = (AgentVisual(name, None, **kwargs))
         print(f"Successfully set agent visual for {name}")
     
     
@@ -81,41 +79,41 @@ class PygameVisualizationEngine(IVisualizationEngine):
             if pressed_keys[pygame.K_a] and pressed_keys[pygame.K_w]:
                 self._camera.x += self._camera.size / 100
                 self._camera.y += -self._camera.size / 100
-
+                return
             if pressed_keys[pygame.K_a] and pressed_keys[pygame.K_s]:
                 self._camera.x += self._camera.size / 100
                 self._camera.y += self._camera.size / 100
-
+                return
             if pressed_keys[pygame.K_s] and pressed_keys[pygame.K_d]:
                 self._camera.x += -self._camera.size / 100
                 self._camera.y += self._camera.size / 100
-
+                return
             if pressed_keys[pygame.K_d] and pressed_keys[pygame.K_w]:
                 self._camera.x += -self._camera.size / 100
                 self._camera.y += -self._camera.size / 100
-
+                return
             if pressed_keys[pygame.K_a] and pressed_keys[pygame.K_d]:
-                continue
+                return
             if pressed_keys[pygame.K_w] and pressed_keys[pygame.K_s]:
-                continue
+                return
             
             # Single Input Event
             if pressed_keys[pygame.K_a]:
                 self._camera.x += self._camera.size / 100
                 self._camera.y += 0
-
+                return
             if pressed_keys[pygame.K_s]:
                 self._camera.x += 0
                 self._camera.y += self._camera.size / 100
-
+                return
             if pressed_keys[pygame.K_d]:
                 self._camera.x += -self._camera.size / 100
                 self._camera.y += 0
-
+                return
             if pressed_keys[pygame.K_w]:
                 self._camera.x += 0
                 self._camera.y += -self._camera.size / 100
-
+                return
             if event.type == pygame.MOUSEWHEEL:
                 if event.y > 0:
                     self._camera.size /= 1.05
@@ -127,11 +125,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
                     if(self._camera.size < 350):
                         self._zoom /= 1.05
                         self._zoom = self._graph_visual.setZoom(self._zoom)
-
             if event.type == pygame.QUIT:
                 self._will_quit = True
-                self._input_option_result = -1
-
             if event.type == pygame.VIDEORESIZE:
                 self._width = event.w
                 self._height = event.h
@@ -154,7 +149,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
                 alpha = self._simulation_time / self._sim_time_constant
                 alpha = pygame.math.clamp(alpha, 0, 1)
                 for agent in self.ctx.agent.create_iter():
-                    self._agent_visuals[agent.name].update_simulation(alpha)
+                    self._agent_visuals[agent._name].update_simulation(alpha)
 
     def handle_single_draw(self):
         self._screen.fill(Color.White)
@@ -171,7 +166,12 @@ class PygameVisualizationEngine(IVisualizationEngine):
     def draw_agents(self):
         waiting_agent_visual = None
         for agent in self.ctx.agent.create_iter():
-            agent_visual = self._agent_visuals[agent.name]
+            agent_visual = self._agent_visuals.get(agent.name, None)
+            if agent_visual is None:
+                continue
+            if agent_visual.position is None:
+                node = self.ctx.graph.graph.get_node(agent.current_node_id)
+                agent_visual.position = (node.x, node.y)
             agent_visual.draw_agent(self._screen, self._graph_visual.ScalePositionToScreen)
             if agent_visual.name == self._waiting_agent_name:
                 waiting_agent_visual = agent_visual
@@ -262,7 +262,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
     def run_game_loop(self):
         clock = pygame.time.Clock()
-        while not self._will_quit:
+        while True:
             
             self.handle_input()
             self.handle_single_draw() 
@@ -286,13 +286,10 @@ class PygameVisualizationEngine(IVisualizationEngine):
     
     def update_agent_visual_pos(self):
         for agent in self.ctx.agent.create_iter():
-            agent_visual = self._agent_visuals[agent.name]
+            agent_visual = self._agent_visuals[agent._name]
             agent_visual.set_postions(agent.prev_node_id, agent.current_node_id)
 
     def human_input(self, agent_name, state: Dict[str, Any]) -> int:
-        if self.ctx.is_terminated():
-            return state["curr_pos"]
-            
         self._waiting_user_input = True
 
         def get_neighbours(state):
@@ -311,12 +308,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
             self.update()
 
             result = self._input_option_result
-
-            if result == -1:
-                self.end_handle_human_input()
-                self.ctx.terminate()
-                return state["curr_pos"]
-            
             if result is not None:
                 self.end_handle_human_input()
                 return result                
@@ -327,6 +318,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._waiting_agent_name = None
 
     def simulate(self):
+        if self.ctx.record.record():
+            self.ctx.record.write(opCode=OpCodes.SIMULATE, data={})
         self._waiting_simulation = True
         for agent in self.ctx.agent.create_iter():
             prev_node = self.ctx.graph.graph.get_node(agent.prev_node_id)
@@ -337,9 +330,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
                 if edge.source == agent.prev_node_id and edge.target == agent.current_node_id:
                     current_edge = edge
             
-            self._agent_visuals[agent.name].start_simulation_lerp((prev_node.x, prev_node.y), (target_node.x, target_node.y), current_edge.linestring if current_edge is not None else None)
+            self._agent_visuals[agent._name].start_simulation_lerp((prev_node.x, prev_node.y), (target_node.x, target_node.y), current_edge.linestring if current_edge is not None else None)
 
-        while self._waiting_simulation and not self._will_quit:
+        while self._waiting_simulation:
             self.update()
 
     def terminate(self):
