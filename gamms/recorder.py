@@ -126,6 +126,6 @@ class Recorder(IRecorder):
             raise RuntimeError("Cannot write: Not currently recording.")
         timestamp = self.time()
         if data is None:
-            ubjson.dump({"timestamp": timestamp, "opCode": opCode}, self._fp_record)
+            ubjson.dump({"timestamp": timestamp, "opCode": int(opCode)}, self._fp_record)
         else:
-            ubjson.dump({"timestamp": timestamp, "opCode": opCode, "data": data}, self._fp_record)
+            ubjson.dump({"timestamp": timestamp, "opCode": int(opCode), "data": data}, self._fp_record)
