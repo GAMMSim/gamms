@@ -3,7 +3,7 @@ from gamms.typing.opcodes import OpCodes, MAGIC_NUMBER, VERSION
 from gamms.typing import IContext
 import os 
 import time
-import pickle
+import ubjson
 
 def _record_switch_case(ctx: IContext, opCode: OpCodes, data: JsonType) -> None:
     if opCode == OpCodes.AGENT_CREATE:
@@ -105,7 +105,7 @@ class Recorder(IRecorder):
 
         while self.is_replaying:
             try:
-                record = pickle.load(self._fp_replay)
+                record = ubjson.load(self._fp_replay)
             except EOFError:
                 raise ValueError("Recording ended unexpectedly.")
             self._time = record["timestamp"]
@@ -126,6 +126,6 @@ class Recorder(IRecorder):
             raise RuntimeError("Cannot write: Not currently recording.")
         timestamp = self.time()
         if data is None:
-            pickle.dump({"timestamp": timestamp, "opCode": opCode}, self._fp_record)
+            ubjson.dump({"timestamp": timestamp, "opCode": opCode}, self._fp_record)
         else:
-            pickle.dump({"timestamp": timestamp, "opCode": opCode, "data": data}, self._fp_record)
+            ubjson.dump({"timestamp": timestamp, "opCode": opCode, "data": data}, self._fp_record)
