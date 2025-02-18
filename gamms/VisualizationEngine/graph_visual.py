@@ -77,6 +77,4 @@ class GraphVisual:
             self.draw_edge(screen, edge)
         for node in self.graph.nodes.values():
             self.draw_node(screen, node)
-        
-
-
+ 

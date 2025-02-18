@@ -5,7 +5,7 @@ from gamms.context import Context
 from typing import Dict, Any
 
 class NoEngine(IVisualizationEngine):
-    def __init__(self, ctx: Context):
+    def __init__(self, ctx: Context, **kwargs):
         self.ctx = ctx
     
     def set_graph_visual(self, **kwargs):
@@ -25,8 +25,8 @@ class NoEngine(IVisualizationEngine):
             self.ctx.record.write(opCode=OpCodes.SIMULATE, data={})
         return
     
-    def human_input(self, name: str, state: Dict[str, Any]):
-        return state['curr_pos']
+    def human_input(self, agent_name: str, state: Dict[str, Any]) -> int:
+        return state["curr_pos"]
     
     def terminate(self):
         return
