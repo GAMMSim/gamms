@@ -22,3 +22,5 @@ for name, config in agent_vis_config.items():
 # Replay the recording
 for _ in ctx.record.replay("recording.ggr"):
     continue
+
+ctx.terminate()

@@ -20,8 +20,7 @@ def _record_switch_case(ctx: IContext, opCode: OpCodes, data: JsonType) -> None:
     elif opCode == OpCodes.AGENT_PREV_NODE:
         ctx.agent.get_agent(data["agent_name"]).prev_node_id = data["node_id"]
     elif opCode == OpCodes.TERMINATE:
-        print("Terminating... Bye!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        ctx.terminate()
+        print("Terminating...")
 
 class Recorder(IRecorder):
     def __init__(self, ctx: IContext):
@@ -112,8 +111,7 @@ class Recorder(IRecorder):
             opCode = OpCodes(record["opCode"])
             if opCode == OpCodes.TERMINATE:
                 self.is_replaying = False
-            else:
-                _record_switch_case(self.ctx, opCode, record.get("data", None))
+            _record_switch_case(self.ctx, opCode, record.get("data", None))
 
             yield record
 
