@@ -109,10 +109,11 @@ class Recorder(IRecorder):
             except EOFError:
                 raise ValueError("Recording ended unexpectedly.")
             self._time = record["timestamp"]
-            if record["opCode"] == OpCodes.TERMINATE:
+            opCode = OpCodes(record["opCode"])
+            if opCode == OpCodes.TERMINATE:
                 self.is_replaying = False
             else:
-                _record_switch_case(self.ctx, record["opCode"], record.get("data", None))
+                _record_switch_case(self.ctx, opCode, record.get("data", None))
 
             yield record
 
@@ -126,6 +127,6 @@ class Recorder(IRecorder):
             raise RuntimeError("Cannot write: Not currently recording.")
         timestamp = self.time()
         if data is None:
-            ubjson.dump({"timestamp": timestamp, "opCode": int(opCode)}, self._fp_record)
+            ubjson.dump({"timestamp": timestamp, "opCode": opCode.value}, self._fp_record)
         else:
-            ubjson.dump({"timestamp": timestamp, "opCode": int(opCode), "data": data}, self._fp_record)
+            ubjson.dump({"timestamp": timestamp, "opCode": opCode.value, "data": data}, self._fp_record)
