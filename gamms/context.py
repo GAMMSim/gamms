@@ -64,12 +64,11 @@ class Context(IContext):
     def terminate(self):
         if self._alive:
             if self.record.record():
-                self.record.write(opCode=OpCodes.TERMINATE, data={})
+                self.recorder.stop()
             if self.internal_context is not None:
                 self.internal_context.terminate()
             self.agent_engine.terminate()
             self.sensor_engine.terminate()
             self.graph_engine.terminate()
             self.visual_engine.terminate()
-            self.recorder.stop()
             self._alive = False
