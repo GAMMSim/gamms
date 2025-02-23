@@ -9,6 +9,7 @@ class Color:
     Black = (0, 0, 0)
     Red = (255, 0, 0)
     Green = (0, 255, 0)
+    LightGreen = (144, 238, 144)
     Blue = (0, 0, 255)
     Yellow = (255, 255, 0)
     Cyan = (0, 255, 255)

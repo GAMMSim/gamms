@@ -13,7 +13,7 @@ import pygame
 
 
 class PygameVisualizationEngine(IVisualizationEngine):
-    def __init__(self, ctx, width=1980, height=1080, simulation_time_constant=2.0):
+    def __init__(self, ctx, width=1980, height=1080, simulation_time_constant=2.0, **kwargs):
         pygame.init()
         self.ctx: Context = ctx
         self._width = width
@@ -56,11 +56,17 @@ class PygameVisualizationEngine(IVisualizationEngine):
     def set_graph_visual(self, **kwargs):
         def graph_drawer(ctx, data):
             graph = data['graph']
-            RenderManager.render_graph(ctx, graph)
+            draw_id = data['draw_id']
+            node_color = data['node_color']
+            edge_color = data['edge_color']
+            RenderManager.render_graph(ctx, graph, draw_id, node_color, edge_color)
 
         data = {}
         data['drawer'] = graph_drawer
         data['graph'] = self.ctx.graph.graph
+        data['draw_id'] =kwargs.get('draw_id', False)
+        data['node_color'] = kwargs.get('node_color', Color.LightGreen)
+        data['edge_color'] = kwargs.get('edge_color', Color.Black)
 
         #Add data for node ID and Color
         self.add_artist('graph', data)

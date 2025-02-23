@@ -1,4 +1,4 @@
-from gamms.VisualizationEngine import Color, Shape
+from gamms.VisualizationEngine import Color, Shape, Space
 from gamms.VisualizationEngine.render_node import RenderNode
 from gamms.VisualizationEngine.agent_visual import AgentVisual
 from gamms.typing.graph_engine import IGraph
@@ -248,7 +248,7 @@ class RenderManager:
         # pygame.draw.polygon(screen, color, [point1, point2, point3])
 
     @staticmethod
-    def render_graph(ctx: Context, graph: IGraph):
+    def render_graph(ctx: Context, graph: IGraph, draw_id: bool, node_color: tuple, edge_color: tuple):
         """
         Render the graph by drawing its nodes and edges on the screen. This is the default rendering method for graphs.
 
@@ -259,13 +259,13 @@ class RenderManager:
         
         screen = ctx.visual.screen
         for edge in graph.edges.values():
-            RenderManager._draw_edge(ctx, screen, graph, edge)
+            RenderManager._draw_edge(ctx, screen, graph, edge, edge_color)
         for node in graph.nodes.values():
-            RenderManager._draw_node(ctx, screen, node)
+            RenderManager._draw_node(ctx, screen, node, node_color, draw_id)
         
 
     @staticmethod
-    def _draw_edge(ctx, screen, graph, edge):
+    def _draw_edge(ctx, screen, graph, edge, edge_color):
         """Draw an edge as a curve or straight line based on the linestring."""
         source = graph.nodes[edge.source]
         target = graph.nodes[edge.target]
@@ -283,7 +283,7 @@ class RenderManager:
         
         _color = ctx.visual._graph_visual.getEdgeColorById(edge.id)
         if _color is None:
-            _color = (169, 169, 169)
+            _color = edge_color
 
         # If linestring is present, draw it as a curve
         if edge.linestring:
@@ -304,7 +304,7 @@ class RenderManager:
             ctx.visual.render_line(x1, y1, x2, y2, _color, 2)
 
     @staticmethod
-    def _draw_node(ctx, screen, node, color=(169, 169, 169)):
+    def _draw_node(ctx, screen, node, node_color=(169, 169, 169), draw_id=False):
         position = (node.x, node.y)
         (x, y) = ctx.visual._graph_visual.ScalePositionToScreen(position)
 
@@ -317,7 +317,10 @@ class RenderManager:
         color = ctx.visual._graph_visual.getNodeColorById(node.id)
         scale = 8
         if color is None:
-            color =  (128, 128, 128)
+            color = node_color
             scale = 4
 
         ctx.visual.render_circle(int(x), int(y), scale, color)
+
+        if draw_id:
+            ctx.visual.render_text(str(node.id), int(x), int(y) + 10, (0, 0, 0), Space.Screen)

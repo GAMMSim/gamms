@@ -7,14 +7,17 @@ from enum import Enum
 
 def create_context(
     vis_engine: Enum = visual.Engine.NO_VIS,
+    vis_kwargs: dict = None,
 ) -> Context:
     ctx = Context()
+    if vis_kwargs is None:
+        vis_kwargs = {}
     if vis_engine == visual.Engine.NO_VIS:
         from gamms.VisualizationEngine import no_engine
-        visual_engine = no_engine.NoEngine(ctx)
+        visual_engine = no_engine.NoEngine(ctx, **vis_kwargs)
     elif vis_engine == visual.Engine.PYGAME:
         from gamms.VisualizationEngine import pygame_engine
-        visual_engine = pygame_engine.PygameVisualizationEngine(ctx)
+        visual_engine = pygame_engine.PygameVisualizationEngine(ctx, **vis_kwargs)
     else:
         raise NotImplementedError(f"Visualization engine {vis_engine} not implemented")
     

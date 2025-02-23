@@ -4,7 +4,7 @@ site_description: >-
 
 # Repository
 repo_name: GAMMS
-repo_url: https://github.com/jmalegankar/GAMMS
+repo_url: https://github.com/GAMMSim/GAMMS
 
 # Configuration
 theme:
@@ -96,10 +96,11 @@ markdown_extensions:
 # Page tree
 nav:
   - Home: index.md
+  - Getting Started: start.md
   - API Reference:
     - Context: context.md
     - Agent: agent.md
     - Graph: graph.md
     - Sensor: sensor.md
     - Visualization : visual.md
-  - Issue Tracker: "https://github.com/jmalegankar/GAMMS/issues"
+  - Issue Tracker: "https://github.com/GAMMSim/GAMMS/issues"

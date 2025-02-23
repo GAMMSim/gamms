@@ -45,8 +45,7 @@ def create_osm_graph(
     
     osmg = ox.project_graph(osmg)
     osmg = ox.consolidate_intersections(osmg, tolerance=tolerance, rebuild_graph=True, dead_ends=True)
-    osmg = ox.project_graph(osmg, to_latlong=True)
-    #ox.plot_graph(osmg)
+    osmg = ox.project_graph(osmg, to_latlong=False)
     # Process line strings to add extra nodes and edges
     ret = nx.MultiDiGraph()
     edges = osmg.edges(data=True)
