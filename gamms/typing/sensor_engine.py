@@ -18,6 +18,7 @@ class SensorType(Enum):
     NEIGHBOR = 1
     MAP = 2
     AGENT = 3
+    RANGE = 4
 
 
 class ISensor(ABC):
