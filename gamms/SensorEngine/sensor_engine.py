@@ -88,7 +88,7 @@ class RangeSensor(ISensor):
     
     def sense(self, node_id: int) -> None:
         current_node = self.nodes[node_id]
-        current_position = np.array(current_node.position).reshape(1, 2)  # Shape (1,2)
+        current_position = np.array(current_node.position).reshape(1, 2)
         
         node_ids = list(self.nodes.keys())
         positions = np.array([self.nodes[nid].position for nid in node_ids])
