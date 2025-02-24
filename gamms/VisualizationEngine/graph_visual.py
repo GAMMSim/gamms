@@ -111,14 +111,11 @@ class GraphVisual:
 
     def setRenderManager(self, render_manager):
         self.render_manager = render_manager
+        self.render_manager.camera_size = max(self.x_max - self.x_min, self.y_max - self.y_min)
 
     def ScalePositionToScreen(self, position: tuple[float, float]) -> tuple[float, float]:
         """Scale a coordinate value to fit within the screen."""
         graph_center = self.GraphCenter()
-        # Graph comes in the form of KM. Need to convert the KM to scale for M. One unit = 1m
-        screen_scale = 111139 / 100
-
-        map_position = (screen_scale * (position[0] - graph_center[0]),screen_scale * (position[1] - graph_center[1]))
+        map_position = ((position[0] - graph_center[0]),(position[1] - graph_center[1]))
         map_position = self.render_manager.world_to_screen(map_position[0] + self.render_manager.camera_x, map_position[1] + self.render_manager.camera_y)
-        #map_position = (map_position[0] + self.offset[0], map_position[1] + self.offset[1])
         return map_position

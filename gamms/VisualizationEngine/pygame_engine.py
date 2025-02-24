@@ -104,17 +104,18 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
     def handle_input(self):
         pressed_keys = pygame.key.get_pressed()
+        scrollSpeed = self.render_manager.camera_size / 100
         if pressed_keys[pygame.K_a] or pressed_keys[pygame.K_LEFT]:
-            self._render_manager.camera_x += 1 * self._clock.get_time() / 1000
+            self._render_manager.camera_x += scrollSpeed #* self._clock.get_time() / 1000
 
         if pressed_keys[pygame.K_d] or pressed_keys[pygame.K_RIGHT]:
-            self._render_manager.camera_x -= 1 * self._clock.get_time() / 1000
+            self._render_manager.camera_x -= scrollSpeed #* self._clock.get_time() / 1000
 
         if pressed_keys[pygame.K_w] or pressed_keys[pygame.K_UP]:
-            self._render_manager.camera_y += 1 * self._clock.get_time() / 1000
+            self._render_manager.camera_y -= scrollSpeed #* self._clock.get_time() / 1000
 
         if pressed_keys[pygame.K_s] or pressed_keys[pygame.K_DOWN]:
-            self._render_manager.camera_y -= 1 * self._clock.get_time() / 1000
+            self._render_manager.camera_y += scrollSpeed #* self._clock.get_time() / 1000
         
         for event in pygame.event.get():
             if event.type == pygame.MOUSEWHEEL:
@@ -161,7 +162,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._screen.fill(Color.White)
 
         # Note: Draw in layer order of back layer -> front layer
-        self._draw_grid()
+        # self._draw_grid()
         
         self.draw_input_overlay()
         self._render_manager.handle_render()
