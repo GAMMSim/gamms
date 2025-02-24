@@ -53,6 +53,11 @@ ctx.visual.set_graph_visual(**graph_vis_config)
 for name, config in agent_vis_config.items():
     ctx.visual.set_agent_visual(name, **config)
 
+
+# Example of a custom drawer
+def custom_circle_drawer(ctx, data):
+    gamms.visual.render_manager.RenderManager.render_circle(ctx, data['x'], data['y'], data['scale'], (0, 0, 255))
+
 # Special nodes
 n1 = ctx.graph.graph.get_node(0)
 n2 = ctx.graph.graph.get_node(1)
@@ -61,6 +66,7 @@ data['x'] = n1.x
 data['y'] = n1.y
 data['scale'] = 10.0
 data['color'] = (255, 0, 0)
+data['drawer'] = custom_circle_drawer
 
 ctx.visual.add_artist('special_node', data)
 
