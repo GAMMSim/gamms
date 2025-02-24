@@ -40,10 +40,6 @@ class Graph(IGraph):
             length=edge_data['length'],
             linestring=edge_data.get('linestring', None)
         )
-        
-        #Remap ID to be 64 Bit
-        edge.id = (edge.source << 32) + edge.target
-
         #print("(key, id): ",(edge.id, edge_data['id']))
         #print("(edge.source, edge.target): ",(edge.source, edge.target))
         #print("(edge.length): ",(edge.length))

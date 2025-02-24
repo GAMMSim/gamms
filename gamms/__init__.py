@@ -6,7 +6,7 @@ from gamms.context import Context
 from enum import Enum
 
 def create_context(
-    vis_engine: Enum = visual.Engine.NO_VIS,
+    vis_engine: Enum = visual.Engine.PYGAME,
     vis_kwargs: dict = None,
 ) -> Context:
     ctx = Context()

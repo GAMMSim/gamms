@@ -285,11 +285,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         for node_id in options:
             if node_id != current_agent.current_node_id:
-                edge_id = (current_agent.current_node_id << 32) + node_id
-                self.ctx.visual._graph_visual.setEdgeColorByID(edge_id, (0, 255, 0))
-
-                edge_id = (node_id << 32) + current_agent.current_node_id
-                self.ctx.visual._graph_visual.setEdgeColorByID(edge_id, (0, 255, 0))
+                self.ctx.visual._graph_visual.setEdgeColor(current_agent.current_node_id, node_id, (0, 255, 0))
+                self.ctx.visual._graph_visual.setEdgeColor(node_id, current_agent.current_node_id, (0, 255, 0))
 
         self._input_options: dict[int, int] = {}
         for i in range(min(len(options), 10)):

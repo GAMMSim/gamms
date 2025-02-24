@@ -281,7 +281,7 @@ class RenderManager:
         if(_source_y < 0 and _target_y < 0) or (_source_y > _height and _target_y > _height ):
             return
         
-        _color = ctx.visual._graph_visual.getEdgeColorById(edge.id)
+        _color = ctx.visual._graph_visual.getEdgeColor(edge.source, edge.target)
         if _color is None:
             _color = edge_color
 

@@ -28,7 +28,10 @@ class GraphVisual:
     # Internal Methouds
     def _initalize_data(self) -> None:
         for edge in self.graph.edges.values():
-            self.__edge_list.add(edge.id)
+            remappedEdgeID = (edge.source << 32) + edge.target
+            self.__edge_list.add(remappedEdgeID)
+            remappedEdgeID = (edge.target << 32) + edge.source
+            self.__edge_list.add(remappedEdgeID)
 
         for node in self.graph.nodes.values():
             self.__node_list.add(node.id)
@@ -75,7 +78,7 @@ class GraphVisual:
         
     def getEdgeColor(self, source_id, target_id):
         edge_id = (source_id << 32) + target_id
-        if edge_id is self.__edge_color_list[edge_id]:
+        if edge_id in self.__edge_color_list:
             return self.__edge_color_list[edge_id]
         else:
             return None
