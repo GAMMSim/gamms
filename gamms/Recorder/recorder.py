@@ -29,7 +29,8 @@ def _record_switch_case(ctx: IContext, opCode: OpCodes, data: JsonType) -> None:
             module, name = data["key"]
             cls_type = type(name, (object,), {})
             cls_type.__module__ = module
-            ctx.record.component(struct=data["struct"])(cls_type)
+            struct = {key: eval(value) for key, value in data["struct"].items()}
+            ctx.record.component(struct=struct)(cls_type)
     elif opCode == OpCodes.COMPONENT_CREATE:
         print(f"Creating component {data['name']} of type {data['type']}")
         ctx.record._component_registry[data["type"]](name=data["name"])

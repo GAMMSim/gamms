@@ -139,7 +139,7 @@ def component(
             if ctx.record.record():
                 ctx.record.write(
                     opcode = OpCodes.COMPONENT_REGISTER,
-                    data = {'key': cls_key, 'struct': struct}
+                    data = {'key': cls_key, 'struct': {k: str(v) for k, v in struct.items()}}
                 )
         
         return cls_type
