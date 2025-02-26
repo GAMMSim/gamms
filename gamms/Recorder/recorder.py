@@ -4,6 +4,8 @@ from gamms.typing import IContext
 import os 
 import time
 import ubjson
+import typing
+from gamms.Recorder.component import component
 
 def _record_switch_case(ctx: IContext, opCode: OpCodes, data: JsonType) -> None:
     if opCode == OpCodes.AGENT_CREATE:
@@ -19,8 +21,26 @@ def _record_switch_case(ctx: IContext, opCode: OpCodes, data: JsonType) -> None:
         ctx.agent.get_agent(data["agent_name"]).current_node_id = data["node_id"]
     elif opCode == OpCodes.AGENT_PREV_NODE:
         ctx.agent.get_agent(data["agent_name"]).prev_node_id = data["node_id"]
+    elif opCode == OpCodes.COMPONENT_REGISTER:
+        if ctx.record.is_component_registered(data["key"]):
+            print(f"Component {data['key']} already registered.")
+        else:
+            print(f"Registering component {data['key']} of type {data['struct']}")
+            module, name = data["key"]
+            cls_type = type(name, (object,), {})
+            cls_type.__module__ = module
+            ctx.record.component(struct=data["struct"])(cls_type)
+    elif opCode == OpCodes.COMPONENT_CREATE:
+        print(f"Creating component {data['name']} of type {data['type']}")
+        ctx.record._component_registry[data["type"]](name=data["name"])
+    elif opCode == OpCodes.COMPONENT_UPDATE:
+        print(f"Updating component {data['name']} with key {data['key']} to value {data['value']}")
+        obj = ctx.record.get_component(data["name"])
+        setattr(obj, data["key"], data["value"])
     elif opCode == OpCodes.TERMINATE:
         print("Terminating...")
+    else:
+        raise ValueError(f"Invalid opcode {opCode}")
 
 class Recorder(IRecorder):
     def __init__(self, ctx: IContext):
@@ -31,6 +51,8 @@ class Recorder(IRecorder):
         self._fp_record = None
         self._fp_replay = None
         self._time = None
+        self._components: Dict[str, Type[_T]] = {}
+        self._component_registry: Dict[Tuple[str, str], Type[_T]] = {}
     
     def record(self) -> bool:
         if not self.is_paused and self.is_recording and not self.ctx.is_terminated():
@@ -128,3 +150,23 @@ class Recorder(IRecorder):
             ubjson.dump({"timestamp": timestamp, "opCode": opCode.value}, self._fp_record)
         else:
             ubjson.dump({"timestamp": timestamp, "opCode": opCode.value, "data": data}, self._fp_record)
+        
+    
+    def component(self, struct: Dict[str, Type[_T]]) -> Callable[[Type[_T]], Type[_T]]:
+        return component(self.ctx, struct)
+    
+    def get_component(self, name: str) -> Type[_T]:
+        if name not in self._components:
+            raise KeyError(f"Component {name} not found.")
+        return self._components[name]
+    
+    def component_iter(self) -> Iterator[str]:
+        return self._components.keys()
+    
+    def add_component(self, name: str, obj: Type[_T]) -> None:
+        if name in self._components:
+            raise ValueError(f"Component {name} already exists.")
+        self._components[name] = obj
+    
+    def is_component_registered(self, key: Tuple[str, str]) -> bool:
+        return key in self._component_registry

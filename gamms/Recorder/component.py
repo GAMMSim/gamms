@@ -1,7 +1,6 @@
 from typing import Tuple, Optional, Union, Type, TypeVar, Dict, Callable
 
 from gamms.typing import IContext
-from gamms.typing.record import IRecorder
 from gamms.typing.opcodes import OpCodes
 
 _T = TypeVar('_T')
@@ -42,7 +41,6 @@ def check_validity(
 
 def component(
     ctx: IContext,
-    record: IRecord,
     struct: Optional[Dict[str, _T]] = None,
 ) -> Callable[[Type[_T]], Type[_T]]:
     def decorator(cls_type: Type[_T]) -> Type[_T]:
@@ -73,9 +71,9 @@ def component(
         for key in struct:
             if key in method_set:
                 raise TypeError(f'Key {key} in struct is already in the class')
-
-
-        struct['name'] = str
+        
+        # Class key for the component
+        cls_key = (cls_type.__module__, cls_type.__qualname__)
 
         # Check if the class has an arguments in the init method
         if hasattr(cls_type.__init__, '__code__'):
@@ -88,6 +86,12 @@ def component(
             # Create a init function with same signature but with name as first argument
             # after self and call the original init method with rest of the arguments
             def init(self, name: str, *args, **kwargs):
+                if ctx.record.record():
+                    ctx.record.write(
+                        opcode = OpCodes.COMPONENT_CREATE,
+                        data = {"name": name, "type": cls_key}
+                    )
+                ctx.record.add_component(name, self)
                 self.__recorded_component_ = {k: None for k in struct}
                 self.__recorded_component_['name'] = name
                 copy_init(self, *args, **kwargs)
@@ -97,12 +101,21 @@ def component(
         else:
             # Create a init function with name as first argument
             def init(self, name: str):
+                if ctx.record.record():
+                    ctx.record.write(
+                        opcode = OpCodes.COMPONENT_CREATE,
+                        data = {"name": name, "type": cls_key}
+                    )
+                ctx.record.add_component(name, self)
                 self.__recorded_component_ = {k: None for k in struct}
                 self.__recorded_component_['name'] = name
             
             # Set the new init method to the class
             setattr(cls_type, '__init__', init)
         
+        # Create a gettr method for the name attribute
+        setattr(cls_type, 'name', property(lambda self: self.__recorded_component_['name']))
+
         # Create a classproperty for each key in struct
         for key, rtype in struct.items():
             def wrapper(key=key, rtype=rtype):
@@ -110,11 +123,24 @@ def component(
                     return self.__recorded_component_[key]
                 
                 def setter(self, value: rtype) -> None:
+                    if ctx.record.record():
+                        ctx.record.write(
+                            opcode = OpCodes.COMPONENT_UPDATE,
+                            data = {"name": self.name, "key": key, "value": value}
+                        )
                     self.__recorded_component_[key] = value
                 
                 return property(getter, setter)
             
             setattr(cls_type, key, wrapper())
+        
+        if not ctx.record.is_component_registered(cls_key):
+            ctx.record._component_registry[cls_key] = cls_type
+            if ctx.record.record():
+                ctx.record.write(
+                    opcode = OpCodes.COMPONENT_REGISTER,
+                    data = {'key': cls_key, 'struct': struct}
+                )
         
         return cls_type
     return decorator
