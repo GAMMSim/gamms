@@ -19,6 +19,7 @@ class SensorType(Enum):
     MAP = 2
     AGENT = 3
     RANGE = 4
+    ARC = 5
 
 
 class ISensor(ABC):
@@ -144,3 +145,11 @@ class ISensorEngine(ABC):
             IOError: If there are issues during the cleanup process.
         """
         pass
+
+    def custom(self) -> None:
+        """
+        Decorator for custom sensor
+        For example, if the user create a new custom sensor, add a new type to SensorType enum
+        and implement the new sensor class, the user can add the custom sensor to the sensor engine
+        using this method.
+        """
