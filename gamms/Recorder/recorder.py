@@ -1,3 +1,4 @@
+from typing import Union, BinaryIO, Callable, Dict, TypeVar, Type, Tuple, Iterator
 from gamms.typing.recorder import IRecorder, JsonType
 from gamms.typing.opcodes import OpCodes, MAGIC_NUMBER, VERSION
 from gamms.typing import IContext
@@ -6,6 +7,8 @@ import time
 import ubjson
 import typing
 from gamms.Recorder.component import component
+
+_T = TypeVar('_T')
 
 def _record_switch_case(ctx: IContext, opCode: OpCodes, data: JsonType) -> None:
     if opCode == OpCodes.AGENT_CREATE:
@@ -61,18 +64,23 @@ class Recorder(IRecorder):
         else:
             return False
 
-    def start(self, path: str) -> None:
+    def start(self, path: Union[str, BinaryIO]) -> None:
         if self._fp_record is not None:
             raise RuntimeError("Recording file is already open. Stop recording before starting a new one.")
         
-        # Check if path has extension .ggr
-        if not path.endswith('.ggr'):
-            path += '.ggr'
+        if isinstance(path, str):
+            # Check if path has extension .ggr
+            if not path.endswith('.ggr'):
+                path += '.ggr'
 
-        if os.path.exists(path):
-            raise FileExistsError(f"File {path} already exists.")
+            if os.path.exists(path):
+                raise FileExistsError(f"File {path} already exists.")
 
-        self._fp_record = open(path, 'wb')
+            self._fp_record = open(path, 'wb')
+        elif isinstance(path, BinaryIO):
+            self._fp_record = path
+        else:
+            raise TypeError("Path must be a string or a file object.")
         self.is_recording = True
         self.is_paused = False
 
@@ -87,6 +95,7 @@ class Recorder(IRecorder):
         self.is_recording = False
         self.is_paused = False
         self._fp_record.close()
+        self._fp_record = None
 
     def pause(self) -> None:
         if not self.is_recording:
@@ -106,15 +115,23 @@ class Recorder(IRecorder):
             self.is_paused = False
             print("Recording resumed.")
 
-    def replay(self, path: str):
-        # Check if path has extension .ggr
-        if not path.endswith('.ggr'):
-            path += '.ggr'
+    def replay(self, path: Union[str, BinaryIO]):
+        if self._fp_replay is not None:
+            raise RuntimeError("Replay file is already open. Stop replaying before starting a new one.")
+        
+        if isinstance(path, str):
+            # Check if path has extension .ggr
+            if not path.endswith('.ggr'):
+                path += '.ggr'
 
-        if not os.path.exists(path):
-            raise FileNotFoundError(f"File {path} does not exist.")
+            if not os.path.exists(path):
+                raise FileNotFoundError(f"File {path} does not exist.")
 
-        self._fp_replay = open(path, 'rb')
+            self._fp_replay = open(path, 'rb')
+        elif isinstance(path, BinaryIO):
+            self._fp_replay = path
+        else:
+            raise TypeError("Path must be a string or a file object.")
 
         # Check file validity header
         if self._fp_replay.read(4) != MAGIC_NUMBER:
@@ -129,6 +146,9 @@ class Recorder(IRecorder):
             try:
                 record = ubjson.load(self._fp_replay)
             except EOFError:
+                self.is_replaying = False
+                self._fp_replay.close()
+                self._fp_replay = None
                 raise ValueError("Recording ended unexpectedly.")
             self._time = record["timestamp"]
             opCode = OpCodes(record["opCode"])
@@ -137,6 +157,9 @@ class Recorder(IRecorder):
             _record_switch_case(self.ctx, opCode, record.get("data", None))
 
             yield record
+        
+        self._fp_replay.close()
+        self._fp_replay = None
 
     def time(self):
         if self.is_replaying:
@@ -161,6 +184,13 @@ class Recorder(IRecorder):
             raise KeyError(f"Component {name} not found.")
         return self._components[name]
     
+    def delete_component(self, name: str) -> None:
+        if name not in self._components:
+            raise KeyError(f"Component {name} not found.")
+        if self.record():
+            self.write(OpCodes.COMPONENT_DELETE, {"name": name})
+        del self._components[name]
+    
     def component_iter(self) -> Iterator[str]:
         return self._components.keys()
     
@@ -171,3 +201,10 @@ class Recorder(IRecorder):
     
     def is_component_registered(self, key: Tuple[str, str]) -> bool:
         return key in self._component_registry
+    
+    def unregister_component(self, key: Tuple[str, str]) -> None:
+        if key not in self._component_registry:
+            raise KeyError(f"Component {key} not found.")
+        if self.record():
+            self.write(OpCodes.COMPONENT_UNREGISTER, {"key": key})
+        del self._component_registry[key]
