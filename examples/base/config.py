@@ -60,22 +60,22 @@ agent_config = {
     'agent_1': {
         'meta': {'team': 0},
         'sensors': ['neigh_1', 'map', 'agent'],
-        'start_node_id': 1
+        'start_node_id': 10
     },
     'agent_2': {
         'meta': {'team': 0},
         'sensors': ['neigh_2', 'map', 'agent'],
-        'start_node_id': 2
+        'start_node_id': 20
     },
     'agent_3': {
         'meta': {'team': 0},
         'sensors': ['neigh_3', 'map', 'agent'],
-        'start_node_id': 3
+        'start_node_id': 30
     },
     'agent_4': {
         'meta': {'team': 0},
         'sensors': ['neigh_4', 'map', 'agent'],
-        'start_node_id': 4
+        'start_node_id': 40
     },
     'agent_5': {
         'meta': {'team': 1},
