@@ -7,6 +7,7 @@ import time
 import ubjson
 import typing
 from gamms.Recorder.component import component
+from io import IOBase
 
 _T = TypeVar('_T')
 
@@ -25,18 +26,20 @@ def _record_switch_case(ctx: IContext, opCode: OpCodes, data: JsonType) -> None:
     elif opCode == OpCodes.AGENT_PREV_NODE:
         ctx.agent.get_agent(data["agent_name"]).prev_node_id = data["node_id"]
     elif opCode == OpCodes.COMPONENT_REGISTER:
-        if ctx.record.is_component_registered(data["key"]):
-            print(f"Component {data['key']} already registered.")
+        cls_key = tuple(data["key"])
+        if ctx.record.is_component_registered(cls_key):
+            print(f"Component {cls_key} already registered.")
         else:
-            print(f"Registering component {data['key']} of type {data['struct']}")
-            module, name = data["key"]
+            print(f"Registering component {cls_key} of type {data['struct']}")
+            module, name = cls_key
             cls_type = type(name, (object,), {})
             cls_type.__module__ = module
             struct = {key: eval(value) for key, value in data["struct"].items()}
             ctx.record.component(struct=struct)(cls_type)
     elif opCode == OpCodes.COMPONENT_CREATE:
         print(f"Creating component {data['name']} of type {data['type']}")
-        ctx.record._component_registry[data["type"]](name=data["name"])
+        cls_key = tuple(data["type"])
+        ctx.record._component_registry[cls_key](name=data["name"])
     elif opCode == OpCodes.COMPONENT_UPDATE:
         print(f"Updating component {data['name']} with key {data['key']} to value {data['value']}")
         obj = ctx.record.get_component(data["name"])
@@ -77,7 +80,7 @@ class Recorder(IRecorder):
                 raise FileExistsError(f"File {path} already exists.")
 
             self._fp_record = open(path, 'wb')
-        elif isinstance(path, BinaryIO):
+        elif isinstance(path, IOBase):
             self._fp_record = path
         else:
             raise TypeError("Path must be a string or a file object.")
@@ -128,7 +131,7 @@ class Recorder(IRecorder):
                 raise FileNotFoundError(f"File {path} does not exist.")
 
             self._fp_replay = open(path, 'rb')
-        elif isinstance(path, BinaryIO):
+        elif isinstance(path, IOBase):
             self._fp_replay = path
         else:
             raise TypeError("Path must be a string or a file object.")
@@ -145,10 +148,11 @@ class Recorder(IRecorder):
         while self.is_replaying:
             try:
                 record = ubjson.load(self._fp_replay)
-            except EOFError:
+            except Exception as e:
                 self.is_replaying = False
                 self._fp_replay.close()
                 self._fp_replay = None
+                print(f"Error reading record: {e}")
                 raise ValueError("Recording ended unexpectedly.")
             self._time = record["timestamp"]
             opCode = OpCodes(record["opCode"])

@@ -88,7 +88,7 @@ def component(
             def init(self, name: str, *args, **kwargs):
                 if ctx.record.record():
                     ctx.record.write(
-                        opcode = OpCodes.COMPONENT_CREATE,
+                        opCode = OpCodes.COMPONENT_CREATE,
                         data = {"name": name, "type": cls_key}
                     )
                 ctx.record.add_component(name, self)
@@ -125,7 +125,7 @@ def component(
                 def setter(self, value: rtype) -> None:
                     if ctx.record.record():
                         ctx.record.write(
-                            opcode = OpCodes.COMPONENT_UPDATE,
+                            opCode = OpCodes.COMPONENT_UPDATE,
                             data = {"name": self.name, "key": key, "value": value}
                         )
                     self.__recorded_component_[key] = value
@@ -138,7 +138,7 @@ def component(
             ctx.record._component_registry[cls_key] = cls_type
             if ctx.record.record():
                 ctx.record.write(
-                    opcode = OpCodes.COMPONENT_REGISTER,
+                    opCode = OpCodes.COMPONENT_REGISTER,
                     data = {'key': cls_key, 'struct': {k: str(v) for k, v in struct.items()}}
                 )
         
