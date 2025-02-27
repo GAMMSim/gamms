@@ -1,4 +1,4 @@
-from typing import List, Union, Iterator, Dict, Type, TypeVar, Callable
+from typing import List, Union, Iterator, Dict, Type, TypeVar, Callable, BinaryIO, Tuple
 from abc import ABC, abstractmethod
 
 JsonType = Union[None, int, str, bool, List["JsonType"], Dict[str, "JsonType"]]
@@ -31,13 +31,13 @@ class IRecorder(ABC):
         """
         pass
     @abstractmethod
-    def play(self, path: str) -> None:
+    def play(self, path: Union[str, BinaryIO]) -> None:
         """
         Resume recording if paused. If not started or stopped, give warning.
         """
         pass
     @abstractmethod    
-    def replay(self, path: str) -> Iterator:
+    def replay(self, path: Union[str, BinaryIO]) -> Iterator:
         """
         Checks validity of the file and output an iterator.
         """
@@ -71,6 +71,14 @@ class IRecorder(ABC):
         pass
 
     @abstractmethod
+    def delete_component(self, name: str) -> None:
+        """
+        Delete the component from the name.
+        Raise key error if not found.
+        """
+        pass
+
+    @abstractmethod
     def component_iter(self) -> Iterator[str]:
         """
         Iterator for the component names.
@@ -89,6 +97,14 @@ class IRecorder(ABC):
     def is_component_registered(self, key: Tuple[str, str]) -> bool:
         """
         Check if the component is registered.
+        Key is (module_name, qualname)
+        """
+        pass
+
+    @abstractmethod
+    def unregister_component(self, key: Tuple[str, str]) -> None:
+        """
+        Unregister the component.
         Key is (module_name, qualname)
         """
         pass
