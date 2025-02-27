@@ -256,12 +256,15 @@ class RenderManager:
             ctx (Context): The current simulation context.
             graph (IGraph): The graph to render.
         """
-        
-        screen = ctx.visual.screen
+        surface = ctx.visual._graph_visual.getGraphSurface()
+        screen = ctx.visual.screen      
+        scaled_surface = ctx.visual.rescale_surface(surface)
+        screen.blit( scaled_surface, ctx.visual._graph_visual.getUpperLeftCorner())
+
         for edge in graph.edges.values():
             RenderManager._draw_edge(ctx, screen, graph, edge, edge_color)
-        for node in graph.nodes.values():
-            RenderManager._draw_node(ctx, screen, node, node_color, draw_id)
+        #for node in graph.nodes.values():
+        #    RenderManager._draw_node(ctx, screen, node, node_color, draw_id)
         
 
     @staticmethod
@@ -285,6 +288,7 @@ class RenderManager:
         if _color is None:
             _color = edge_color
 
+        surface = ctx.visual._graph_visual.getGraphSurface()
         # If linestring is present, draw it as a curve
         if edge.linestring:
             #linestring[1:-1]
@@ -298,10 +302,10 @@ class RenderManager:
             # Straight line
             source_position = (source.x, source.y)
             target_position = (target.x, target.y)
-            (x1, y1) = ctx.visual._graph_visual.ScalePositionToScreen(source_position)
+            (x1, y1) = (source_position)
             (x2, y2) = ctx.visual._graph_visual.ScalePositionToScreen(target_position)
 
-            ctx.visual.render_line(x1, y1, x2, y2, _color, 2)
+            ctx.visual.render_line( x1, y1, x2, y2, _color, 2)
 
     @staticmethod
     def _draw_node(ctx, screen, node, node_color=(169, 169, 169), draw_id=False):

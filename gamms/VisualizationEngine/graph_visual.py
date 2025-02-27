@@ -1,3 +1,4 @@
+import pygame #FIXME
 
 class GraphVisual:
     def __init__(self, graph, width=1980, height=1080):
@@ -22,8 +23,14 @@ class GraphVisual:
         self.__node_size_list = {}
         self.__edge_size_list = {}
 
+        # Staticly updated surface object
+        self.__mapObject = None
+        self.__surfaceWidth = 0
+        self.__surfaceHeight = 0
+
         # Set the data stores. 
         self._initalize_data()
+        
 
     # Internal Methouds
     def _initalize_data(self) -> None:
@@ -35,6 +42,25 @@ class GraphVisual:
 
         for node in self.graph.nodes.values():
             self.__node_list.add(node.id)
+
+    def _initalize_surface(self):
+        # need screen size
+        (x1 , y1) = self.ScalePositionToScreen((self.x_min, self.y_min))
+        (x2 , y2) = self.ScalePositionToScreen((self.x_max, self.y_max))
+        self.__surfaceWidth = abs(int(x1 - x2))
+        self.__surfaceHeight = abs(int(y1 - y2))
+
+        print(self.__surfaceWidth)
+        self.__mapObject = pygame.Surface((self.__surfaceWidth, self.__surfaceHeight ))
+
+        self.__mapObject.fill((50, 50, 50))
+
+    def getGraphSurface(self):
+        return self.__mapObject
+    
+    def getGraphSurfaceDimentions(self):
+        return (self.__surfaceWidth, self.__surfaceHeight)
+
 
     # Color Set Methouds
     def setNodeColor(self, node, color = (255, 255, 255)):
@@ -115,10 +141,27 @@ class GraphVisual:
     def setRenderManager(self, render_manager):
         self.render_manager = render_manager
         self.render_manager.camera_size = max(self.x_max - self.x_min, self.y_max - self.y_min)
+        self._initalize_surface()
+
+    def getRenderManager(self, render_manager):
+        return self.render_manager
+    
+    def getUpperLeftCorner(self):
+        return self.ScalePositionToScreen((self.x_min, self.y_max))
 
     def ScalePositionToScreen(self, position: tuple[float, float]) -> tuple[float, float]:
         """Scale a coordinate value to fit within the screen."""
         graph_center = self.GraphCenter()
         map_position = ((position[0] - graph_center[0]),(position[1] - graph_center[1]))
         map_position = self.render_manager.world_to_screen(map_position[0] + self.render_manager.camera_x, map_position[1] + self.render_manager.camera_y)
+        return map_position
+    
+    def ScalePositionToSurface(self, position: tuple[float, float]) -> tuple[float, float]:
+        """Scale a coordinate value to fit within the screen."""
+
+        #Graph coordnates starts at 0,0 in the upper corner. 
+        centerWidth = self.__surfaceWidth / 2
+        centerHeight = self.__surfaceHeight / 2
+
+        
         return map_position

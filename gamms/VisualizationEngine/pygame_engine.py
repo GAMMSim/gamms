@@ -119,18 +119,17 @@ class PygameVisualizationEngine(IVisualizationEngine):
         
         for event in pygame.event.get():
             if event.type == pygame.MOUSEWHEEL:
+
                 if event.y > 0:
                     # self._camera.size /= 1.05
+                    
                     self._render_manager.camera_size /= 1.05
-                    if(self._render_manager.camera_size > 2):
-                        self._zoom *= 1.05
-                        self._zoom = self._graph_visual.setZoom(self._zoom)
+                    self._zoom *= 1.05
                 else:
                     # self._camera.size *= 1.05
                     self._render_manager.camera_size *= 1.05
-                    if(self._render_manager.camera_size < 350):
-                        self._zoom /= 1.05
-                        self._zoom = self._graph_visual.setZoom(self._zoom)
+                    self._zoom /= 1.05
+                self._graph_visual.setZoom(self._zoom)
             if event.type == pygame.QUIT:
                 self._will_quit = True
                 self._input_option_result = -1
@@ -240,8 +239,45 @@ class PygameVisualizationEngine(IVisualizationEngine):
         else:
             pygame.draw.lines(self._screen, color, closed, points, width)
 
+    def render_line_to_surface(self, surface: pygame.Surface ,start_x: float, start_y: float, end_x: float, end_y: float, color: tuple=Color.Black, width: int=1, isAA: bool=False):
+        if isAA:
+            pygame.draw.aaline(surface, color, (start_x, start_y), (end_x, end_y))
+        else:
+            pygame.draw.line(surface, color, (start_x, start_y), (end_x, end_y), width)
+
+    def render_lines_to_surface(self, surface: pygame.Surface , points: list[tuple[float, float]], color: tuple=Color.Black, width: int=1, closed=False, isAA: bool=False):
+        if isAA:
+            pygame.draw.aalines(surface, color, closed, points)
+        else:
+            pygame.draw.lines(surface, color, closed, points, width)
+
+
+    
+
     def render_polygon(self, points: list[tuple[float, float]], color: tuple=Color.Black, width: int=0):
         pygame.draw.polygon(self._screen, color, points, width)
+
+
+    def rescale_surface(self, surface : pygame.Surface):
+        center = surface.get_rect().center
+        width, height = surface.get_size()
+
+        width *= self._zoom
+        height *= self._zoom
+
+        scaled_surface = pygame.transform.scale(surface, (width, height))
+        scaled_surface.get_rect(center=center)
+        return scaled_surface
+    
+    def generate_graph_surface(self, lower_corner : tuple[float, float], upper_corner: tuple[float, float]):
+        (x1, y1) = self._graph_visual.ScalePositionToScreen(lower_corner)
+        (x2, y2) = self._graph_visual.ScalePositionToScreen(upper_corner)
+        
+        surfaceWidth = int(x2 - x1)
+        surfaceHeight = int(y2 - y1)
+
+        surface = pygame.Surface((surfaceWidth, surfaceHeight ))
+        return surface
 
     def _draw_grid(self):
         x_min = self._render_manager.camera_x - self._render_manager.camera_size * 4
