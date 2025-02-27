@@ -14,6 +14,7 @@ class NeighborSensor(ISensor):
         self.nodes = nodes
         self.edges = edges
         self.data = []
+        self._owner = None
     
     def data(self):
         return self.data
@@ -46,9 +47,10 @@ class MapSensor(ISensor):
         self.orientation = orientation
         self.data = {}
         # Cache static node IDs and positions using x and y.
+        self.orientation = orientation
         self.node_ids = list(self.nodes.keys())
         self._positions = np.array([[self.nodes[nid].x, self.nodes[nid].y] for nid in self.node_ids])
-    
+        self._owner = None
     def data(self) -> Dict[str, Any]:
         return self.data
     
@@ -63,7 +65,12 @@ class MapSensor(ISensor):
         """
         current_node = self.nodes[node_id]
         current_position = np.array([current_node.x, current_node.y]).reshape(1, 2)
-        
+        if self.owner is not None:
+            # Fetch the owner's orientation from the agent engine.
+            orientation_used = self.ctx.agent.get_agent(self.owner).orientation
+        else:
+            orientation_used = self.orientation % 360
+
         # --- Process static nodes ---
         diff = self._positions - current_position
         distances_sq = np.sum(diff**2, axis=1)
@@ -80,8 +87,7 @@ class MapSensor(ISensor):
             else:
                 diff_in_range = diff[in_range_indices]
                 angles = np.degrees(np.arctan2(diff_in_range[:, 1], diff_in_range[:, 0])) % 360
-                orientation_norm = self.orientation % 360
-                angle_diff = np.abs((angles - orientation_norm + 180) % 360 - 180)
+                angle_diff = np.abs((angles - orientation_used + 180) % 360 - 180)
                 valid_mask = angle_diff <= (self.fov / 2)
                 valid_indices = in_range_indices[valid_mask]
             sensed_nodes = {self.node_ids[i]: self.nodes[self.node_ids[i]] for i in valid_indices}
@@ -91,6 +97,7 @@ class MapSensor(ISensor):
 
     def update(self, data: Dict[str, Any]) -> None:
         pass
+
 class AgentSensor(ISensor):
     def __init__(self, ctx, sensor_id, sensor_type, agent_engine, sensor_range: float, owner: Optional[str]=None):
         """
@@ -230,8 +237,6 @@ class SensorEngine(ISensorEngine):
             engine.custom_sensors[cls_type.__name__] = cls_type
             return cls_type
         return decorator
-
-
 
     def terminate(self):
         return
