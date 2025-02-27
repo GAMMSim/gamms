@@ -184,8 +184,9 @@ class AgentEngine(IAgentEngine):
         if self.ctx.record.record():
             self.ctx.record.write(opCode=OpCodes.AGENT_CREATE, data={"name": name, "kwargs": kwargs})
         start_node_id = kwargs.pop('start_node_id')
+        sensors = kwargs.pop('sensors', [])
         agent = Agent(self.ctx, name, start_node_id, **kwargs)
-        for sensor in kwargs['sensors']:
+        for sensor in sensors:
             try:
                 agent.register_sensor(sensor, self.ctx.sensor.get_sensor(sensor))
             except KeyError:
