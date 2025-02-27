@@ -13,7 +13,7 @@ ctx = gamms.create_context(vis_engine=gamms.visual.Engine.NO_VIS)
 sensor_engine = ctx.sensor
 
 # Define a custom sensor using the sensor_engine.custom decorator.
-@sensor_engine.custom(struct={'threshold': float, 'active': bool})
+@sensor_engine.custom()
 class CustomSensor(ISensor):
     def __init__(self, extra_param=None):
         # extra_param is just to demonstrate passing additional arguments.
