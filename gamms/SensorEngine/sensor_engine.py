@@ -65,7 +65,7 @@ class MapSensor(ISensor):
         """
         current_node = self.nodes[node_id]
         current_position = np.array([current_node.x, current_node.y]).reshape(1, 2)
-        if self.owner is not None:
+        if self._owner is not None:
             # Fetch the owner's orientation from the agent engine.
             orientation_used = self.ctx.agent.get_agent(self.owner).orientation
         else:
@@ -114,7 +114,7 @@ class AgentSensor(ISensor):
         self.range = sensor_range
         self.fov = fov
         self.orientation = orientation  # default orientation if no owner is set
-        self.owner = owner
+        self._owner = owner
         self.data = {}
     
     def data(self) -> Dict[str, Any]:
@@ -140,7 +140,7 @@ class AgentSensor(ISensor):
         agent_ids = []
         agent_positions = []
         for agent in agents:
-            if self.owner is not None and agent._name == self.owner:
+            if self._owner is not None and agent._name == self.owner:
                 continue
             agent_ids.append(agent._name)
             if hasattr(agent, 'position'):
@@ -163,7 +163,7 @@ class AgentSensor(ISensor):
                 valid_indices = in_range_indices
             else:
                 # Determine orientation to use.
-                if self.owner is not None:
+                if self._owner is not None:
                     orientation_used = self.ctx.agent.get_agent(self.owner).orientation
                 else:
                     orientation_used = self.orientation % 360
@@ -177,7 +177,7 @@ class AgentSensor(ISensor):
             # Build the sensed_agents dictionary.
             in_range_agent_ids = {agent_ids[i] for i in valid_indices}
             for agent in agents:
-                if self.owner is not None and agent._name == self.owner:
+                if self._owner is not None and agent._name == self.owner:
                     continue
                 if agent._name in in_range_agent_ids:
                     sensed_agents[agent._name] = agent
@@ -234,6 +234,26 @@ class SensorEngine(ISensorEngine):
                 type, 
                 self.ctx.agent, 
                 sensor_range=30,
+                owner=None  # Set owner when registering sensor to an agent.
+            )
+        elif type == SensorType.AGENT_ARC:
+            sensor = AgentSensor(
+                self.ctx, 
+                sensor_id, 
+                type, 
+                self.ctx.agent, 
+                sensor_range=30,
+                fov=90,
+                owner=None  # Set owner when registering sensor to an agent.
+            )
+        elif type == SensorType.AGENT_RANGE:
+            sensor = AgentSensor(
+                self.ctx, 
+                sensor_id, 
+                type, 
+                self.ctx.agent, 
+                sensor_range=30,
+                fov=360,
                 owner=None  # Set owner when registering sensor to an agent.
             )
         else:

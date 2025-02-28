@@ -20,6 +20,8 @@ class SensorType(Enum):
     AGENT = 3
     RANGE = 4
     ARC = 5
+    AGENT_RANGE = 6
+    AGENT_ARC = 7
 
 
 class ISensor(ABC):
