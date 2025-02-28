@@ -99,31 +99,39 @@ class MapSensor(ISensor):
         pass
 
 class AgentSensor(ISensor):
-    def __init__(self, ctx, sensor_id, sensor_type, agent_engine, sensor_range: float, owner: Optional[str]=None):
+    def __init__(self, ctx, sensor_id, sensor_type, agent_engine, sensor_range: float, fov: float = 360, orientation: float = 0, owner: Optional[str] = None):
         """
         :param agent_engine: Typically the context's agent engine.
         :param sensor_range: Maximum detection distance for agents.
-        :param owner: (Optional) The name of the agent owning this sensor.
-                      If set, this agent will be skipped during sensing.
+        :param fov: Field of view in degrees. Use 360 for no angular filtering.
+        :param orientation: Default orientation (in degrees) if no owner is set.
+        :param owner: (Optional) The name of the agent owning this sensor. This agent will be skipped during sensing.
         """
         self.sensor_id = sensor_id
         self.ctx = ctx
         self.type = sensor_type
         self.agent = agent_engine
         self.range = sensor_range
-        self.data = {}
+        self.fov = fov
+        self.orientation = orientation  # default orientation if no owner is set
         self.owner = owner
+        self.data = {}
     
     def data(self) -> Dict[str, Any]:
         return self.data
     
     def sense(self, node_id: int) -> None:
         """
-        Detects agents that are within the sensor range of the sensing node.
+        Detects agents within the sensor range of the sensing node.
         Skips the agent whose name matches self.owner.
-        The result is stored in self.data as a dictionary mapping agent name to agent.
+        In addition to a range check, if self.fov != 360, only agents within (fov/2) degrees of the 
+        chosen orientation are included.
+        The chosen orientation is determined as follows:
+         - If self.owner is set, fetch the owner's orientation from the agent engine.
+         - Otherwise, use self.orientation.
+        The result is stored in self.data as a dictionary mapping agent names to agent objects.
         """
-        # Get current node position.
+        # Get current node position as sensing origin.
         current_node = self.ctx.graph.graph.get_node(node_id)
         current_position = np.array([current_node.x, current_node.y]).reshape(1, 2)
         
@@ -132,7 +140,6 @@ class AgentSensor(ISensor):
         agent_ids = []
         agent_positions = []
         for agent in agents:
-            # Skip the sensor's own agent if owner is set.
             if self.owner is not None and agent._name == self.owner:
                 continue
             agent_ids.append(agent._name)
@@ -147,19 +154,38 @@ class AgentSensor(ISensor):
             agent_positions = np.array(agent_positions).reshape(-1, 2)
             diff_agents = agent_positions - current_position
             distances_agents_sq = np.sum(diff_agents**2, axis=1)
-            agent_in_range_mask = distances_agents_sq <= self.range**2
-            in_range_agent_ids = {agent_ids[i] for i, valid in enumerate(agent_in_range_mask) if valid}
-            # Build sensed_agents by iterating through agents again and picking those in range.
+            # First filter by range.
+            in_range_mask = distances_agents_sq <= self.range**2
+            in_range_indices = np.nonzero(in_range_mask)[0]
+            
+            # If full FOV, no angular filtering is needed.
+            if self.fov == 360:
+                valid_indices = in_range_indices
+            else:
+                # Determine orientation to use.
+                if self.owner is not None:
+                    orientation_used = self.ctx.agent.get_agent(self.owner).orientation
+                else:
+                    orientation_used = self.orientation % 360
+                diff_in_range = diff_agents[in_range_indices]
+                angles = np.degrees(np.arctan2(diff_in_range[:, 1], diff_in_range[:, 0])) % 360
+                # Calculate minimal angular difference.
+                angle_diff = np.abs((angles - orientation_used + 180) % 360 - 180)
+                valid_mask = angle_diff <= (self.fov / 2)
+                valid_indices = in_range_indices[valid_mask]
+            
+            # Build the sensed_agents dictionary.
+            in_range_agent_ids = {agent_ids[i] for i in valid_indices}
             for agent in agents:
                 if self.owner is not None and agent._name == self.owner:
                     continue
                 if agent._name in in_range_agent_ids:
                     sensed_agents[agent._name] = agent
+        
         self.data = sensed_agents
     
     def update(self, data: Dict[str, Any]) -> None:
         pass
-
 
 class SensorEngine(ISensorEngine):
     def __init__(self, ctx: IContext):
