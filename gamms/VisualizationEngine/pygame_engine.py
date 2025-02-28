@@ -119,18 +119,17 @@ class PygameVisualizationEngine(IVisualizationEngine):
         
         for event in pygame.event.get():
             if event.type == pygame.MOUSEWHEEL:
+
                 if event.y > 0:
                     # self._camera.size /= 1.05
+                    
                     self._render_manager.camera_size /= 1.05
-                    if(self._render_manager.camera_size > 2):
-                        self._zoom *= 1.05
-                        self._zoom = self._graph_visual.setZoom(self._zoom)
+                    self._zoom *= 1.05
                 else:
                     # self._camera.size *= 1.05
                     self._render_manager.camera_size *= 1.05
-                    if(self._render_manager.camera_size < 350):
-                        self._zoom /= 1.05
-                        self._zoom = self._graph_visual.setZoom(self._zoom)
+                    self._zoom /= 1.05
+                self._graph_visual.setZoom(self._zoom)
             if event.type == pygame.QUIT:
                 self._will_quit = True
                 self._input_option_result = -1
@@ -169,14 +168,18 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self.draw_hud()
 
     def draw_input_overlay(self):
+        
         if not self._waiting_user_input:
             return
-        
+
+
+        #FIXME: Testing for drawing
+
         for key_id, node_id in self._input_options.items():
             node = self.ctx.graph.graph.get_node(node_id)
             self._render_manager._draw_node(self.ctx, self._screen, node)
 
-            self.ctx.visual._graph_visual.setNodeColor(node, (0, 255, 0))
+            self.ctx.visual._graph_visual.setNodeUIColor(node, (0, 255, 0))
 
             position = (node.x, node.y)
             (x, y) = self._graph_visual.ScalePositionToScreen(position)
@@ -192,7 +195,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         size_x, size_y = self.render_text(f"Current turn: {self._waiting_agent_name}", 10, top, Space.Screen)
         top += size_y + 10
         size_x, size_y = self.render_text(f"FPS: {round(self._clock.get_fps(), 2)}", 10, top, Space.Screen)
-
 
     def cleanup(self):
         pygame.quit()
@@ -240,8 +242,42 @@ class PygameVisualizationEngine(IVisualizationEngine):
         else:
             pygame.draw.lines(self._screen, color, closed, points, width)
 
+    def render_line_to_surface(self, surface: pygame.Surface ,start_x: float, start_y: float, end_x: float, end_y: float, color: tuple=Color.Black, width: int=1, isAA: bool=False):
+        if isAA:
+            pygame.draw.aaline(surface, color, (start_x, start_y), (end_x, end_y))
+        else:
+            pygame.draw.line(surface, color, (start_x, start_y), (end_x, end_y), width)
+
+    def render_lines_to_surface(self, surface: pygame.Surface , points: list[tuple[float, float]], color: tuple=Color.Black, width: int=1, closed=False, isAA: bool=False):
+        if isAA:
+            pygame.draw.aalines(surface, color, closed, points)
+        else:
+            pygame.draw.lines(surface, color, closed, points, width)
+
     def render_polygon(self, points: list[tuple[float, float]], color: tuple=Color.Black, width: int=0):
         pygame.draw.polygon(self._screen, color, points, width)
+
+
+    def rescale_surface(self, surface : pygame.Surface):
+        center = surface.get_rect().center
+        width, height = surface.get_size()
+
+        width *= self._zoom
+        height *= self._zoom
+
+        scaled_surface = pygame.transform.scale(surface, (width, height))
+        scaled_surface.get_rect(center=center)
+        return scaled_surface
+    
+    def generate_graph_surface(self, lower_corner : tuple[float, float], upper_corner: tuple[float, float]):
+        (x1, y1) = self._graph_visual.ScalePositionToScreen(lower_corner)
+        (x2, y2) = self._graph_visual.ScalePositionToScreen(upper_corner)
+        
+        surfaceWidth = int(x2 - x1)
+        surfaceHeight = int(y2 - y1)
+
+        surface = pygame.Surface((surfaceWidth, surfaceHeight ))
+        return surface
 
     def _draw_grid(self):
         x_min = self._render_manager.camera_x - self._render_manager.camera_size * 4
@@ -267,6 +303,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self.handle_single_draw()
         self.handle_tick()
         pygame.display.flip()
+        
 
     def human_input(self, agent_name, state: Dict[str, Any]) -> int:
         if self.ctx.is_terminated():
@@ -285,8 +322,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         for node_id in options:
             if node_id != current_agent.current_node_id:
-                self.ctx.visual._graph_visual.setEdgeColor(current_agent.current_node_id, node_id, (0, 255, 0))
-                self.ctx.visual._graph_visual.setEdgeColor(node_id, current_agent.current_node_id, (0, 255, 0))
+                self.ctx.visual._graph_visual.setEdgeUIColor(current_agent.current_node_id, node_id, (0, 255, 0))
+                self.ctx.visual._graph_visual.setEdgeUIColor(node_id, current_agent.current_node_id, (0, 255, 0))
 
         self._input_options: dict[int, int] = {}
         for i in range(min(len(options), 10)):
@@ -311,7 +348,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._waiting_user_input = False
         self._input_option_result = None
         self._waiting_agent_name = None
-        self.ctx.visual._graph_visual.resetGraphColor()
+        self.ctx.visual._graph_visual.resetGraphUIColor()
 
     def simulate(self):
         self._waiting_simulation = True
@@ -328,6 +365,43 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         while self._waiting_simulation and not self._will_quit:
             self.update()
+
+    def handle_fog_of_war(self, agent_name, state: Dict[str, Any]):
+        if self.ctx.is_terminated():
+            return
+
+        # Internal helper function
+        def get_neighbours(state):
+            for (type, data) in state["sensor"].values():
+                if type == SensorType.NEIGHBOR:
+                    return data
+
+        current_agent = self.ctx.agent.get_agent(agent_name)
+        options: list[int] = get_neighbours(state)
+
+        for node_id in options:
+            # Set node to not skip render
+            self.ctx.visual._graph_visual.setNodeCull(node_id, False)
+            self.ctx.visual._graph_visual.setNodeColor(node_id, (200, 200, 200))
+
+            if node_id != current_agent.current_node_id:
+                # Set to not skip render
+                self.ctx.visual._graph_visual.setEdgeCull(current_agent.current_node_id, node_id, False)
+                self.ctx.visual._graph_visual.setEdgeCull(node_id, current_agent.current_node_id, False)
+
+                # Set color for fog of war
+                
+                self.ctx.visual._graph_visual.setEdgeColor(current_agent.current_node_id, node_id, (200, 200, 200))
+                self.ctx.visual._graph_visual.setEdgeColor(node_id, current_agent.current_node_id, (200, 200, 200))
+
+        return
+    
+    def clear_fog_of_war(self):
+        if self.ctx.is_terminated():
+            return
+        
+        self.ctx.visual._graph_visual.clearGraphCache()
+        
 
     def terminate(self):
         self.cleanup()

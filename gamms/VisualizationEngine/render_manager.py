@@ -267,9 +267,24 @@ class RenderManager:
     @staticmethod
     def _draw_edge(ctx, screen, graph, edge, edge_color):
         """Draw an edge as a curve or straight line based on the linestring."""
+        
         source = graph.nodes[edge.source]
         target = graph.nodes[edge.target]
+
+        # Check if call is in render Queue
+        #if ctx.visual._graph_visual.getEdgeCull(edge.source, edge.target):
+        #    return
+            
+        _color = ctx.visual._graph_visual.getEdgeUIColor(edge.source, edge.target)
+
+        if ctx.visual._graph_visual.getEdgeCull(edge.source, edge.target):
+            return
+
+        if _color is None:
+            _color = ctx.visual._graph_visual.getEdgeColor(edge.source, edge.target)
+
         
+        # Important note: this calculation is costly
         (_source_x, _source_y) = ctx.visual._graph_visual.ScalePositionToScreen((source.x, source.y))
         (_target_x, _target_y) = ctx.visual._graph_visual.ScalePositionToScreen((target.x, target.y))
 
@@ -279,33 +294,44 @@ class RenderManager:
         if(_source_x < 0 and _target_x < 0) or (_source_x > _width and _target_x > _width):
             return
         if(_source_y < 0 and _target_y < 0) or (_source_y > _height and _target_y > _height ):
-            return
-        
-        _color = ctx.visual._graph_visual.getEdgeColor(edge.source, edge.target)
-        if _color is None:
-            _color = edge_color
+            return        
 
         # If linestring is present, draw it as a curve
+        linestring = ctx.visual._graph_visual.getEdgePositions(edge.source, edge.target)
         if edge.linestring:
             #linestring[1:-1]
-            linestring = [(source.x, source.y)] + [(x, y) for (x, y) in edge.linestring.coords] + [(target.x, target.y)]
+
             scaled_points = [
                 (ctx.visual._graph_visual.ScalePositionToScreen((x, y)))
                 for x, y in linestring
             ]
+            
             ctx.visual.render_lines(scaled_points, _color, isAA=True)
         else:
             # Straight line
-            source_position = (source.x, source.y)
-            target_position = (target.x, target.y)
-            (x1, y1) = ctx.visual._graph_visual.ScalePositionToScreen(source_position)
-            (x2, y2) = ctx.visual._graph_visual.ScalePositionToScreen(target_position)
+            
+            (x1, y1) = ctx.visual._graph_visual.ScalePositionToScreen(linestring[0])
+            (x2, y2) = ctx.visual._graph_visual.ScalePositionToScreen(linestring[1])
 
             ctx.visual.render_line(x1, y1, x2, y2, _color, 2)
 
     @staticmethod
     def _draw_node(ctx, screen, node, node_color=(169, 169, 169), draw_id=False):
-        position = (node.x, node.y)
+        
+        # Check if call is in render Queue
+        _color = ctx.visual._graph_visual.getNodeUIColor(node.id)
+
+        if ctx.visual._graph_visual.getNodeCull(node.id):
+            
+            return
+
+        _scale = 8
+        if _color is None:
+            _color = ctx.visual._graph_visual.getNodeColor(node.id)
+            _scale = ctx.visual._graph_visual.getNodeScale(node.id)
+        
+        position = ctx.visual._graph_visual.getNodePosition(node.id)
+        # Important note: this calculation is costly
         (x, y) = ctx.visual._graph_visual.ScalePositionToScreen(position)
 
         _width = screen.get_width()
@@ -314,13 +340,10 @@ class RenderManager:
         if (x < 0 or x > _width or y < 0 or y > _height):
             return
         
-        color = ctx.visual._graph_visual.getNodeColorById(node.id)
-        scale = 8
-        if color is None:
-            color = node_color
-            scale = 4
-
-        ctx.visual.render_circle(int(x), int(y), scale, color)
+        
+        
+        ctx.visual.render_circle(int(x), int(y), _scale, _color)
 
         if draw_id:
             ctx.visual.render_text(str(node.id), int(x), int(y) + 10, (0, 0, 0), Space.Screen)
+

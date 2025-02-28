@@ -94,11 +94,20 @@ def valid_step(ctx):
 
 # Run the game
 while not ctx.is_terminated():
+    
     for agent in ctx.agent.create_iter():
+        state = agent.get_state()
+        ctx.visual.handle_fog_of_war(agent.name, state)
+
+    for agent in ctx.agent.create_iter():
+
+        state = agent.get_state()
+        
+
         if agent.strategy is not None:
             agent.step()
         else:
-            state = agent.get_state()
+            
             node = ctx.visual.human_input(agent.name, state)
             state['action'] = node
             agent.set_state()
@@ -112,6 +121,7 @@ while not ctx.is_terminated():
         data['x'] = n2.x
         data['y'] = n2.y
     ctx.visual.simulate()
-
+    ctx.visual.clear_fog_of_war()
+    #ctx.visual._graph_visual.resetGraphUIColor()
     # ctx.save_frame()
     rule_terminate(ctx)
