@@ -36,8 +36,15 @@ class ISensor(ABC):
         data (Dict[str, Any]): The data collected or maintained by the sensor.
     """
 
-    _type: SensorType
-    data: Dict[str, Any]
+    @abstractmethod
+    def type(self) -> SensorType:
+        """
+        Get the type of the sensor.
+
+        Returns:
+            SensorType: The type of the sensor.
+        """
+        pass
 
     @abstractmethod
     def data(self) -> Dict[str, Any]:
@@ -47,7 +54,7 @@ class ISensor(ABC):
         Returns:
             Dict[str, Any]: The data maintained by the sensor.
         """
-        return self.data
+        pass
 
     @abstractmethod
     def sense(self, node_id: int) -> Dict[str, Any]:

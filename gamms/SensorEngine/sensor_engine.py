@@ -16,6 +16,10 @@ class NeighborSensor(ISensor):
         self.edges = edges
         self._data = []
         self._owner = None
+    
+    @property
+    def type(self) -> SensorType:
+        return self._type
 
     @property
     def data(self):
