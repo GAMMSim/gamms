@@ -154,7 +154,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
                 alpha = self._simulation_time / self._sim_time_constant
                 alpha = pygame.math.clamp(alpha, 0, 1)
                 for agent in self.ctx.agent.create_iter():
-                    self._agent_visuals[agent._name].update_simulation(alpha)
+                    self._agent_visuals[agent.name].update_simulation(alpha)
 
     def handle_single_draw(self):
         self._screen.fill(Color.White)
