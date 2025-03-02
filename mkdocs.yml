@@ -30,18 +30,24 @@ theme:
     - toc.nest
     # Light/Dark mode
   palette:
-    - scheme: default
-      primary: purple
-      accent: purple
+    - media: "(prefers-color-scheme)"
       toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
-    - scheme: slate
-      primary: purple
-      accent: purple
-      toggle:
-        icon: material/brightness-4
+        icon: material/link
         name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch-off
+        name: Switch to system preference
   font:
     text: Roboto
     code: Roboto Mono
@@ -97,6 +103,11 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Getting Started: start.md
+  - First Game : first_game.md
+  - Advanced Concepts:
+    - Agent Strategy: strategy.md
+    - Adding Extra Information To Agent State: agent_state_addition.md
+    - Artists: artists.md
   - API Reference:
     - Context: context.md
     - Agent: agent.md

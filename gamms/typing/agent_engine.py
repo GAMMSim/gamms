@@ -1,15 +1,57 @@
 from abc import ABC, abstractmethod
-from typing import Iterable, Dict, Any
+from typing import Iterable, Dict, Any, Optional, Callable
 
 class IAgent(ABC):
     """
     Abstract base class representing an agent in the system.
 
-    Attributes:
-        name (str): The name identifier for the agent.
     """
 
-    name: str
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """
+        Get the name identifier of the agent.
+        """
+        pass
+    
+    @property
+    @abstractmethod
+    def current_node_id(self) -> int:
+        """
+        Get the current node ID of the agent.
+        """
+        pass
+    
+    @property
+    @abstractmethod
+    def prev_node_id(self) -> int:
+        """
+        Get the previous node ID of the agent.
+        """
+        pass
+    
+    @property
+    @abstractmethod
+    def state(self) -> Dict[str, Any]:
+        """
+        Get the current state of the agent.
+
+        Returns:
+            Dict[str, Any]: The current state data of the agent.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def strategy(self) -> Optional[Callable[[Dict[str, Any]], None]]:
+        """
+        Get the current strategy of the agent.
+
+        Returns:
+            Optional[Callable[[Dict[str, Any]], None]]: The current strategy function or None if no strategy is set.
+        """
+        pass
 
     @abstractmethod
     def step(self):
@@ -140,3 +182,8 @@ class IAgentEngine(ABC):
             KeyError: If no agent with the specified name exists.
         """
         pass
+    
+
+
+
+

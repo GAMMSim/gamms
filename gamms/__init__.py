@@ -2,11 +2,12 @@ import gamms.AgentEngine.agent_engine as agent
 import gamms.SensorEngine.sensor_engine as sensor
 import gamms.GraphEngine.graph_engine as graph
 import gamms.VisualizationEngine as visual
+from gamms.recorder import Recorder
 from gamms.context import Context
 from enum import Enum
 
 def create_context(
-    vis_engine: Enum = visual.Engine.PYGAME,
+    vis_engine: Enum = visual.Engine.NO_VIS,
     vis_kwargs: dict = None,
 ) -> Context:
     ctx = Context()
@@ -28,5 +29,6 @@ def create_context(
     ctx.graph_engine = graph_engine
     ctx.visual_engine = visual_engine
     ctx.sensor_engine = sensor_engine
+    ctx.recorder = Recorder(ctx)
     ctx.set_alive()
     return ctx
