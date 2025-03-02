@@ -58,6 +58,10 @@ class MapSensor(ISensor):
         self._owner = None
 
     @property
+    def type(self) -> SensorType:
+        return self._type
+
+    @property
     def data(self) -> Dict[str, Any]:
         return self._data
 
@@ -134,6 +138,10 @@ class AgentSensor(ISensor):
         self._owner = owner
         self._data = {}  
 
+    @property
+    def type(self) -> SensorType:
+        return self._type
+    
     @property
     def data(self) -> Dict[str, Any]:
         return self._data
