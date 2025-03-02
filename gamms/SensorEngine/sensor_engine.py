@@ -57,6 +57,10 @@ class MapSensor(ISensor):
         self.node_ids = list(self.nodes.keys())
         self._positions = np.array([[self.nodes[nid].x, self.nodes[nid].y] for nid in self.node_ids])
         self._owner = None
+    
+    @property
+    def type(self) -> SensorType:
+        return self._type
 
     @property
     def data(self) -> Dict[str, Any]:
@@ -134,6 +138,10 @@ class AgentSensor(ISensor):
         self.orientation = orientation  
         self._owner = owner
         self._data = {}  
+    
+    @property
+    def type(self) -> SensorType:
+        return self._type
 
     @property
     def data(self) -> Dict[str, Any]:
