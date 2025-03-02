@@ -36,7 +36,7 @@ class ISensor(ABC):
         data (Dict[str, Any]): The data collected or maintained by the sensor.
     """
 
-    type: SensorType
+    _type: SensorType
     data: Dict[str, Any]
 
     @abstractmethod
