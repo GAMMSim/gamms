@@ -233,7 +233,7 @@ class SensorEngine(ISensorEngine):
                 sensor_id, 
                 sensor_type, 
                 self.ctx.graph_engine.graph.nodes, 
-                sensor_range=30,
+                sensor_range=20,
                 fov=2 * math.pi,
                 orientation=0
             )
