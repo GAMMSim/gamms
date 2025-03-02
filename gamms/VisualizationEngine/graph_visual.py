@@ -111,10 +111,6 @@ class GraphVisual:
     
     def setGraph(self, graph):
         self.graph = graph
-    
-    def setCamera(self, camera):
-        self.camera = camera
-        camera.size = max(self.x_max - self.x_min, self.y_max - self.y_min)
 
     def setRenderManager(self, render_manager):
         self.render_manager = render_manager
@@ -124,21 +120,5 @@ class GraphVisual:
         """Scale a coordinate value to fit within the screen."""
         graph_center = self.GraphCenter()
         map_position = ((position[0] - graph_center[0]),(position[1] - graph_center[1]))
-        map_position = self.camera.world_to_screen(map_position[0] + self.camera.x, map_position[1] + self.camera.y)
-        return map_position
-
-
-    def MoveGraphPosition(self, direction: tuple[float, float]):
-        self.offset = (self.offset[0] + direction[0], self.offset[1] + direction[1])
-        
-    def draw_graph(self, screen):
-        """Draw the entire graph (edges and nodes)."""
-        # Center of Graph:
-        self.screen = screen
-        for edge in self.graph.edges.values():
-            self.draw_edge(screen, edge)
-        for node in self.graph.nodes.values():
-            self.draw_node(screen, node)
- 
         map_position = self.render_manager.world_to_screen(map_position[0] + self.render_manager.camera_x, map_position[1] + self.render_manager.camera_y)
         return map_position
