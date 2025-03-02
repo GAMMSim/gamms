@@ -43,7 +43,7 @@ sensor_config = {
         'type': gamms.sensor.SensorType.NEIGHBOR,
     },
     'map': {
-        'type': gamms.sensor.SensorType.MAP,
+        'type': gamms.sensor.SensorType.RANGE,
     },
     'agent': {
         'type': gamms.sensor.SensorType.AGENT,

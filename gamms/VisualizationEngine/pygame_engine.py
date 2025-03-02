@@ -116,6 +116,47 @@ class PygameVisualizationEngine(IVisualizationEngine):
             self._render_manager.camera_y += scrollSpeed #* self._clock.get_time() / 1000
         
         for event in pygame.event.get():
+            pressed_keys = pygame.key.get_pressed()
+            # Multi key Event
+            if pressed_keys[pygame.K_a] and pressed_keys[pygame.K_w]:
+                self._camera.x += self._camera.size / 100
+                self._camera.y += -self._camera.size / 100
+                return
+            if pressed_keys[pygame.K_a] and pressed_keys[pygame.K_s]:
+                self._camera.x += self._camera.size / 100
+                self._camera.y += self._camera.size / 100
+                return
+            if pressed_keys[pygame.K_s] and pressed_keys[pygame.K_d]:
+                self._camera.x += -self._camera.size / 100
+                self._camera.y += self._camera.size / 100
+                return
+            if pressed_keys[pygame.K_d] and pressed_keys[pygame.K_w]:
+                self._camera.x += -self._camera.size / 100
+                self._camera.y += -self._camera.size / 100
+                return
+            if pressed_keys[pygame.K_a] and pressed_keys[pygame.K_d]:
+                return
+            if pressed_keys[pygame.K_w] and pressed_keys[pygame.K_s]:
+                return
+            
+            # Single Input Event
+            if pressed_keys[pygame.K_a]:
+                self._camera.x += self._camera.size / 100
+                self._camera.y += 0
+                return
+            if pressed_keys[pygame.K_s]:
+                self._camera.x += 0
+                self._camera.y += self._camera.size / 100
+                return
+            if pressed_keys[pygame.K_d]:
+                self._camera.x += -self._camera.size / 100
+                self._camera.y += 0
+                return
+            if pressed_keys[pygame.K_w]:
+                self._camera.x += 0
+                self._camera.y += -self._camera.size / 100
+                return
+              
             if event.type == pygame.MOUSEWHEEL:
                 if event.y > 0:
                     # self._camera.size /= 1.05
@@ -154,17 +195,36 @@ class PygameVisualizationEngine(IVisualizationEngine):
                 alpha = self._simulation_time / self._sim_time_constant
                 alpha = pygame.math.clamp(alpha, 0, 1)
                 for agent in self.ctx.agent.create_iter():
-                    self._agent_visuals[agent.name].update_simulation(alpha)
+                    self._agent_visuals[agent._name].update_simulation(alpha)
 
     def handle_single_draw(self):
         self._screen.fill(Color.White)
 
         # Note: Draw in layer order of back layer -> front layer
         # self._draw_grid()
-        
+        self._graph_visual.draw_graph(self._screen)
+        self.draw_agents()
+        for artist in self._artists.values():
+            artist['draw'](self.ctx, artist['data'])
         self.draw_input_overlay()
         self._render_manager.handle_render()
         self.draw_hud()
+
+    def draw_agents(self):
+        waiting_agent_visual = None
+        for agent in self.ctx.agent.create_iter():
+            agent_visual = self._agent_visuals.get(agent.name, None)
+            if agent_visual is None:
+                continue
+            if agent_visual.position is None:
+                node = self.ctx.graph.graph.get_node(agent.current_node_id)
+                agent_visual.position = (node.x, node.y)
+            agent_visual.draw_agent(self._screen, self._graph_visual.ScalePositionToScreen)
+            if agent_visual.name == self._waiting_agent_name:
+                waiting_agent_visual = agent_visual
+        
+        if waiting_agent_visual is not None:
+            waiting_agent_visual.draw_agent(self._screen, self._graph_visual.ScalePositionToScreen, True)
 
     def draw_input_overlay(self):
         if not self._waiting_user_input:
@@ -265,6 +325,11 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self.handle_single_draw()
         self.handle_tick()
         pygame.display.flip()
+    
+    def update_agent_visual_pos(self):
+        for agent in self.ctx.agent.create_iter():
+            agent_visual = self._agent_visuals[agent._name]
+            agent_visual.set_postions(agent.prev_node_id, agent.current_node_id)
 
     def human_input(self, agent_name, state: Dict[str, Any]) -> int:
         if self.ctx.is_terminated():
