@@ -23,28 +23,11 @@ def get_network_type(osm_type: OSMType) -> str:
     else:
         raise ValueError(f"OSMType {osm_type} not recognized.")
 
-def create_osm_graph(
-    location: str,
-    osm_type: OSMType = OSMType.WALK,
+def process_osm_graph(
+    osmg: nx.MultiDiGraph,
     resolution: float = 10.0,
-    simplify: bool = True,
-    retain_all: bool = False,
-    truncate_by_edge: bool = True,
-    custom_filter: str = None,
-    tolerance: int =10.0
-) -> nx.MultiDiGraph:
-    resolution = float(resolution)
-    osmg = ox.graph_from_place(
-        location,
-        network_type=get_network_type(osm_type),
-        simplify=simplify,
-        retain_all=retain_all,
-        truncate_by_edge=truncate_by_edge,
-        custom_filter=custom_filter
-    )
-    
-    osmg = ox.project_graph(osmg)
-    osmg = ox.consolidate_intersections(osmg, tolerance=tolerance, rebuild_graph=True, dead_ends=True)
+    bidirectional: bool = True,
+) -> nx.DiGraph:
     osmg = ox.project_graph(osmg, to_latlong=False)
     # Process line strings to add extra nodes and edges
     ret = nx.MultiDiGraph()
@@ -90,7 +73,7 @@ def create_osm_graph(
     del osmg
 
 
-    nxg = nx.MultiDiGraph()
+    nxg = nx.DiGraph()
     count = 0
     node_map = {}
     for n in ret.nodes:
@@ -101,8 +84,10 @@ def create_osm_graph(
     for u, v, data in ret.edges(data=True):
         u = node_map[u]
         v = node_map[v]
+        if nxg.has_edge(u, v):
+            continue
         nxg.add_edge(u, v, id=count, **data)
-        if osm_type == OSMType.WALK:
+        if bidirectional:
             count += 1
             line = data.get('linestring')
             data = copy(data)
@@ -111,3 +96,44 @@ def create_osm_graph(
             nxg.add_edge(v, u, id=count, **data)
         count += 1
     return nxg
+
+def graph_from_xml(
+    filepath: str,
+    resolution: float = 10.0,
+    bidirectional: bool = True,
+    retain_all: bool = False,
+    tolerance: int = 1e-9,
+) -> nx.DiGraph:
+    osmg = ox.graph.graph_from_xml(filepath, bidirectional=bidirectional, simplify=False, retain_all=retain_all)
+    osmg = ox.project_graph(osmg)
+    osmg = ox.consolidate_intersections(osmg, tolerance=tolerance, rebuild_graph=True, dead_ends=True)
+    return process_osm_graph(osmg, resolution=resolution, bidirectional=bidirectional)
+
+def create_osm_graph(
+    location: str,
+    osm_type: OSMType = OSMType.WALK,
+    resolution: float = 10.0,
+    simplify: bool = True,
+    retain_all: bool = False,
+    truncate_by_edge: bool = True,
+    custom_filter: str = None,
+    tolerance: int =10.0
+) -> nx.DiGraph:
+    resolution = float(resolution)
+    osmg = ox.graph_from_place(
+        location,
+        network_type=get_network_type(osm_type),
+        simplify=simplify,
+        retain_all=retain_all,
+        truncate_by_edge=truncate_by_edge,
+        custom_filter=custom_filter
+    )
+    osmg = ox.project_graph(osmg)
+    osmg = ox.consolidate_intersections(osmg, tolerance=tolerance, rebuild_graph=True, dead_ends=True)
+
+    if osm_type == OSMType.WALK:
+        bidirectional = True
+    else:
+        bidirectional = False
+
+    return process_osm_graph(osmg, resolution=resolution, bidirectional=bidirectional)    
