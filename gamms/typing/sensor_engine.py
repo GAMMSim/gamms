@@ -18,10 +18,6 @@ class SensorType(Enum):
     NEIGHBOR = 1
     MAP = 2
     AGENT = 3
-    RANGE = 4
-    ARC = 5
-    AGENT_RANGE = 6
-    AGENT_ARC = 7
 
 
 class ISensor(ABC):
@@ -36,15 +32,8 @@ class ISensor(ABC):
         data (Dict[str, Any]): The data collected or maintained by the sensor.
     """
 
-    @abstractmethod
-    def type(self) -> SensorType:
-        """
-        Get the type of the sensor.
-
-        Returns:
-            SensorType: The type of the sensor.
-        """
-        pass
+    type: SensorType
+    data: Dict[str, Any]
 
     @abstractmethod
     def data(self) -> Dict[str, Any]:
@@ -54,7 +43,7 @@ class ISensor(ABC):
         Returns:
             Dict[str, Any]: The data maintained by the sensor.
         """
-        pass
+        return self.data
 
     @abstractmethod
     def sense(self, node_id: int) -> Dict[str, Any]:
@@ -154,11 +143,3 @@ class ISensorEngine(ABC):
             IOError: If there are issues during the cleanup process.
         """
         pass
-
-    def custom(self) -> None:
-        """
-        Decorator for custom sensor
-        For example, if the user create a new custom sensor, add a new type to SensorType enum
-        and implement the new sensor class, the user can add the custom sensor to the sensor engine
-        using this method.
-        """
