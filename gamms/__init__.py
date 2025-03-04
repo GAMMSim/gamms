@@ -2,7 +2,7 @@ import gamms.AgentEngine.agent_engine as agent
 import gamms.SensorEngine.sensor_engine as sensor
 import gamms.GraphEngine.graph_engine as graph
 import gamms.VisualizationEngine as visual
-from gamms.recorder import Recorder
+from gamms.Recorder.recorder import Recorder
 from gamms.context import Context
 from enum import Enum
 

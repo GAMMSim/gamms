@@ -116,4 +116,3 @@ while not ctx.is_terminated():
     ctx.visual.simulate()
 
     rule_terminate(ctx)
-

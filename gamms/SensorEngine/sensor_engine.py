@@ -7,6 +7,7 @@ import numpy as np
 
 _T = TypeVar('_T')
 
+
 class NeighborSensor(ISensor):
     def __init__(self, ctx, sensor_id, sensor_type, nodes, edges):
         self.sensor_id = sensor_id
@@ -56,6 +57,10 @@ class MapSensor(ISensor):
         self.node_ids = list(self.nodes.keys())
         self._positions = np.array([[self.nodes[nid].x, self.nodes[nid].y] for nid in self.node_ids])
         self._owner = None
+    
+    @property
+    def type(self) -> SensorType:
+        return self._type
 
     @property
     def type(self) -> SensorType:
@@ -137,6 +142,10 @@ class AgentSensor(ISensor):
         self.orientation = orientation  
         self._owner = owner
         self._data = {}  
+    
+    @property
+    def type(self) -> SensorType:
+        return self._type
 
     @property
     def type(self) -> SensorType:
