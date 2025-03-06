@@ -17,6 +17,7 @@ ctx = gamms.create_context(vis_engine=vis_engine)
 with open(graph_path, 'rb') as f:
     G = pickle.load(f)
 
+print(G)
 
 print(type(G))
 ctx.graph.attach_networkx_graph(G)

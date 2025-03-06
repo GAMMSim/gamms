@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="custom">
+  <!-- Nodes: 4 rows x 4 columns -->
+  <node id="1" lat="0.0" lon="0.0" />
+  <node id="2" lat="0.0" lon="1.0" />
+  <node id="3" lat="0.0" lon="2.0" />
+  <node id="4" lat="0.0" lon="3.0" />
+  
+  <node id="5" lat="1.0" lon="0.0" />
+  <node id="6" lat="1.0" lon="1.0" />
+  <node id="7" lat="1.0" lon="2.0" />
+  <node id="8" lat="1.0" lon="3.0" />
+  
+  <node id="9" lat="2.0" lon="0.0" />
+  <node id="10" lat="2.0" lon="1.0" />
+  <node id="11" lat="2.0" lon="2.0" />
+  <node id="12" lat="2.0" lon="3.0" />
+  
+  <node id="13" lat="3.0" lon="0.0" />
+  <node id="14" lat="3.0" lon="1.0" />
+  <node id="15" lat="3.0" lon="2.0" />
+  <node id="16" lat="3.0" lon="3.0" />
+  
+  <!-- Horizontal ways -->
+  <way id="100">
+    <nd ref="1"/>
+    <nd ref="2"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="101">
+    <nd ref="2"/>
+    <nd ref="3"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="102">
+    <nd ref="3"/>
+    <nd ref="4"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  
+  <way id="103">
+    <nd ref="5"/>
+    <nd ref="6"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="104">
+    <nd ref="6"/>
+    <nd ref="7"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="105">
+    <nd ref="7"/>
+    <nd ref="8"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  
+  <way id="106">
+    <nd ref="9"/>
+    <nd ref="10"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="107">
+    <nd ref="10"/>
+    <nd ref="11"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="108">
+    <nd ref="11"/>
+    <nd ref="12"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  
+  <way id="109">
+    <nd ref="13"/>
+    <nd ref="14"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="110">
+    <nd ref="14"/>
+    <nd ref="15"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="111">
+    <nd ref="15"/>
+    <nd ref="16"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  
+  <!-- Vertical ways -->
+  <way id="112">
+    <nd ref="1"/>
+    <nd ref="5"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="113">
+    <nd ref="5"/>
+    <nd ref="9"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="114">
+    <nd ref="9"/>
+    <nd ref="13"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  
+  <way id="115">
+    <nd ref="2"/>
+    <nd ref="6"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="116">
+    <nd ref="6"/>
+    <nd ref="10"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="117">
+    <nd ref="10"/>
+    <nd ref="14"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  
+  <way id="118">
+    <nd ref="3"/>
+    <nd ref="7"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="119">
+    <nd ref="7"/>
+    <nd ref="11"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="120">
+    <nd ref="11"/>
+    <nd ref="15"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  
+  <way id="121">
+    <nd ref="4"/>
+    <nd ref="8"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="122">
+    <nd ref="8"/>
+    <nd ref="12"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="123">
+    <nd ref="12"/>
+    <nd ref="16"/>
+    <tag k="highway" v="residential"/>
+  </way>
+</osm>
