@@ -1,7 +1,8 @@
-from typing import List, Union, Iterator, Dict
+from typing import List, Union, Iterator, Dict, Type, TypeVar, Callable, BinaryIO, Tuple
 from abc import ABC, abstractmethod
 
 JsonType = Union[None, int, str, bool, List["JsonType"], Dict[str, "JsonType"]]
+_T = TypeVar('_T')
 
 class IRecorder(ABC):
     @abstractmethod
@@ -30,13 +31,13 @@ class IRecorder(ABC):
         """
         pass
     @abstractmethod
-    def play(self, path: str) -> None:
+    def play(self, path: Union[str, BinaryIO]) -> None:
         """
         Resume recording if paused. If not started or stopped, give warning.
         """
         pass
     @abstractmethod    
-    def replay(self, path: str) -> Iterator:
+    def replay(self, path: Union[str, BinaryIO]) -> Iterator:
         """
         Checks validity of the file and output an iterator.
         """
@@ -51,5 +52,59 @@ class IRecorder(ABC):
     def write(self, opCode, data) -> None:
         """
         Write to record buffer if recording. If not recording raise error as it should not happen.
+        """
+        pass
+
+    @abstractmethod
+    def component(self, struct: Dict[str, Type[_T]]) -> Callable[[Type[_T]], Type[_T]]:
+        """
+        Decorator to add a component to the recorder.
+        """
+        pass
+
+    @abstractmethod
+    def get_component(self, name: str) -> Type[_T]:
+        """
+        Get the component from the name.
+        Raise key error if not found.
+        """
+        pass
+
+    @abstractmethod
+    def delete_component(self, name: str) -> None:
+        """
+        Delete the component from the name.
+        Raise key error if not found.
+        """
+        pass
+
+    @abstractmethod
+    def component_iter(self) -> Iterator[str]:
+        """
+        Iterator for the component names.
+        """
+        pass
+
+    @abstractmethod
+    def add_component(self, name: str, obj: Type[_T]) -> None:
+        """
+        Add a component to the recorder.
+        Raise value error if already exists.
+        """
+        pass
+
+    @abstractmethod
+    def is_component_registered(self, key: Tuple[str, str]) -> bool:
+        """
+        Check if the component is registered.
+        Key is (module_name, qualname)
+        """
+        pass
+
+    @abstractmethod
+    def unregister_component(self, key: Tuple[str, str]) -> None:
+        """
+        Unregister the component.
+        Key is (module_name, qualname)
         """
         pass

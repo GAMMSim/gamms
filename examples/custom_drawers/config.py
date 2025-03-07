@@ -7,7 +7,7 @@ vis_engine = gamms.visual.Engine.PYGAME
 
 # The path to the graph file
 location = "West Point, New York, USA"
-resolution = 10.0
+resolution = 100.0
 graph_path = 'graph.pkl'
 
 # Sensor configuration
@@ -43,7 +43,7 @@ sensor_config = {
         'type': gamms.sensor.SensorType.NEIGHBOR,
     },
     'map': {
-        'type': gamms.sensor.SensorType.RANGE,
+        'type': gamms.sensor.SensorType.MAP,
     },
     'agent': {
         'type': gamms.sensor.SensorType.AGENT,
@@ -60,22 +60,22 @@ agent_config = {
     'agent_1': {
         'meta': {'team': 0},
         'sensors': ['neigh_1', 'map', 'agent'],
-        'start_node_id': 10
+        'start_node_id': 1
     },
     'agent_2': {
         'meta': {'team': 0},
         'sensors': ['neigh_2', 'map', 'agent'],
-        'start_node_id': 20
+        'start_node_id': 2
     },
     'agent_3': {
         'meta': {'team': 0},
         'sensors': ['neigh_3', 'map', 'agent'],
-        'start_node_id': 30
+        'start_node_id': 3
     },
     'agent_4': {
         'meta': {'team': 0},
         'sensors': ['neigh_4', 'map', 'agent'],
-        'start_node_id': 40
+        'start_node_id': 4
     },
     'agent_5': {
         'meta': {'team': 1},

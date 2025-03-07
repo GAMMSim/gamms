@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 import pygame
+=======
+>>>>>>> dev
 
 class GraphVisual:
     def __init__(self, graph, width=1980, height=1080, draw_id=False, node_color=None, edge_color=None):
@@ -18,6 +21,93 @@ class GraphVisual:
         self.y_max = max(node.y for node in self.graph.nodes.values())
         self.offset = (0.0, 0.0)
 
+        # Data Storage. INTERNAL USE ONLY
+        self.__edge_list = set()
+        self.__node_list = set()
+        self.__node_color_list = {}
+        self.__edge_color_list = {}
+        self.__node_size_list = {}
+        self.__edge_size_list = {}
+
+        # Set the data stores. 
+        self._initalize_data()
+
+    # Internal Methouds
+    def _initalize_data(self) -> None:
+        for edge in self.graph.edges.values():
+            remappedEdgeID = (edge.source << 32) + edge.target
+            self.__edge_list.add(remappedEdgeID)
+            remappedEdgeID = (edge.target << 32) + edge.source
+            self.__edge_list.add(remappedEdgeID)
+
+        for node in self.graph.nodes.values():
+            self.__node_list.add(node.id)
+
+    # Color Set Methouds
+    def setNodeColor(self, node, color = (255, 255, 255)):
+        if node.id in self.__node_list:
+            self.__node_color_list[node.id] = color
+        else:
+            print(f"Warning: setNodeColorByID({node.id}) not found.")
+
+    def setEdgeColor(self, source_id, target_id, color = (255, 255, 255)):
+        """Edge id is a bitwise encoding."""
+        edge_id = (source_id << 32) + target_id
+        if edge_id in self.__edge_list:
+            self.__edge_color_list[edge_id] = color
+        else:
+            print(f"Warning: setEdgeColor({edge_id}) not found.")
+
+    def setNodeColorByID(self, node_id, color = (255, 255, 255)):
+            if node_id in self.__node_list:
+                self.__node_color_list[node_id] = color
+            else:
+                print(f"Warning: setNodeColorByID({node_id}) not found.")
+
+    def setEdgeColorByID(self, edge_id, color = (255, 255, 255)):
+        if edge_id in self.__edge_list:
+            self.__edge_color_list[edge_id] = color
+        else:
+            print(f"Warning: setEdgeColorByID({edge_id}) not found.")
+
+    # Color Get Methouds
+    def getEdgeColorById(self, edge_id):
+        if edge_id in self.__edge_color_list:
+            return self.__edge_color_list[edge_id] 
+        else:
+            return None
+        
+    def getNodeColorById(self, node_id):
+        if node_id in self.__node_color_list:
+            return self.__node_color_list[node_id] 
+        else:
+            return None
+        
+    def getEdgeColor(self, source_id, target_id):
+        edge_id = (source_id << 32) + target_id
+        if edge_id in self.__edge_color_list:
+            return self.__edge_color_list[edge_id]
+        else:
+            return None
+
+    def getNodeColor(self, node):
+        if node.id in self.__node_color_list:
+            return self.__node_color_list[node.id]
+        else:
+            return None
+
+    # Reset Color Functions
+    def resetNodeColor(self):
+        self.__node_color_list = {}
+
+    def resetEdgeColor(self):
+        self.__edge_color_list = {}
+
+    def resetGraphColor(self):
+        self.resetNodeColor()
+        self.resetEdgeColor()
+
+    # Graph Math Methouds
     def GraphCenter(self):
         """Gets the center of a graph."""
         return (((self.x_max - self.x_min ) / 2) + self.x_min, ((self.y_max - self.y_min) / 2) + self.y_min)
@@ -28,15 +118,23 @@ class GraphVisual:
     
     def setGraph(self, graph):
         self.graph = graph
+<<<<<<< HEAD
     
     def setCamera(self, camera):
         self.camera = camera
         camera.size = max(self.x_max - self.x_min, self.y_max - self.y_min)
+=======
+
+    def setRenderManager(self, render_manager):
+        self.render_manager = render_manager
+        self.render_manager.camera_size = max(self.x_max - self.x_min, self.y_max - self.y_min)
+>>>>>>> dev
 
     def ScalePositionToScreen(self, position: tuple[float, float]) -> tuple[float, float]:
         """Scale a coordinate value to fit within the screen."""
         graph_center = self.GraphCenter()
         map_position = ((position[0] - graph_center[0]),(position[1] - graph_center[1]))
+<<<<<<< HEAD
         map_position = self.camera.world_to_screen(map_position[0] + self.camera.x, map_position[1] + self.camera.y)
         return map_position
 
@@ -129,3 +227,7 @@ class GraphVisual:
             self.draw_edge(screen, edge)
         for node in self.graph.nodes.values():
             self.draw_node(screen, node)
+=======
+        map_position = self.render_manager.world_to_screen(map_position[0] + self.render_manager.camera_x, map_position[1] + self.render_manager.camera_y)
+        return map_position
+>>>>>>> dev

@@ -40,6 +40,11 @@ class Graph(IGraph):
             length=edge_data['length'],
             linestring=edge_data.get('linestring', None)
         )
+        #print("(key, id): ",(edge.id, edge_data['id']))
+        #print("(edge.source, edge.target): ",(edge.source, edge.target))
+        #print("(edge.length): ",(edge.length))
+        
+        #FIXME: Due to double edge error, this will need to be changed. 
         self.edges[edge_data['id']] = edge
 
     def update_node(self, node_data: Dict[str, Any]) -> None:

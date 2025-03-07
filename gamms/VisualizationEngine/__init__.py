@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, auto
 
 class Engine(Enum):
     NO_VIS = 0
@@ -26,6 +26,12 @@ class Space:
     Screen = 1
     Viewport = 2
 
+
+class Shape(Enum):
+    Circle = auto()
+    Rectangle = auto()
+
+
 import sys
 import importlib.util
 
@@ -41,4 +47,3 @@ def lazy(fullname):
     return module
 
 from gamms.VisualizationEngine import agent_visual, graph_visual
-from gamms.VisualizationEngine import no_engine, pygame_engine
