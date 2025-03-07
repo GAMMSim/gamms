@@ -164,3 +164,9 @@ cython_debug/
 
 # Gamms Record files
 *.ggr
+
+# Pickle files
+*.pkl
+
+# Profile files
+*.prof
