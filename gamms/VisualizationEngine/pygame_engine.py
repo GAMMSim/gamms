@@ -50,9 +50,15 @@ class PygameVisualizationEngine(IVisualizationEngine):
         return self._height    
     
     def set_graph_visual(self, **kwargs):
-        self._graph_visual = GraphVisual(self.ctx.graph.graph, kwargs['width'], kwargs['height'])
+        self._graph_visual = GraphVisual(
+            self.ctx.graph.graph,
+            kwargs.get('width', 1920),
+            kwargs.get('height', 1080),
+            kwargs.get('draw_id', False),
+            kwargs.get('node_color', Color.LightGreen),
+            kwargs.get('edge_color', Color.Black)
+        )
         self._graph_visual.setCamera(self._camera)
-
         print("Successfully set graph visual")
     
     def set_agent_visual(self, name, **kwargs):
