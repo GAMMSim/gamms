@@ -121,6 +121,110 @@ class MapSensor(ISensor):
         # No dynamic updates required for this sensor.
         pass
 
+class AgentSensor(ISensor):
+    def __init__(
+        self, 
+        ctx, 
+        sensor_id, 
+        sensor_type, 
+        agent_engine, 
+        sensor_range: float, 
+        fov: float = 2 * math.pi, 
+        orientation: float = 0, 
+        owner: Optional[str] = None
+    ):
+        """
+        Detects other agents within a specified range and field of view.
+        :param agent_engine: Typically the context's agent engine.
+        :param sensor_range: Maximum detection distance for agents.
+        :param fov: Field of view in radians. Use 2*pi for no angular filtering.
+        :param orientation: Default orientation (in radians) if no owner is set.
+        :param owner: (Optional) The name of the agent owning this sensor.
+                      This agent will be skipped during sensing.
+        """
+        self.sensor_id = sensor_id
+        self.ctx = ctx
+        self._type = sensor_type
+        self.agent = agent_engine
+        self.range = sensor_range
+        self.fov = fov              
+        self.orientation = orientation  
+        self._owner = owner
+        self._data = {}  
+    
+    @property
+    def type(self) -> SensorType:
+        return self._type
+
+    @property
+    def data(self) -> Dict[str, Any]:
+        return self._data
+
+    def sense(self, node_id: int) -> None:
+        """
+        Detects agents within the sensor range of the sensing node.
+        Skips the agent whose name matches self._owner.
+        In addition to a range check, if self.fov != 2*pi, only agents within (fov/2) radians
+        of the chosen orientation are included.
+        The chosen orientation is determined as follows:
+         - If self._owner is set, fetch the owner's orientation from the agent engine.
+         - Otherwise, use self.orientation.
+        The result is stored in self._data as a dictionary mapping agent names to agent objects.
+        """
+        # Get current node position as sensing origin.
+        current_node = self.ctx.graph.graph.get_node(node_id)
+        current_position = np.array([current_node.x, current_node.y]).reshape(1, 2)
+
+        agents = list(self.agent.create_iter())
+        sensed_agents = {}
+        agent_ids = []
+        agent_positions = []
+
+        # Collect positions and ids for all agents except the owner.
+        for agent in agents:
+            if self._owner is not None and agent._name == self._owner:
+                continue
+            agent_ids.append(agent._name)
+            if hasattr(agent, 'position'):
+                pos = np.array(agent.position)
+            else:
+                node_obj = self.ctx.graph.graph.get_node(agent.current_node_id)
+                pos = np.array([node_obj.x, node_obj.y])
+            agent_positions.append(pos)
+
+        if agent_positions:
+            agent_positions = np.array(agent_positions).reshape(-1, 2)
+            diff_agents = agent_positions - current_position
+            distances_agents_sq = np.sum(diff_agents**2, axis=1)
+            in_range_mask = distances_agents_sq <= self.range**2
+            in_range_indices = np.nonzero(in_range_mask)[0]
+
+            if self.fov == 2 * math.pi:
+                valid_indices = in_range_indices
+            else:
+                if self._owner is not None:
+                    orientation_used = self.ctx.agent.get_agent(self._owner).orientation % (2 * math.pi)
+                else:
+                    orientation_used = self.orientation % (2 * math.pi)
+                diff_in_range = diff_agents[in_range_indices]
+                angles = np.arctan2(diff_in_range[:, 1], diff_in_range[:, 0]) % (2 * math.pi)
+                angle_diff = np.abs((angles - orientation_used + math.pi) % (2 * math.pi) - math.pi)
+                valid_mask = angle_diff <= (self.fov / 2)
+                valid_indices = in_range_indices[valid_mask]
+
+            in_range_agent_ids = {agent_ids[i] for i in valid_indices}
+            for agent in agents:
+                if self._owner is not None and agent._name == self._owner:
+                    continue
+                if agent._name in in_range_agent_ids:
+                    sensed_agents[agent._name] = agent
+
+        self._data = sensed_agents
+
+    def update(self, data: Dict[str, Any]) -> None:
+        # No dynamic updates required for this sensor.
+        pass
+
 class SensorEngine(ISensorEngine):
     def __init__(self, ctx: IContext):
         self.ctx = ctx  
