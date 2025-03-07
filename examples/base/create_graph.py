@@ -5,7 +5,7 @@ import pickle
 
 # G = gamms.osm.create_osm_graph(location, resolution=resolution)
 # print(G)
-G = gamms.osm.graph_from_xml(filepath="/Users/jmalegaonkar/Desktop/gamms/examples/dummies/grid_small.osm", resolution=10)
+G = gamms.osm.graph_from_xml(filepath="/Users/jmalegaonkar/Desktop/gamms/examples/dummies/grid_small.osm", resolution=1)
 print(G)
 # Save the graph
 with open(graph_path, 'wb') as f:
