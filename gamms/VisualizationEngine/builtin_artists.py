@@ -49,7 +49,7 @@ class AgentData:
     name: str
     color: tuple
     size: float
-    current_position: tuple
+    current_position: tuple = field(default=None, init=False)
 
 
 @dataclass
@@ -58,12 +58,10 @@ class GraphData:
     Contains all necessary data for drawing a graph
 
     Attributes:
-        graph (IGraph): The graph to be visualized.
         node_color (tuple): The color of the nodes in the graph.
         edge_color (tuple): The color of the edges in the graph.
         draw_id (bool): Whether to draw the node IDs.
     """
-    graph: IGraph
     node_color: tuple
     edge_color: tuple
     draw_id: bool

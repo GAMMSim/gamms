@@ -1,8 +1,6 @@
 from gamms.VisualizationEngine import Color, Shape
 from gamms.VisualizationEngine.render_node import RenderNode
-# from gamms.VisualizationEngine.agent_visual import AgentVisual
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
-# from gamms.typing.graph_engine import IGraph
 from gamms.context import Context
 import math
 
@@ -259,6 +257,7 @@ class RenderManager:
         else:
             if agent_data.current_position is None:
                 position = (target_node.x, target_node.y)
+                agent_data.current_position = position
             else:
                 position = agent_data.current_position
 
@@ -289,7 +288,7 @@ class RenderManager:
             ctx (Context): The current simulation context.
             graph_data (GraphData): The graph to render.
         """
-        graph = graph_data.graph
+        graph = ctx.graph.graph
         node_color = graph_data.node_color
         edge_color = graph_data.edge_color
         draw_id = graph_data.draw_id

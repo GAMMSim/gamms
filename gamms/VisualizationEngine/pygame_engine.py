@@ -1,7 +1,6 @@
 from gamms.typing import IVisualizationEngine
 from gamms.VisualizationEngine import Color, Space, Shape
 from gamms.VisualizationEngine.render_manager import RenderManager
-# from gamms.VisualizationEngine.render_node import RenderNode
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
 from gamms.context import Context
 from gamms.typing.sensor_engine import SensorType
@@ -41,7 +40,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._render_manager.set_graph_center(graph_center)
         self._render_manager.camera_size = max(x_max - x_min, y_max - y_min)
 
-        graph_data = GraphData(graph=self.ctx.graph.graph, node_color=kwargs.get('node_color', Color.LightGreen),
+        graph_data = GraphData(node_color=kwargs.get('node_color', Color.LightGreen),
                                edge_color=kwargs.get('edge_color', Color.Black), draw_id=kwargs.get('draw_id', False))
         data = {}
         data['drawer'] = graph_drawer
@@ -55,10 +54,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
             agent_artist = data['agent_data']
             RenderManager.render_agent(ctx, agent_artist)
 
-        agent = self.ctx.agent.get_agent(name)
-        node = self.ctx.graph.graph.get_node(agent.current_node_id)
-        agent_data = AgentData(name=name, color=kwargs.get('color', Color.Black), size=kwargs.get('size', 8),
-                               current_position=(node.x, node.y))
+        agent_data = AgentData(name=name, color=kwargs.get('color', Color.Black), size=kwargs.get('size', 8))
         data = {}
         data['drawer'] = agent_drawer
         data['agent_data'] = agent_data
