@@ -6,7 +6,7 @@ def strategy(state):
     for (type, data) in sensor_data.values():
         if type == sensor.SensorType.NEIGHBOR:
             choice = random.choice(range(len(data)))
-            state['action'] = data[choice]
+            state['action'] = data[choice].target
             break
     
 

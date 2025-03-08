@@ -74,16 +74,16 @@ class PygameVisualizationEngine(IVisualizationEngine):
         pressed_keys = pygame.key.get_pressed()
         scroll_speed = self._render_manager.camera_size / 100
         if pressed_keys[pygame.K_a] or pressed_keys[pygame.K_LEFT]:
-            self._render_manager.camera_x += scroll_speed #* self._clock.get_time() / 1000
-
-        if pressed_keys[pygame.K_d] or pressed_keys[pygame.K_RIGHT]:
             self._render_manager.camera_x -= scroll_speed #* self._clock.get_time() / 1000
 
+        if pressed_keys[pygame.K_d] or pressed_keys[pygame.K_RIGHT]:
+            self._render_manager.camera_x += scroll_speed #* self._clock.get_time() / 1000
+
         if pressed_keys[pygame.K_w] or pressed_keys[pygame.K_UP]:
-            self._render_manager.camera_y -= scroll_speed #* self._clock.get_time() / 1000
+            self._render_manager.camera_y += scroll_speed #* self._clock.get_time() / 1000
 
         if pressed_keys[pygame.K_s] or pressed_keys[pygame.K_DOWN]:
-            self._render_manager.camera_y += scroll_speed #* self._clock.get_time() / 1000
+            self._render_manager.camera_y -= scroll_speed #* self._clock.get_time() / 1000
         
         for event in pygame.event.get():
             if event.type == pygame.MOUSEWHEEL:
@@ -96,8 +96,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
                 self._will_quit = True
                 self._input_option_result = -1
             if event.type == pygame.VIDEORESIZE:
-                self._render_manager._screen_width = event.w
-                self._render_manager._screen_height = event.h
+                self._render_manager.screen_width = event.w
+                self._render_manager.screen_height = event.h
                 self._screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
 
             if self._waiting_user_input and event.type == pygame.KEYDOWN:
@@ -180,31 +180,64 @@ class PygameVisualizationEngine(IVisualizationEngine):
             raise ValueError("Invalid coord_space value. Must be one of the values in the Space enum.")
 
     def render_text(self, text: str, x: float, y: float, color: tuple = Color.Black):
+        text_size = self._default_font.size(text)
+        if self._render_manager.check_rectangle_culled(x, y, text_size[0], text_size[1]):
+            return
+
+        (x, y) = self._render_manager.scale_to_screen((x, y))
         text_surface = self._default_font.render(text, True, color)
         text_rect = text_surface.get_rect(center=(x, y))
-        text_size = self._default_font.size(text)
-        text_rect = text_rect.move(text_size[0] / 2, text_size[1] / 2)
+        text_rect.move_ip(text_size[0] / 2, text_size[1] / 2)
+
         self._screen.blit(text_surface, text_rect)
 
     def render_rectangle(self, x: float, y: float, width: float, height: float, color: tuple=Color.Black):
+        if self._render_manager.check_rectangle_culled(x, y, width, height):
+            return
+
+        (x, y) = self._render_manager.scale_to_screen((x, y))
+
         pygame.draw.rect(self._screen, color, pygame.Rect(x, y, width, height))
 
     def render_circle(self, x: float, y: float, radius: float, color: tuple=Color.Black):
+        if self._render_manager.check_circle_culled(x, y, radius):
+            return
+
+        (x, y) = self._render_manager.scale_to_screen((x, y))
+
         pygame.draw.circle(self._screen, color, (x, y), radius)
 
-    def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: tuple=Color.Black, width: int=1, isAA: bool=False):
-        if isAA:
+    def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: tuple=Color.Black,
+                    width: int=1, is_aa: bool=False):
+        if self._render_manager.check_line_culled(start_x, start_y, end_x, end_y):
+            return
+
+        (start_x, start_y) = self._render_manager.scale_to_screen((start_x, start_y))
+        (end_x, end_y) = self._render_manager.scale_to_screen((end_x, end_y))
+
+        if is_aa:
             pygame.draw.aaline(self._screen, color, (start_x, start_y), (end_x, end_y))
         else:
             pygame.draw.line(self._screen, color, (start_x, start_y), (end_x, end_y), width)
 
-    def render_lines(self, points: list[tuple[float, float]], color: tuple=Color.Black, width: int=1, closed=False, isAA: bool=False):
-        if isAA:
+    def render_lines(self, points: list[tuple[float, float]], color: tuple=Color.Black, width: int=1, closed=False,
+                     is_aa: bool=False):
+        if self._render_manager.check_lines_culled(points):
+            return
+
+        points = [self._render_manager.scale_to_screen(point) for point in points]
+
+        if is_aa:
             pygame.draw.aalines(self._screen, color, closed, points)
         else:
             pygame.draw.lines(self._screen, color, closed, points, width)
 
     def render_polygon(self, points: list[tuple[float, float]], color: tuple=Color.Black, width: int=0):
+        if self._render_manager.check_polygon_culled(points):
+            return
+
+        points = [self._render_manager.scale_to_screen(point) for point in points]
+
         pygame.draw.polygon(self._screen, color, points, width)
 
     def _draw_grid(self):

@@ -8,13 +8,26 @@ import math
 class RenderManager:
     def __init__(self, ctx: Context, camera_x: float, camera_y: float, camera_size: float, screen_width: int, screen_height: int):
         self.ctx: Context = ctx
+
+        self._screen_width = screen_width
+        self._screen_height = screen_height
+        self._aspect_ratio = self._screen_width / self._screen_height
+
         self._camera_x = camera_x
         self._camera_y = camera_y
         self._camera_size = camera_size
-        self._screen_width = screen_width
-        self._screen_height = screen_height
+        self._camera_size_y = camera_size / self.aspect_ratio
+
+        self._update_bounds()
+
         self._render_nodes: dict[str, RenderNode] = {}
         self._graph_center = (0, 0)
+
+    def _update_bounds(self):
+        self._bound_left = -self.camera_size + self.camera_x
+        self._bound_right = self.camera_size + self.camera_x
+        self._bound_top = -self.camera_size_y + self.camera_y
+        self._bound_bottom = self.camera_size_y + self.camera_y
 
     @property
     def camera_x(self):
@@ -23,6 +36,7 @@ class RenderManager:
     @camera_x.setter
     def camera_x(self, value: float):
         self._camera_x = value
+        self._update_bounds()
 
     @property
     def camera_y(self):
@@ -31,6 +45,7 @@ class RenderManager:
     @camera_y.setter
     def camera_y(self, value: float):
         self._camera_y = value
+        self._update_bounds()
 
     @property
     def camera_size(self):
@@ -45,6 +60,8 @@ class RenderManager:
     @camera_size.setter
     def camera_size(self, value: float):
         self._camera_size = value
+        self._camera_size_y = self.camera_size / self.aspect_ratio
+        self._update_bounds()
     
     @property
     def camera_size_y(self):
@@ -54,19 +71,29 @@ class RenderManager:
         Returns:
             float: The verticle orthographic size.
         """
-        return self.camera_size / self.aspect_ratio
+        return self._camera_size_y
     
     @property
     def screen_width(self):
         return self._screen_width
+
+    @screen_width.setter
+    def screen_width(self, value: int):
+        self._screen_width = value
+        self._aspect_ratio = self._screen_width / self._screen_height
     
     @property
     def screen_height(self):
         return self._screen_height
+
+    @screen_height.setter
+    def screen_height(self, value: int):
+        self._screen_height = value
+        self._aspect_ratio = self._screen_width / self._screen_height
     
     @property
     def aspect_ratio(self):
-        return self.screen_width / self.screen_height
+        return self._aspect_ratio
 
     def world_to_screen_scale(self, world_size: float) -> float:
         """
@@ -84,6 +111,8 @@ class RenderManager:
         """
         Transforms a world coordinate to a screen coordinate.
         """
+        x -= self.camera_x
+        y -= self.camera_y
         screen_x = (x + self.camera_size) / (2 * self.camera_size) * self.screen_width
         screen_y = (-y + self.camera_size_y) / (2 * self.camera_size_y) * self.screen_height
         return screen_x, screen_y
@@ -126,11 +155,38 @@ class RenderManager:
 
     def set_graph_center(self, graph_center):
         self._graph_center = graph_center
+        self._camera_x = graph_center[0]
+        self._camera_y = graph_center[1]
 
     def scale_to_screen(self, position) -> tuple[float, float]:
-        map_position = ((position[0] - self._graph_center[0]), (position[1] - self._graph_center[1]))
-        map_position = self.world_to_screen(map_position[0] + self.camera_x, map_position[1] + self.camera_y)
+        # map_position = ((position[0] - self._graph_center[0]), (position[1] - self._graph_center[1]))
+        map_position = position
+        map_position = self.world_to_screen(map_position[0], map_position[1])
         return map_position
+
+    def check_circle_culled(self, x, y, radius):
+        return (x + radius < self._bound_left or x - radius > self._bound_right or
+                y + radius < self._bound_top or y - radius > self._bound_bottom)
+
+    def check_rectangle_culled(self, x, y, width, height):
+        return (x - width / 2 > self._bound_right or x + width / 2 < self._bound_left or
+                y - height / 2 > self._bound_bottom or y + height / 2 < self._bound_top)
+
+    def check_line_culled(self, x1, y1, x2, y2):
+        return (x1 < self._bound_left and x2 < self._bound_left or x1 > self._bound_right and x2 > self._bound_right or
+                y1 < self._bound_top and y2 < self._bound_top or y1 > self._bound_bottom and y2 > self._bound_bottom)
+
+    def check_lines_culled(self, points):
+        source = points[0]
+        target = points[-1]
+        return self.check_line_culled(source[0], source[1], target[0], target[1])
+
+    def check_polygon_culled(self, points):
+        for point in points:
+            if self._bound_left <= point[0] <= self._bound_right and self._bound_top <= point[1] <= self._bound_bottom:
+                return False
+
+        return True
 
     def add_artist(self, name: str, data: dict):
         """
@@ -261,21 +317,14 @@ class RenderManager:
             else:
                 position = agent_data.current_position
 
-        (scaled_x, scaled_y) = ctx.visual._render_manager.scale_to_screen(position)
+        # (scaled_x, scaled_y) = ctx.visual._render_manager.scale_to_screen(position)
+        (scaled_x, scaled_y) = position
 
         # Draw each agent as a triangle at its current position
         angle = math.radians(45)
         point1 = (scaled_x + size * math.cos(angle), scaled_y + size * math.sin(angle))
         point2 = (scaled_x + size * math.cos(angle + 2.5), scaled_y + size * math.sin(angle + 2.5))
         point3 = (scaled_x + size * math.cos(angle - 2.5), scaled_y + size * math.sin(angle - 2.5))
-
-        _width = ctx.visual._render_manager.screen_width
-        _height = ctx.visual._render_manager.screen_height
-        # Check points to cull
-        if(point1[0] < 0 and point2[0] < 0 and point3[0] < 0) or (point1[0] > _width and point2[0] > _width and point3[0] > _width):
-            return
-        if(point1[1] < 0 and point2[1] < 0 and point3[1] < 0) or (point1[1] > _height and point2[1] > _height and point3[1] > _height):
-            return
 
         ctx.visual.render_polygon([point1, point2, point3], color)
 
@@ -310,46 +359,17 @@ class RenderManager:
             if current_waiting_agent is not None and edge.source == current_waiting_agent.current_node_id and edge.target in target_node_id_list:
                 color = (0, 255, 0)
 
-        (_source_x, _source_y) = ctx.visual._render_manager.scale_to_screen((source.x, source.y))
-        (_target_x, _target_y) = ctx.visual._render_manager.scale_to_screen((target.x, target.y))
-
-        _width = ctx.visual._render_manager.screen_width
-        _height = ctx.visual._render_manager.screen_height
-        # Check points to cull
-        if(_source_x < 0 and _target_x < 0) or (_source_x > _width and _target_x > _width):
-            return
-        if(_source_y < 0 and _target_y < 0) or (_source_y > _height and _target_y > _height ):
-            return
-
         # If linestring is present, draw it as a curve
         if edge.linestring:
             #linestring[1:-1]
             linestring = [(source.x, source.y)] + [(x, y) for (x, y) in edge.linestring.coords] + [(target.x, target.y)]
-            scaled_points = [
-                (ctx.visual._render_manager.scale_to_screen((x, y)))
-                for x, y in linestring
-            ]
-            ctx.visual.render_lines(scaled_points, color, isAA=True)
+            ctx.visual.render_lines(linestring, color, is_aa=True)
         else:
             # Straight line
-            source_position = (source.x, source.y)
-            target_position = (target.x, target.y)
-            (x1, y1) = ctx.visual._render_manager.scale_to_screen(source_position)
-            (x2, y2) = ctx.visual._render_manager.scale_to_screen(target_position)
-
-            ctx.visual.render_line(x1, y1, x2, y2, color, 2)
+            ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2)
 
     @staticmethod
     def _draw_node(ctx, node, node_color=(169, 169, 169), draw_id=False):
-        position = (node.x, node.y)
-        (x, y) = ctx.visual._render_manager.scale_to_screen(position)
-
-        _width = ctx.visual._render_manager.screen_width
-        _height = ctx.visual._render_manager.screen_height
-        # Check points to cull
-        if (x < 0 or x > _width or y < 0 or y > _height):
-            return
-        
         # color = ctx.visual._graph_visual.getNodeColorById(node.id)
         if node.id in ctx.visual._input_options.values():
             color = (0, 255, 0)
@@ -358,7 +378,7 @@ class RenderManager:
             color = node_color
             scale = 4
 
-        ctx.visual.render_circle(int(x), int(y), scale, color)
+        ctx.visual.render_circle(node.x, node.y, scale, color)
 
         if draw_id:
-            ctx.visual.render_text(str(node.id), x, y + 10, (0, 0, 0))
+            ctx.visual.render_text(str(node.id), node.x, node.y + 10, (0, 0, 0))
