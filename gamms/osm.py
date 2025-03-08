@@ -98,9 +98,14 @@ def create_osm_graph(
         nxg.add_node(count, x=n.x, y=n.y)
         count += 1
     count = 0
+    processed_edges = set()
     for u, v, data in ret.edges(data=True):
         u = node_map[u]
         v = node_map[v]
+        if (u, v) in processed_edges:
+            print(f"Duplicate edge: {u} -> {v}")
+            continue
+        processed_edges.add((u, v))
         nxg.add_edge(u, v, id=count, **data)
         if osm_type == OSMType.WALK:
             count += 1

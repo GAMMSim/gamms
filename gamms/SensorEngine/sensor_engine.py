@@ -28,8 +28,10 @@ class NeighborSensor(ISensor):
 
     def sense(self, node_id: int) -> None:
         outgoing_edges = []
+        processed_edges = set()
         for edge in self.edges.values():
-            if edge.source == node_id:
+            if edge.source == node_id and (edge.source, edge.target) not in processed_edges:
+                processed_edges.add((edge.source, edge.target))
                 outgoing_edges.append(edge)
         self._data = outgoing_edges
 
