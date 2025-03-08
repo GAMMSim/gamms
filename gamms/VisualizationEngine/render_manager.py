@@ -1,7 +1,8 @@
-from gamms.VisualizationEngine import Color, Shape, Space
+from gamms.VisualizationEngine import Color, Shape
 from gamms.VisualizationEngine.render_node import RenderNode
-from gamms.VisualizationEngine.agent_visual import AgentVisual
-from gamms.typing.graph_engine import IGraph
+# from gamms.VisualizationEngine.agent_visual import AgentVisual
+from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
+# from gamms.typing.graph_engine import IGraph
 from gamms.context import Context
 import math
 
@@ -15,6 +16,7 @@ class RenderManager:
         self._screen_width = screen_width
         self._screen_height = screen_height
         self._render_nodes: dict[str, RenderNode] = {}
+        self._graph_center = (0, 0)
 
     @property
     def camera_x(self):
@@ -124,31 +126,36 @@ class RenderManager:
         """
         return screen_size / self.screen_width
 
-    # @property
-    # def visual_engine(self):
-    #     return self.ctx.visual_engine
+    def set_graph_center(self, graph_center):
+        self._graph_center = graph_center
 
-    def add_render_node(self, name: str, render_node: RenderNode):
+    def scale_to_screen(self, position) -> tuple[float, float]:
+        map_position = ((position[0] - self._graph_center[0]), (position[1] - self._graph_center[1]))
+        map_position = self.world_to_screen(map_position[0] + self.camera_x, map_position[1] + self.camera_y)
+        return map_position
+
+    def add_artist(self, name: str, data: dict):
         """
-        Add a render node to the render manager. A render node can draw one or more shapes on the screen and may have a customized drawer.
+        Add an artist to the render manager. An artist can draw one or more shapes on the screen and may have a customized drawer.
 
         Args:
-            name (str): The unique name of the render node.
-            render_node (RenderNode): The render node to add to the render manager.
+            name (str): The unique name of the artist.
+            data (dict): A dictionary containing the artist's data.
         """
+        render_node = RenderNode(data)
         self._render_nodes[name] = render_node
 
-    def remove_render_node(self, name: str):
+    def remove_artist(self, name: str):
         """
-        Remove a render node from the render manager.
+        Remove an artist from the render manager.
 
         Args:
-            name (str): The unique name of the render node to remove.
+            name (str): The unique name of the artist to remove.
         """
         if name in self._render_nodes:
             del self._render_nodes[name]
         else:
-            print(f"Warning: Render node {name} not found.")
+            print(f"Warning: Artist {name} not found.")
 
     def handle_render(self):
         """
@@ -182,14 +189,13 @@ class RenderManager:
             x (float): The x coordinate of the circle's center.
             y (float): The y coordinate of the circle's center.
             radius (float): The radius of the circle.
-            color (tuple, optional): The color the the circle. Defaults to Color.Black.
+            color (tuple, optional): The color of the circle. Defaults to Color.Black.
         """
-        (x, y) = ctx.visual._graph_visual.ScalePositionToScreen((x, y))
-        
-        _screen = ctx.visual.screen
-        _width = _screen.get_width()
-        _height = _screen.get_height()
-        if (x < 0 or x > _width or y < 0 or y > _height):
+        (x, y) = ctx.visual._render_manager.scale_to_screen((x, y))
+
+        _width = ctx.visual._render_manager.screen_width
+        _height = ctx.visual._render_manager.screen_height
+        if x < 0 or x > _width or y < 0 or y > _height:
             return
 
         ctx.visual.render_circle(x, y, radius, color)
@@ -208,36 +214,64 @@ class RenderManager:
             color (tuple, optional): The color of the rectangle. Defaults to Color.Black.
         """
         # render_manager = ctx.visual.render_manager
-        (x, y) = ctx.visual._graph_visual.ScalePositionToScreen((x, y))
+        (x, y) = ctx.visual._render_manager.scale_to_screen((x, y))
         # scaled_width = ctx.visual.render_manager.world_to_screen_scale(width)
 
         ctx.visual.render_rectangle(x, y, width, height, color)
 
     @staticmethod
-    def render_agent(ctx: Context, agent_visual: AgentVisual):
+    def render_agent(ctx: Context, agent_data: AgentData):
         """
         Render an agent as a triangle at its current position on the screen. This is the default rendering method for agents.
 
         Args:
             ctx (Context): The current simulation context.
-            agent_visual (AgentVisual): The visual representation of the agent to render.
+            agent_data (AgentData): The agent to render.
         """
-        screen = ctx.visual.screen
-        position = agent_visual.position
-        size = agent_visual.size
-        (scaled_x, scaled_y) = ctx.visual._graph_visual.ScalePositionToScreen(position)
-        color = agent_visual.color
-        if agent_visual.name == ctx.visual.waiting_agent_name:
+        size = agent_data.size
+        color = agent_data.color
+        if agent_data.name == ctx.visual._waiting_agent_name:
             color = Color.Magenta
-            size = agent_visual.size * 1.5
+            size = agent_data.size * 1.5
+
+        agent = ctx.agent.get_agent(agent_data.name)
+        target_node = ctx.graph.graph.get_node(agent.current_node_id)
+        if ctx.visual._waiting_simulation:
+            prev_node = ctx.graph.graph.get_node(agent.prev_node_id)
+            prev_position = (prev_node.x, prev_node.y)
+            target_position = (target_node.x, target_node.y)
+            edges = ctx.graph.graph.get_edges()
+            current_edge = None
+            for _, edge in edges.items():
+                if edge.source == agent.prev_node_id and edge.target == agent.current_node_id:
+                    current_edge = edge
+
+            alpha = ctx.visual._simulation_time / ctx.visual._sim_time_constant
+            alpha = min(1, max(0, alpha))
+            if current_edge is not None:
+                point = current_edge.linestring.interpolate(alpha, True)
+                position = (point.x, point.y)
+            else:
+                position = (prev_position[0] + alpha * (target_position[0] - prev_position[0]), 
+                            prev_position[1] + alpha * (target_position[1] - prev_position[1]))
+                
+            agent_data.current_position = position
+        else:
+            if agent_data.current_position is None:
+                position = (target_node.x, target_node.y)
+            else:
+                position = agent_data.current_position
+
+        (scaled_x, scaled_y) = ctx.visual._render_manager.scale_to_screen(position)
+
         # Draw each agent as a triangle at its current position
         angle = math.radians(45)
         point1 = (scaled_x + size * math.cos(angle), scaled_y + size * math.sin(angle))
         point2 = (scaled_x + size * math.cos(angle + 2.5), scaled_y + size * math.sin(angle + 2.5))
         point3 = (scaled_x + size * math.cos(angle - 2.5), scaled_y + size * math.sin(angle - 2.5))
 
-        _width = screen.get_width()
-        _height = screen.get_height()
+        _width = ctx.visual._render_manager.screen_width
+        _height = ctx.visual._render_manager.screen_height
         # Check points to cull
         if(point1[0] < 0 and point2[0] < 0 and point3[0] < 0) or (point1[0] > _width and point2[0] > _width and point3[0] > _width):
             return
@@ -245,82 +279,87 @@ class RenderManager:
             return
 
         ctx.visual.render_polygon([point1, point2, point3], color)
-        # pygame.draw.polygon(screen, color, [point1, point2, point3])
 
     @staticmethod
-    def render_graph(ctx: Context, graph: IGraph, draw_id: bool, node_color: tuple, edge_color: tuple):
+    def render_graph(ctx: Context, graph_data: GraphData):
         """
         Render the graph by drawing its nodes and edges on the screen. This is the default rendering method for graphs.
 
         Args:
             ctx (Context): The current simulation context.
-            graph (IGraph): The graph to render.
+            graph_data (GraphData): The graph to render.
         """
-        
-        screen = ctx.visual.screen
-        for edge in graph.edges.values():
-            RenderManager._draw_edge(ctx, screen, graph, edge, edge_color)
-        for node in graph.nodes.values():
-            RenderManager._draw_node(ctx, screen, node, node_color, draw_id)
-        
+        graph = graph_data.graph
+        node_color = graph_data.node_color
+        edge_color = graph_data.edge_color
+        draw_id = graph_data.draw_id
+        for edge in graph.get_edges().values():
+            RenderManager._draw_edge(ctx, graph, edge, edge_color)
+        for node in graph.get_nodes().values():
+            RenderManager._draw_node(ctx, node, node_color, draw_id)
 
     @staticmethod
-    def _draw_edge(ctx, screen, graph, edge, edge_color):
+    def _draw_edge(ctx, graph, edge, edge_color):
         """Draw an edge as a curve or straight line based on the linestring."""
-        source = graph.nodes[edge.source]
-        target = graph.nodes[edge.target]
-        
-        (_source_x, _source_y) = ctx.visual._graph_visual.ScalePositionToScreen((source.x, source.y))
-        (_target_x, _target_y) = ctx.visual._graph_visual.ScalePositionToScreen((target.x, target.y))
+        source = graph.get_node(edge.source)
+        target = graph.get_node(edge.target)
 
-        _width = screen.get_width()
-        _height = screen.get_height()
+        color = edge_color
+        if ctx.visual._waiting_agent_name:
+            current_waiting_agent = ctx.agent.get_agent(ctx.visual._waiting_agent_name)
+            target_node_id_list = ctx.visual._input_options.values()
+            if current_waiting_agent is not None and edge.source == current_waiting_agent.current_node_id and edge.target in target_node_id_list:
+                color = (0, 255, 0)
+
+        (_source_x, _source_y) = ctx.visual._render_manager.scale_to_screen((source.x, source.y))
+        (_target_x, _target_y) = ctx.visual._render_manager.scale_to_screen((target.x, target.y))
+
+        _width = ctx.visual._render_manager.screen_width
+        _height = ctx.visual._render_manager.screen_height
         # Check points to cull
         if(_source_x < 0 and _target_x < 0) or (_source_x > _width and _target_x > _width):
             return
         if(_source_y < 0 and _target_y < 0) or (_source_y > _height and _target_y > _height ):
             return
-        
-        _color = ctx.visual._graph_visual.getEdgeColor(edge.source, edge.target)
-        if _color is None:
-            _color = edge_color
 
         # If linestring is present, draw it as a curve
         if edge.linestring:
             #linestring[1:-1]
             linestring = [(source.x, source.y)] + [(x, y) for (x, y) in edge.linestring.coords] + [(target.x, target.y)]
             scaled_points = [
-                (ctx.visual._graph_visual.ScalePositionToScreen((x, y)))
+                (ctx.visual._render_manager.scale_to_screen((x, y)))
                 for x, y in linestring
             ]
-            ctx.visual.render_lines(scaled_points, _color, isAA=True)
+            ctx.visual.render_lines(scaled_points, color, isAA=True)
         else:
             # Straight line
             source_position = (source.x, source.y)
             target_position = (target.x, target.y)
-            (x1, y1) = ctx.visual._graph_visual.ScalePositionToScreen(source_position)
-            (x2, y2) = ctx.visual._graph_visual.ScalePositionToScreen(target_position)
+            (x1, y1) = ctx.visual._render_manager.scale_to_screen(source_position)
+            (x2, y2) = ctx.visual._render_manager.scale_to_screen(target_position)
 
-            ctx.visual.render_line(x1, y1, x2, y2, _color, 2)
+            ctx.visual.render_line(x1, y1, x2, y2, color, 2)
 
     @staticmethod
-    def _draw_node(ctx, screen, node, node_color=(169, 169, 169), draw_id=False):
+    def _draw_node(ctx, node, node_color=(169, 169, 169), draw_id=False):
         position = (node.x, node.y)
-        (x, y) = ctx.visual._graph_visual.ScalePositionToScreen(position)
+        (x, y) = ctx.visual._render_manager.scale_to_screen(position)
 
-        _width = screen.get_width()
-        _height = screen.get_height()
+        _width = ctx.visual._render_manager.screen_width
+        _height = ctx.visual._render_manager.screen_height
         # Check points to cull
         if (x < 0 or x > _width or y < 0 or y > _height):
             return
         
-        color = ctx.visual._graph_visual.getNodeColorById(node.id)
-        scale = 8
-        if color is None:
+        # color = ctx.visual._graph_visual.getNodeColorById(node.id)
+        if node.id in ctx.visual._input_options.values():
+            color = (0, 255, 0)
+            scale = 8
+        else:
             color = node_color
             scale = 4
 
         ctx.visual.render_circle(int(x), int(y), scale, color)
 
         if draw_id:
-            ctx.visual.render_text(str(node.id), int(x), int(y) + 10, (0, 0, 0), Space.Screen)
+            ctx.visual.render_text(str(node.id), x, y + 10, (0, 0, 0))

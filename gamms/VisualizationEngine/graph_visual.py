@@ -1,26 +1,26 @@
 
 class GraphVisual:
-    def __init__(self, graph, width=1980, height=1080):
+    def __init__(self, graph):
         self.graph = graph
-        self.width = width
-        self.height = height
-        self.screen = None
-        self.screen = None
-        self.zoom = 1
+        # self.width = width
+        # self.height = height
+        # self.screen = None
+        # self.screen = None
+        # self.zoom = 1
         # Find the min and max x, y coordinates for scaling
         self.x_min = min(node.x for node in self.graph.nodes.values())
         self.x_max = max(node.x for node in self.graph.nodes.values())
         self.y_min = min(node.y for node in self.graph.nodes.values())
         self.y_max = max(node.y for node in self.graph.nodes.values())
-        self.offset = (0.0, 0.0)
+        # self.offset = (0.0, 0.0)
 
         # Data Storage. INTERNAL USE ONLY
         self.__edge_list = set()
         self.__node_list = set()
         self.__node_color_list = {}
         self.__edge_color_list = {}
-        self.__node_size_list = {}
-        self.__edge_size_list = {}
+        # self.__node_size_list = {}
+        # self.__edge_size_list = {}
 
         # Set the data stores. 
         self._initalize_data()
@@ -105,12 +105,12 @@ class GraphVisual:
         """Gets the center of a graph."""
         return (((self.x_max - self.x_min ) / 2) + self.x_min, ((self.y_max - self.y_min) / 2) + self.y_min)
 
-    def setZoom(self, zoom: float):
-        self.zoom = zoom
-        return self.zoom
+    # def setZoom(self, zoom: float):
+    #     self.zoom = zoom
+    #     return self.zoom
     
-    def setGraph(self, graph):
-        self.graph = graph
+    # def setGraph(self, graph):
+    #     self.graph = graph
 
     def setRenderManager(self, render_manager):
         self.render_manager = render_manager
