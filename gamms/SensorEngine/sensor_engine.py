@@ -27,13 +27,12 @@ class NeighborSensor(ISensor):
         return self._data
 
     def sense(self, node_id: int) -> None:
-        outgoing_edges = []
-        processed_edges = set()
+        nearest_neighbors = {node_id,}
         for edge in self.edges.values():
-            if edge.source == node_id and (edge.source, edge.target) not in processed_edges:
-                processed_edges.add((edge.source, edge.target))
-                outgoing_edges.append(edge)
-        self._data = outgoing_edges
+            if edge.source == node_id:
+                nearest_neighbors.add(edge.target)
+                        
+        self.data = list(nearest_neighbors)
 
     def update(self, data: Dict[str, Any]) -> None:
         pass
