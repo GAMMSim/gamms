@@ -355,6 +355,9 @@ class RenderManager:
         source = graph.get_node(edge.source)
         target = graph.get_node(edge.target)
 
+        if ctx.visual._render_manager.check_line_culled(source.x, source.y, target.x, target.y):
+            return
+
         color = edge_color
         if ctx.visual._waiting_agent_name:
             current_waiting_agent = ctx.agent.get_agent(ctx.visual._waiting_agent_name)
@@ -363,22 +366,20 @@ class RenderManager:
                     edge.target in target_node_id_set):
                 color = (0, 255, 0)
 
-        edge_line_points = graph_data.edge_line_points
-        if edge.id not in edge_line_points:
-            if edge.linestring:
+        if edge.linestring:
+            edge_line_points = graph_data.edge_line_points
+            if edge.id not in edge_line_points:
                 # linestring[1:-1]
+                source = graph.get_node(edge.source)
+                target = graph.get_node(edge.target)
                 linestring = ([(source.x, source.y)] + [(x, y) for (x, y) in edge.linestring.coords] +
                               [(target.x, target.y)])
                 edge_line_points[edge.id] = linestring
 
-        # If linestring is present, draw it as a curve
-        if edge.linestring:
-            #linestring[1:-1]
             line_points = edge_line_points[edge.id]
-            ctx.visual.render_lines(line_points, color, is_aa=True)
+            ctx.visual.render_lines(line_points, color, is_aa=True, perform_culling_test=False)
         else:
-            # Straight line
-            ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2)
+            ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2, perform_culling_test=False)
 
     @staticmethod
     def _draw_node(ctx, node, node_color=(169, 169, 169), draw_id=False):
