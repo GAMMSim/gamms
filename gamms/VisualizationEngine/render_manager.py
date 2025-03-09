@@ -160,8 +160,7 @@ class RenderManager:
 
     def scale_to_screen(self, position) -> tuple[float, float]:
         # map_position = ((position[0] - self._graph_center[0]), (position[1] - self._graph_center[1]))
-        map_position = position
-        map_position = self.world_to_screen(map_position[0], map_position[1])
+        map_position = self.world_to_screen(position[0], position[1])
         return map_position
 
     def check_circle_culled(self, x, y, radius):
@@ -341,13 +340,17 @@ class RenderManager:
         node_color = graph_data.node_color
         edge_color = graph_data.edge_color
         draw_id = graph_data.draw_id
+        target_node_id_set = None
+        if ctx.visual._waiting_agent_name:
+            target_node_id_set = set(ctx.visual._input_options.values())
+
         for edge in graph.get_edges().values():
-            RenderManager._draw_edge(ctx, graph, edge, edge_color)
+            RenderManager._draw_edge(ctx, graph_data, graph, edge, edge_color, target_node_id_set)
         for node in graph.get_nodes().values():
             RenderManager._draw_node(ctx, node, node_color, draw_id)
 
     @staticmethod
-    def _draw_edge(ctx, graph, edge, edge_color):
+    def _draw_edge(ctx, graph_data, graph, edge, edge_color, target_node_id_set):
         """Draw an edge as a curve or straight line based on the linestring."""
         source = graph.get_node(edge.source)
         target = graph.get_node(edge.target)
@@ -355,15 +358,24 @@ class RenderManager:
         color = edge_color
         if ctx.visual._waiting_agent_name:
             current_waiting_agent = ctx.agent.get_agent(ctx.visual._waiting_agent_name)
-            target_node_id_list = ctx.visual._input_options.values()
-            if current_waiting_agent is not None and edge.source == current_waiting_agent.current_node_id and edge.target in target_node_id_list:
+            # target_node_id_list = ctx.visual._input_options.values()
+            if (current_waiting_agent is not None and edge.source == current_waiting_agent.current_node_id and
+                    edge.target in target_node_id_set):
                 color = (0, 255, 0)
+
+        edge_line_points = graph_data.edge_line_points
+        if edge.id not in edge_line_points:
+            if edge.linestring:
+                # linestring[1:-1]
+                linestring = ([(source.x, source.y)] + [(x, y) for (x, y) in edge.linestring.coords] +
+                              [(target.x, target.y)])
+                edge_line_points[edge.id] = linestring
 
         # If linestring is present, draw it as a curve
         if edge.linestring:
             #linestring[1:-1]
-            linestring = [(source.x, source.y)] + [(x, y) for (x, y) in edge.linestring.coords] + [(target.x, target.y)]
-            ctx.visual.render_lines(linestring, color, is_aa=True)
+            line_points = edge_line_points[edge.id]
+            ctx.visual.render_lines(line_points, color, is_aa=True)
         else:
             # Straight line
             ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2)
