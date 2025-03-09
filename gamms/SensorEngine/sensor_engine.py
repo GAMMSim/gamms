@@ -32,7 +32,7 @@ class NeighborSensor(ISensor):
             if edge.source == node_id:
                 nearest_neighbors.add(edge.target)
                         
-        self.data = list(nearest_neighbors)
+        self._data = list(nearest_neighbors)
 
     def update(self, data: Dict[str, Any]) -> None:
         pass
