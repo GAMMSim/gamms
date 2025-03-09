@@ -179,9 +179,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
         else:
             raise ValueError("Invalid coord_space value. Must be one of the values in the Space enum.")
 
-    def render_text(self, text: str, x: float, y: float, color: tuple = Color.Black):
+    def render_text(self, text: str, x: float, y: float, color: tuple = Color.Black, perform_culling_test: bool=True):
         text_size = self._default_font.size(text)
-        if self._render_manager.check_rectangle_culled(x, y, text_size[0], text_size[1]):
+        if perform_culling_test and self._render_manager.check_rectangle_culled(x, y, text_size[0], text_size[1]):
             return
 
         (x, y) = self._render_manager.scale_to_screen((x, y))
@@ -191,16 +191,18 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         self._screen.blit(text_surface, text_rect)
 
-    def render_rectangle(self, x: float, y: float, width: float, height: float, color: tuple=Color.Black):
-        if self._render_manager.check_rectangle_culled(x, y, width, height):
+    def render_rectangle(self, x: float, y: float, width: float, height: float, color: tuple=Color.Black,
+                         perform_culling_test: bool=True):
+        if perform_culling_test and self._render_manager.check_rectangle_culled(x, y, width, height):
             return
 
         (x, y) = self._render_manager.scale_to_screen((x, y))
 
         pygame.draw.rect(self._screen, color, pygame.Rect(x, y, width, height))
 
-    def render_circle(self, x: float, y: float, radius: float, color: tuple=Color.Black):
-        if self._render_manager.check_circle_culled(x, y, radius):
+    def render_circle(self, x: float, y: float, radius: float, color: tuple=Color.Black,
+                      perform_culling_test: bool=True):
+        if perform_culling_test and self._render_manager.check_circle_culled(x, y, radius):
             return
 
         (x, y) = self._render_manager.scale_to_screen((x, y))
@@ -208,8 +210,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         pygame.draw.circle(self._screen, color, (x, y), radius)
 
     def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: tuple=Color.Black,
-                    width: int=1, is_aa: bool=False):
-        if self._render_manager.check_line_culled(start_x, start_y, end_x, end_y):
+                    width: int=1, is_aa: bool=False, perform_culling_test: bool=True):
+        if perform_culling_test and self._render_manager.check_line_culled(start_x, start_y, end_x, end_y):
             return
 
         (start_x, start_y) = self._render_manager.scale_to_screen((start_x, start_y))
@@ -221,8 +223,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
             pygame.draw.line(self._screen, color, (start_x, start_y), (end_x, end_y), width)
 
     def render_lines(self, points: list[tuple[float, float]], color: tuple=Color.Black, width: int=1, closed=False,
-                     is_aa: bool=False):
-        if self._render_manager.check_lines_culled(points):
+                     is_aa: bool=False, perform_culling_test: bool=True):
+        if perform_culling_test and self._render_manager.check_lines_culled(points):
             return
 
         points = [self._render_manager.scale_to_screen(point) for point in points]
@@ -232,8 +234,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
         else:
             pygame.draw.lines(self._screen, color, closed, points, width)
 
-    def render_polygon(self, points: list[tuple[float, float]], color: tuple=Color.Black, width: int=0):
-        if self._render_manager.check_polygon_culled(points):
+    def render_polygon(self, points: list[tuple[float, float]], color: tuple=Color.Black, width: int=0,
+                       perform_culling_test: bool=True):
+        if perform_culling_test and self._render_manager.check_polygon_culled(points):
             return
 
         points = [self._render_manager.scale_to_screen(point) for point in points]

@@ -226,51 +226,11 @@ class RenderManager:
 
             shape = render_node.shape
             if shape == Shape.Circle:
-                RenderManager.render_circle(self.ctx, render_node.x, render_node.y, render_node.data['scale'], render_node.color)
+                self.ctx.visual.render_circle(render_node.x, render_node.y, render_node.data['scale'], render_node.color)
             elif shape == Shape.Rectangle:
-                RenderManager.render_rectangle(self.ctx, render_node.x, render_node.y, render_node.data['width'], render_node.data['height'], render_node.color)
+                self.ctx.visual.render_rectangle(render_node.x, render_node.y, render_node.data['width'], render_node.data['height'], render_node.color)
             else:
                 raise NotImplementedError("Render node not implemented")
-
-    @staticmethod
-    def render_circle(ctx: Context, x: float, y: float, radius: float, color: tuple=Color.Black):
-        """
-        Render a circle at the given position with the given radius and color.
-
-        Args:
-            ctx (Context): The current simulation context.
-            x (float): The x coordinate of the circle's center.
-            y (float): The y coordinate of the circle's center.
-            radius (float): The radius of the circle.
-            color (tuple, optional): The color of the circle. Defaults to Color.Black.
-        """
-        (x, y) = ctx.visual._render_manager.scale_to_screen((x, y))
-
-        _width = ctx.visual._render_manager.screen_width
-        _height = ctx.visual._render_manager.screen_height
-        if x < 0 or x > _width or y < 0 or y > _height:
-            return
-
-        ctx.visual.render_circle(x, y, radius, color)
-
-    @staticmethod
-    def render_rectangle(ctx: Context, x: float, y: float, width: float, height: float, color: tuple=Color.Black):
-        """
-        Render a rectangle at the given position with the given width, height, and color.
-
-        Args:
-            ctx (Context): The current simulation context.
-            x (float): The x coordinate of the rectangle's center.
-            y (float): The y coordinate of the rectangle's center.
-            width (float): The width of the rectangle.
-            height (float): The height of the rectangle.
-            color (tuple, optional): The color of the rectangle. Defaults to Color.Black.
-        """
-        # render_manager = ctx.visual.render_manager
-        (x, y) = ctx.visual._render_manager.scale_to_screen((x, y))
-        # scaled_width = ctx.visual.render_manager.world_to_screen_scale(width)
-
-        ctx.visual.render_rectangle(x, y, width, height, color)
 
     @staticmethod
     def render_agent(ctx: Context, agent_data: AgentData):
@@ -316,14 +276,11 @@ class RenderManager:
             else:
                 position = agent_data.current_position
 
-        # (scaled_x, scaled_y) = ctx.visual._render_manager.scale_to_screen(position)
-        (scaled_x, scaled_y) = position
-
         # Draw each agent as a triangle at its current position
         angle = math.radians(45)
-        point1 = (scaled_x + size * math.cos(angle), scaled_y + size * math.sin(angle))
-        point2 = (scaled_x + size * math.cos(angle + 2.5), scaled_y + size * math.sin(angle + 2.5))
-        point3 = (scaled_x + size * math.cos(angle - 2.5), scaled_y + size * math.sin(angle - 2.5))
+        point1 = (position[0] + size * math.cos(angle), position[1] + size * math.sin(angle))
+        point2 = (position[0] + size * math.cos(angle + 2.5), position[1] + size * math.sin(angle + 2.5))
+        point3 = (position[0] + size * math.cos(angle - 2.5), position[1] + size * math.sin(angle - 2.5))
 
         ctx.visual.render_polygon([point1, point2, point3], color)
 
@@ -355,6 +312,9 @@ class RenderManager:
         source = graph.get_node(edge.source)
         target = graph.get_node(edge.target)
 
+        if ctx.visual._render_manager.check_line_culled(source.x, source.y, target.x, target.y):
+            return
+
         color = edge_color
         if ctx.visual._waiting_agent_name:
             current_waiting_agent = ctx.agent.get_agent(ctx.visual._waiting_agent_name)
@@ -363,34 +323,35 @@ class RenderManager:
                     edge.target in target_node_id_set):
                 color = (0, 255, 0)
 
-        edge_line_points = graph_data.edge_line_points
-        if edge.id not in edge_line_points:
-            if edge.linestring:
+        if edge.linestring:
+            edge_line_points = graph_data.edge_line_points
+            if edge.id not in edge_line_points:
                 # linestring[1:-1]
+                source = graph.get_node(edge.source)
+                target = graph.get_node(edge.target)
                 linestring = ([(source.x, source.y)] + [(x, y) for (x, y) in edge.linestring.coords] +
                               [(target.x, target.y)])
                 edge_line_points[edge.id] = linestring
 
-        # If linestring is present, draw it as a curve
-        if edge.linestring:
-            #linestring[1:-1]
             line_points = edge_line_points[edge.id]
-            ctx.visual.render_lines(line_points, color, is_aa=True)
+            ctx.visual.render_lines(line_points, color, is_aa=True, perform_culling_test=False)
         else:
-            # Straight line
-            ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2)
+            ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2, perform_culling_test=False)
 
     @staticmethod
     def _draw_node(ctx, node, node_color=(169, 169, 169), draw_id=False):
         # color = ctx.visual._graph_visual.getNodeColorById(node.id)
-        if node.id in ctx.visual._input_options.values():
+        if ctx.visual._render_manager.check_circle_culled(node.x, node.y, 10):
+            return
+
+        if ctx.visual._waiting_user_input and node.id in ctx.visual._input_options.values():
             color = (0, 255, 0)
-            scale = 8
+            radius = 8
         else:
             color = node_color
-            scale = 4
+            radius = 4
 
-        ctx.visual.render_circle(node.x, node.y, scale, color)
+        ctx.visual.render_circle(node.x, node.y, radius, color)
 
         if draw_id:
             ctx.visual.render_text(str(node.id), node.x, node.y + 10, (0, 0, 0))
