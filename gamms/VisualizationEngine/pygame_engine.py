@@ -282,8 +282,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         # current_agent = self.ctx.agent.get_agent(agent_name)
         
         self._waiting_agent_name = agent_name
-        edges = get_neighbours(state)
-        options: list[int] = [edge.target for edge in edges]
+        options = get_neighbours(state)
+        # options: list[int] = [edge.target for edge in edges]
 
         # for node_id in options:
         #     if node_id != current_agent.current_node_id:
