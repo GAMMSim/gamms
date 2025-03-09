@@ -1,3 +1,4 @@
+from gamms.VisualizationEngine import Color
 from typing import Dict, Any
 from abc import ABC, abstractmethod
 
@@ -146,5 +147,98 @@ class IVisualizationEngine(ABC):
         Raises:
             RuntimeError: If the engine fails to terminate gracefully.
             IOError: If there are issues during the cleanup process.
+        """
+        pass
+
+    @abstractmethod
+    def render_circle(self, x: float, y: float, radius: float, color: tuple=Color.Black,
+                      perform_culling_test: bool=True):
+        """
+        Render a circle shape at the specified position with the given radius and color.
+
+        Args:
+            x (float): The x-coordinate of the circle's center.
+            y (float): The y-coordinate of the circle's center.
+            radius (float): The radius of the circle.
+            color (tuple): The color of the circle in RGB format.
+            perform_culling_test (bool): Whether to perform culling.
+        """
+        pass
+
+    @abstractmethod
+    def render_rectangle(self, x: float, y: float, width: float, height: float, color: tuple = Color.Black,
+                         perform_culling_test: bool = True):
+        """
+        Render a rectangle shape at the specified position with the given dimensions and color.
+
+        Args:
+            x (float): The x-coordinate of the rectangle's center.
+            y (float): The y-coordinate of the rectangle's center.
+            width (float): The width of the rectangle.
+            height (float): The height of the rectangle.
+            color (tuple): The color of the rectangle in RGB format.
+            perform_culling_test (bool): Whether to perform culling.
+        """
+        pass
+
+    @abstractmethod
+    def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: tuple = Color.Black,
+                    width: int = 1, is_aa: bool = False, perform_culling_test: bool = True):
+        """
+        Render a line segment between two points with the specified color and width.
+
+        Args:
+            start_x (float): The x-coordinate of the starting point.
+            start_y (float): The y-coordinate of the starting point.
+            end_x (float): The x-coordinate of the ending point.
+            end_y (float): The y-coordinate of the ending point.
+            color (tuple): The color of the line in RGB format.
+            width (int): The width of the line in pixels. Only non-antialiasing lines supports width.
+            is_aa (bool): Whether to use antialiasing for smoother rendering.
+            perform_culling_test (bool): Whether to perform culling.
+        """
+        pass
+
+    @abstractmethod
+    def render_lines(self, points: list[tuple[float, float]], color: tuple = Color.Black, width: int = 1, closed=False,
+                     is_aa: bool = False, perform_culling_test: bool = True):
+        """
+        Render a series of connected line segments between multiple points.
+
+        Args:
+            points (list[tuple[float, float]]): A list of (x, y) coordinate tuples defining the line segments.
+            color (tuple): The color of the lines in RGB format.
+            width (int): The width of the lines in pixels. Only non-antialiasing lines supports width.
+            closed (bool): Whether the line segments form a closed shape.
+            is_aa (bool): Whether to use antialiasing for smoother rendering.
+            perform_culling_test (bool): Whether to perform culling.
+        """
+        pass
+
+    @abstractmethod
+    def render_polygon(self, points: list[tuple[float, float]], color: tuple = Color.Black, width: int = 0,
+                       perform_culling_test: bool = True):
+        """
+        Render a polygon shape or outline defined by a list of vertices with the specified color and width.
+
+        Args:
+            points (list[tuple[float, float]]): A list of (x, y) coordinate tuples defining the polygon vertices.
+            color (tuple): The color of the polygon in RGB format.
+            width (int): The width of the polygon outline in pixels. If equal to 0, the polygon is filled.
+            perform_culling_test (bool): Whether to perform culling.
+        """
+        pass
+
+    @abstractmethod
+    def render_text(self, text: str, x: float, y: float, color: tuple = Color.Black, perform_culling_test: bool=True):
+        """
+        Render text at the specified position with the given content and color.
+
+        Args:
+            text (str): The text content to display.
+            x (float): The x-coordinate of the text's center position.
+            y (float): The y-coordinate of the text's center position.
+            color (tuple): The color of the text in RGB format.
+            perform_culling_test (bool): Whether to perform culling.
         """
         pass
