@@ -5,7 +5,8 @@ from config import (
     sensor_config,
     agent_config,
     graph_vis_config,
-    agent_vis_config
+    agent_vis_config,
+    sensor_vis_config,
 )
 import blue_strategy
 import red_strategy
@@ -54,6 +55,9 @@ ctx.visual.set_graph_visual(**graph_vis_config)
 # Set agent visualization configurations
 for name, config in agent_vis_config.items():
     ctx.visual.set_agent_visual(name, **config)
+
+for name, config in sensor_vis_config.items():
+    ctx.visual.set_sensor_visual(name, **config)
 
 # Special nodes
 n1 = ctx.graph.graph.get_node(0)

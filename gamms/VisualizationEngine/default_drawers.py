@@ -20,6 +20,7 @@ def render_agent(ctx: Context, data: dict):
         color = Color.Magenta
         size = agent_data.size * 1.5
 
+    size = ctx.visual._render_manager.screen_to_world_scale(size) * 2.5
     agent = ctx.agent.get_agent(agent_data.name)
     target_node = ctx.graph.graph.get_node(agent.current_node_id)
     if ctx.visual._waiting_simulation:
@@ -127,3 +128,74 @@ def _render_graph_node(ctx, node, node_color=(169, 169, 169), draw_id=False):
 
     if draw_id:
         ctx.visual.render_text(str(node.id), node.x, node.y + 10, (0, 0, 0))
+
+
+def render_neighbor_sensor(ctx: Context, data: dict):
+    """
+    Render a neighbor sensor.
+
+    Args:
+        ctx (Context): The current simulation context.
+        data (dict): The data dictionary.
+    """
+    sensor = data['sensor']
+    color = data.get('color', Color.Cyan)
+    sensor_data: dict = sensor.data
+    for neighbor_node_id in sensor_data:
+        neighbor_node = ctx.graph.graph.get_node(neighbor_node_id)
+        ctx.visual.render_circle(neighbor_node.x, neighbor_node.y, 4, color)
+
+
+def render_map_sensor(ctx: Context, data: dict):
+    """
+    Render a map sensor.
+
+    Args:
+        ctx (Context): The current simulation context.
+        data (dict): The data dictionary.
+    """
+    sensor = data['sensor']
+    node_color = data.get('node_color', Color.Cyan)
+    sensor_data: dict = sensor.data
+    sensed_nodes: list[int] = list(sensor_data['nodes'].keys())
+    for node_id in sensed_nodes:
+        node = ctx.graph.graph.get_node(node_id)
+        ctx.visual.render_circle(node.x, node.y, 4, node_color)
+
+    edge_color = data.get('edge_color', Color.Cyan)
+    sensed_edges: list = list(sensor_data['edges'].values())
+    for edge_list in sensed_edges:
+        for edge in edge_list:
+            source = ctx.graph.graph.get_node(edge.source)
+            target = ctx.graph.graph.get_node(edge.target)
+
+            if ctx.visual._render_manager.check_line_culled(source.x, source.y, target.x, target.y):
+                continue
+        
+            if edge.linestring:
+                # linestring[1:-1]
+                line_points = ([(source.x, source.y)] + [(x, y) for (x, y) in edge.linestring.coords] +
+                                [(target.x, target.y)])
+
+                ctx.visual.render_lines(line_points, edge_color, is_aa=True, perform_culling_test=False)
+            else:
+                ctx.visual.render_line(source.x, source.y, target.x, target.y, edge_color, 2, perform_culling_test=False)
+
+
+def render_agent_sensor(ctx: Context, data: dict):
+    sensor = data['sensor']
+    color = data.get('color', Color.Cyan)
+    size = data.get('size', 8)
+    size = ctx.visual._render_manager.screen_to_world_scale(size) * 2.5
+    sensor_data: dict = sensor.data
+    sensed_agents = list(sensor_data.values())
+    for agent in sensed_agents:
+        target_node = ctx.graph.graph.get_node(agent.current_node_id)
+        position = (target_node.x, target_node.y)
+
+        angle = math.radians(45)
+        point1 = (position[0] + size * math.cos(angle), position[1] + size * math.sin(angle))
+        point2 = (position[0] + size * math.cos(angle + 2.5), position[1] + size * math.sin(angle + 2.5))
+        point3 = (position[0] + size * math.cos(angle - 2.5), position[1] + size * math.sin(angle - 2.5))
+
+        ctx.visual.render_polygon([point1, point2, point3], color)

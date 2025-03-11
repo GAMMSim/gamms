@@ -62,6 +62,14 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
+    def set_sensor_visual(self, sensor_name: str, **kwargs) -> None:
+        """
+        Configure the visual representation of a specific sensor.
+
+        """
+        pass
+
+    @abstractmethod
     def add_artist(self, name: str, data: Dict[str, Any]) -> None:
         """
         Add a custom artist or object to the visualization.

@@ -2,7 +2,7 @@ from gamms.typing import IVisualizationEngine
 from gamms.VisualizationEngine import Color, Space, Shape
 from gamms.VisualizationEngine.render_manager import RenderManager
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
-from gamms.VisualizationEngine.default_drawers import render_agent, render_graph
+from gamms.VisualizationEngine.default_drawers import render_agent, render_graph, render_neighbor_sensor, render_map_sensor, render_agent_sensor
 from gamms.context import Context
 from gamms.typing.sensor_engine import SensorType
 
@@ -55,8 +55,30 @@ class PygameVisualizationEngine(IVisualizationEngine):
         data = {}
         data['drawer'] = render_agent
         data['agent_data'] = agent_data
-        
+
         self.add_artist(name, data)
+
+    def set_sensor_visual(self, sensor_name, **kwargs):
+        sensor = self.ctx.sensor.get_sensor(sensor_name)
+        sensor_type = sensor.type
+        data = {}
+        data['sensor'] = sensor
+        if sensor_type == SensorType.NEIGHBOR:
+            data['drawer'] = render_neighbor_sensor
+            data['color'] = kwargs.get('color', Color.Cyan)
+            data['size'] = kwargs.get('size', 8)
+        elif sensor_type == SensorType.MAP or sensor_type == SensorType.RANGE or sensor_type == SensorType.ARC:
+            data['drawer'] = render_map_sensor
+            data['node_color'] = kwargs.get('node_color', Color.LightGreen)
+            data['edge_color'] = kwargs.get('edge_color', Color.Cyan)
+        elif sensor_type == SensorType.AGENT or sensor_type == SensorType.AGENT_RANGE or sensor_type == SensorType.AGENT_ARC:
+            data['drawer'] = render_agent_sensor
+            data['color'] = kwargs.get('color', Color.Magenta)
+            data['size'] = kwargs.get('size', 8)
+        else:
+            raise ValueError(f"Invalid sensor type: {sensor_type}")
+
+        self.add_artist(f'sensor_{sensor_name}', data)
     
     def add_artist(self, name: str, data: Dict[str, Any]) -> None:
         if 'drawer' not in data and 'shape' not in data:
