@@ -2,6 +2,7 @@ from gamms.typing import IVisualizationEngine
 from gamms.VisualizationEngine import Color, Space, Shape
 from gamms.VisualizationEngine.render_manager import RenderManager
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
+from gamms.VisualizationEngine.default_drawers import render_agent, render_graph
 from gamms.context import Context
 from gamms.typing.sensor_engine import SensorType
 
@@ -27,37 +28,34 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._render_manager = RenderManager(ctx, 0, 0, 15, width, height)
     
     def set_graph_visual(self, **kwargs):
-        def graph_drawer(ctx, data):
-            graph_artist = data['graph_data']
-            RenderManager.render_graph(ctx, graph_artist)
-
         graph = self.ctx.graph.graph
-        x_min = min(node.x for node in graph.nodes.values())
-        x_max = max(node.x for node in graph.nodes.values())
-        y_min = min(node.y for node in graph.nodes.values())
-        y_max = max(node.y for node in graph.nodes.values())
-        graph_center = ((x_min + x_max) / 2, (y_min + y_max) / 2)
-        self._render_manager.set_graph_center(graph_center)
+        x_list = [node.x for node in graph.nodes.values()]
+        y_list = [node.y for node in graph.nodes.values()]
+        x_min = min(x_list)
+        x_max = max(x_list)
+        y_min = min(y_list)
+        y_max = max(y_list)
+        x_mean = sum(x_list) / len(x_list) if len(x_list) > 0 else 0
+        y_mean = sum(y_list) / len(y_list) if len(y_list) > 0 else 0
+        self._render_manager.camera_x = x_mean
+        self._render_manager.camera_y = y_mean
         self._render_manager.camera_size = max(x_max - x_min, y_max - y_min)
 
         graph_data = GraphData(node_color=kwargs.get('node_color', Color.LightGreen),
                                edge_color=kwargs.get('edge_color', Color.Black), draw_id=kwargs.get('draw_id', False))
         data = {}
-        data['drawer'] = graph_drawer
+        data['drawer'] = render_graph
         data['graph_data'] = graph_data
 
         #Add data for node ID and Color
         self.add_artist('graph', data)
     
     def set_agent_visual(self, name, **kwargs):
-        def agent_drawer(ctx, data):
-            agent_artist = data['agent_data']
-            RenderManager.render_agent(ctx, agent_artist)
-
         agent_data = AgentData(name=name, color=kwargs.get('color', Color.Black), size=kwargs.get('size', 8))
         data = {}
-        data['drawer'] = agent_drawer
+        data['drawer'] = render_agent
         data['agent_data'] = agent_data
+        
         self.add_artist(name, data)
     
     def add_artist(self, name: str, data: Dict[str, Any]) -> None:
