@@ -32,7 +32,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
             layer_id = 0
 
         if layer_id not in self._surface_dict:
-            surface = pygame.Surface((width, height))
+            surface = pygame.Surface((width, height), pygame.SRCALPHA)
             self._surface_dict[layer_id] = surface
 
         # Order layers by ascending order
