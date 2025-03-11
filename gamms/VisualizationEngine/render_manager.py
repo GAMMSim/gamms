@@ -21,7 +21,6 @@ class RenderManager:
         self._update_bounds()
 
         self._render_nodes: dict[str, RenderNode] = {}
-        self._graph_center = (0, 0)
 
     def _update_bounds(self):
         self._bound_left = -self.camera_size + self.camera_x
@@ -152,11 +151,6 @@ class RenderManager:
         Transforms a screen size to a viewport size.
         """
         return screen_size / self.screen_width
-
-    def set_graph_center(self, graph_center):
-        self._graph_center = graph_center
-        self._camera_x = graph_center[0]
-        self._camera_y = graph_center[1]
 
     def scale_to_screen(self, position) -> tuple[float, float]:
         # map_position = ((position[0] - self._graph_center[0]), (position[1] - self._graph_center[1]))

@@ -32,12 +32,16 @@ class PygameVisualizationEngine(IVisualizationEngine):
             RenderManager.render_graph(ctx, graph_artist)
 
         graph = self.ctx.graph.graph
-        x_min = min(node.x for node in graph.nodes.values())
-        x_max = max(node.x for node in graph.nodes.values())
-        y_min = min(node.y for node in graph.nodes.values())
-        y_max = max(node.y for node in graph.nodes.values())
-        graph_center = ((x_min + x_max) / 2, (y_min + y_max) / 2)
-        self._render_manager.set_graph_center(graph_center)
+        x_list = [node.x for node in graph.nodes.values()]
+        y_list = [node.y for node in graph.nodes.values()]
+        x_min = min(x_list)
+        x_max = max(x_list)
+        y_min = min(y_list)
+        y_max = max(y_list)
+        x_mean = sum(x_list) / len(x_list) if len(x_list) > 0 else 0
+        y_mean = sum(y_list) / len(y_list) if len(y_list) > 0 else 0
+        self._render_manager.camera_x = x_mean
+        self._render_manager.camera_y = y_mean
         self._render_manager.camera_size = max(x_max - x_min, y_max - y_min)
 
         graph_data = GraphData(node_color=kwargs.get('node_color', Color.LightGreen),
