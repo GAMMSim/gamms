@@ -21,14 +21,18 @@ class RenderManager:
         self._update_bounds()
 
         self._render_nodes: dict[str, RenderNode] = {}
+        # This will call drawer on all artists in the respective layer
+        self._update_layer: list[int] = [] 
+        self._layer_artists: dict[int, list[str]] = {}
         self._graph_center = (0, 0)
+
 
     def _update_bounds(self):
         self._bound_left = -self.camera_size + self.camera_x
         self._bound_right = self.camera_size + self.camera_x
         self._bound_top = -self.camera_size_y + self.camera_y
         self._bound_bottom = self.camera_size_y + self.camera_y
-
+ 
     @property
     def camera_x(self):
         return self._camera_x
@@ -198,6 +202,14 @@ class RenderManager:
         render_node = RenderNode(data)
         self._render_nodes[name] = render_node
 
+        # If layer is specified, will add to list. 
+        if render_node.layer is not None:
+            if render_node.layer not in  self._layer_artists:
+                self._layer_artists[render_node.layer] = [name]
+            else:
+                self._layer_artists[render_node.layer].append(name)
+            print("add_artist().self._layer_artists: ", self._layer_artists)
+
     def remove_artist(self, name: str):
         """
         Remove an artist from the render manager.
@@ -206,7 +218,17 @@ class RenderManager:
             name (str): The unique name of the artist to remove.
         """
         if name in self._render_nodes:
+
+            # Case 1: Layer not specified
+            render_node = self._render_nodes[name]
+            if render_node.layer is None:
+                del self._render_nodes[name]
+                return
+                
+            index =  self._layer_artists[render_node.layer].index('name')
+            del self._layer_artists[render_node.layer][index]
             del self._render_nodes[name]
+
         else:
             print(f"Warning: Artist {name} not found.")
 
@@ -285,7 +307,7 @@ class RenderManager:
         ctx.visual.render_polygon([point1, point2, point3], color)
 
     @staticmethod
-    def render_graph(ctx: Context, graph_data: GraphData):
+    def render_graph(ctx: Context, graph_data: GraphData, layer_id: int = None):
         """
         Render the graph by drawing its nodes and edges on the screen. This is the default rendering method for graphs.
 
@@ -293,11 +315,16 @@ class RenderManager:
             ctx (Context): The current simulation context.
             graph_data (GraphData): The graph to render.
         """
+
         graph = ctx.graph.graph
         node_color = graph_data.node_color
         edge_color = graph_data.edge_color
         draw_id = graph_data.draw_id
         target_node_id_set = None
+        # Default to 10 as default layer if user does not specificy
+        if layer_id == None:
+            layer_id = 10
+        
         if ctx.visual._waiting_agent_name:
             target_node_id_set = set(ctx.visual._input_options.values())
 

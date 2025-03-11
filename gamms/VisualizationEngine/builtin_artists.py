@@ -65,4 +65,5 @@ class GraphData:
     node_color: tuple
     edge_color: tuple
     draw_id: bool
+    layer: int
     edge_line_points: dict[int, list[tuple[float, float]]] = field(default_factory=dict)
