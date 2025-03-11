@@ -56,15 +56,17 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._render_manager.camera_size = max(x_max - x_min, y_max - y_min)
         layer_id = self.create_layer(10, 3000, 3000)
 
+        #FIXME: add some way to let layer_ID be = None
         graph_data = GraphData(node_color=kwargs.get('node_color', Color.LightGreen),
                                edge_color=kwargs.get('edge_color', Color.Black), 
                                draw_id=kwargs.get('draw_id', False),
-                               layer= layer_id)
+                               layer = layer_id)
 
         data = {}
         data['drawer'] = graph_drawer
         data['layer'] = 10
         data['graph_data'] = graph_data
+        data['singleRender'] = True
 
         #Add data for node ID and Color
         self.add_artist('graph', data)
@@ -79,7 +81,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         agent_data = AgentData(name=name, color=kwargs.get('color', Color.Black), size=kwargs.get('size', 8))
         data = {}
         data['drawer'] = agent_drawer
-        data['layer'] = 30
+        data['layer'] = 40
         data['agent_data'] = agent_data
         self.add_artist(name, data)
     
@@ -87,7 +89,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
         if 'drawer' not in data and 'shape' not in data:
             # default to circle
             data['shape'] = Shape.Circle
-
+        if 'layer' not in data and 30 not in self._surface_dict:
+            self.create_layer(30, 3000, 3000)
+        print("add_artist():self._surface_dict: ", self._surface_dict)
         self._render_manager.add_artist(name, data)
     
     def remove_artist(self, name):

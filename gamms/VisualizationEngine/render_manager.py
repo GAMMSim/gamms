@@ -22,7 +22,7 @@ class RenderManager:
 
         self._render_nodes: dict[str, RenderNode] = {}
         # This will call drawer on all artists in the respective layer
-        self._update_layer: list[int] = [] 
+        self._update_layer: dict[str, bool] = {} 
         self._layer_artists: dict[int, list[str]] = {}
         self._graph_center = (0, 0)
 
@@ -203,12 +203,16 @@ class RenderManager:
         self._render_nodes[name] = render_node
 
         # If layer is specified, will add to list. 
-        if render_node.layer is not None:
-            if render_node.layer not in  self._layer_artists:
-                self._layer_artists[render_node.layer] = [name]
-            else:
-                self._layer_artists[render_node.layer].append(name)
-            print("add_artist().self._layer_artists: ", self._layer_artists)
+        if render_node.layer not in self._layer_artists:
+            self._layer_artists[render_node.layer] = [name]
+            self._layer_artists = {k: self._layer_artists[k] for k in sorted(self._layer_artists.keys())}
+        else:
+            self._layer_artists[render_node.layer].append(name)
+        print("add_artist().self._layer_artists: ", self._layer_artists)
+        
+        # Defaults to true, custom drawers can set this to false
+        self._update_layer[name] = True
+        print("add_artist().self._update_layer: ", self._update_layer)
 
     def remove_artist(self, name: str):
         """
@@ -220,11 +224,7 @@ class RenderManager:
         if name in self._render_nodes:
 
             # Case 1: Layer not specified
-            render_node = self._render_nodes[name]
-            if render_node.layer is None:
-                del self._render_nodes[name]
-                return
-                
+            render_node = self._render_nodes[name]                
             index =  self._layer_artists[render_node.layer].index('name')
             del self._layer_artists[render_node.layer][index]
             del self._render_nodes[name]
@@ -245,7 +245,7 @@ class RenderManager:
                 drawer = render_node.drawer
                 drawer(self.ctx, render_node.data)
                 continue
-
+        
             shape = render_node.shape
             if shape == Shape.Circle:
                 self.ctx.visual.render_circle(render_node.x, render_node.y, render_node.data['scale'], render_node.color)
@@ -315,23 +315,21 @@ class RenderManager:
             ctx (Context): The current simulation context.
             graph_data (GraphData): The graph to render.
         """
-
         graph = ctx.graph.graph
         node_color = graph_data.node_color
         edge_color = graph_data.edge_color
         draw_id = graph_data.draw_id
         target_node_id_set = None
-        # Default to 10 as default layer if user does not specificy
-        if layer_id == None:
-            layer_id = 10
-        
-        if ctx.visual._waiting_agent_name:
-            target_node_id_set = set(ctx.visual._input_options.values())
 
-        for edge in graph.get_edges().values():
-            RenderManager._draw_edge(ctx, graph_data, graph, edge, edge_color, target_node_id_set)
-        for node in graph.get_nodes().values():
-            RenderManager._draw_node(ctx, node, node_color, draw_id)
+        #Default behavior if no user input for layer
+        if graph_data.layer is None:
+            if ctx.visual._waiting_agent_name:
+                target_node_id_set = set(ctx.visual._input_options.values())
+
+            for edge in graph.get_edges().values():
+                RenderManager._draw_edge(ctx, graph_data, graph, edge, edge_color, target_node_id_set)
+            for node in graph.get_nodes().values():
+                RenderManager._draw_node(ctx, node, node_color, draw_id)
 
     @staticmethod
     def _draw_edge(ctx, graph_data, graph, edge, edge_color, target_node_id_set):
