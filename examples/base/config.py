@@ -15,19 +15,19 @@ import math
 
 sensor_config = {}
 
-for i in range(1, 10):
+for i in range(0, 10):
     sensor_config[f'neigh_{i}'] = {
-        'type': gamms.sensor.SensorType.NEIGHBOR,
+        'type': gamms.sensor.SensorType.NEIGHBOR
     }
 
-for i in range(1, 10):
+for i in range(0, 10):
     sensor_config[f'range_{i}'] = {
         'type': gamms.sensor.SensorType.ARC,  
         'sensor_range': 150,  
         'fov': math.radians(60),   
     }
 
-for i in range(1, 10):
+for i in range(0, 10):
     sensor_config[f'agent_{i}'] = {
         'type': gamms.sensor.SensorType.AGENT_ARC,  
         'sensor_range': 150,  
@@ -38,53 +38,52 @@ for i in range(1, 10):
 agent_config = {
     'agent_0': {
         'meta': {'team': 0},
-        'sensors': ['neigh_0', 'map', 'agent'],
+        'sensors': ['neigh_0', 'range_0', 'agent_0'],  
         'start_node_id': 0
     },
     'agent_1': {
         'meta': {'team': 0},
-        'sensors': ['neigh_1', 'map', 'agent'],
+        'sensors': ['neigh_1', 'range_1', 'agent_1'],  
         'start_node_id': 10
     },
     'agent_2': {
         'meta': {'team': 0},
-        'sensors': ['neigh_2', 'map', 'agent'],
+        'sensors': ['neigh_2', 'range_2', 'agent_2'],  
         'start_node_id': 20
     },
     'agent_3': {
         'meta': {'team': 0},
-        'sensors': ['neigh_3', 'map', 'agent'],
+        'sensors': ['neigh_3', 'range_3', 'agent_3'],  
         'start_node_id': 30
     },
     'agent_4': {
         'meta': {'team': 0},
-        'sensors': ['neigh_4', 'map', 'agent'],
+        'sensors': ['neigh_4', 'range_4', 'agent_4'],  
         'start_node_id': 40
     },
     'agent_5': {
         'meta': {'team': 1},
-        'sensors': ['neigh_5', 'map', 'agent'],
+        'sensors': ['neigh_5', 'range_5', 'agent_5'],  
         'start_node_id': 500
     },
     'agent_6': {
         'meta': {'team': 1},
-        'sensors': ['neigh_6', 'map', 'agent'],
+        'sensors': ['neigh_6', 'range_6', 'agent_6'], 
         'start_node_id': 501
     },
     'agent_7': {
         'meta': {'team': 1},
-        'sensors': ['neigh_7', 'map', 'agent'],
+        'sensors': ['neigh_7', 'range_7', 'agent_7'],  
         'start_node_id': 502
     },
-    
     'agent_8': {
         'meta': {'team': 1},
-        'sensors': ['neigh_8', 'map', 'agent'],
+        'sensors': ['neigh_8', 'range_8', 'agent_8'],  
         'start_node_id': 503
     },
     'agent_9': {
         'meta': {'team': 1},
-        'sensors': ['neigh_9', 'map', 'agent'],
+        'sensors': ['neigh_9', 'range_9', 'agent_9'],  
         'start_node_id': 504
     }
 }
