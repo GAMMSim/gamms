@@ -1,6 +1,6 @@
 # The file describes the configuration for the game
 import gamms
-
+import math
 
 # Visualization
 vis_engine = gamms.visual.Engine.PYGAME
@@ -11,44 +11,28 @@ resolution = 10.0
 graph_path = 'graph.pkl'
 
 # Sensor configuration
-sensor_config = {
-    'neigh_0': {
+import math
+
+sensor_config = {}
+
+for i in range(1, 10):
+    sensor_config[f'neigh_{i}'] = {
         'type': gamms.sensor.SensorType.NEIGHBOR,
-    },
-    'neigh_1': {
-        'type': gamms.sensor.SensorType.NEIGHBOR,
-    },
-    'neigh_2': {
-        'type': gamms.sensor.SensorType.NEIGHBOR,
-    },
-    'neigh_3': {
-        'type': gamms.sensor.SensorType.NEIGHBOR,
-    },
-    'neigh_4': {
-        'type': gamms.sensor.SensorType.NEIGHBOR,
-    },
-    'neigh_5': {
-        'type': gamms.sensor.SensorType.NEIGHBOR,
-    },
-    'neigh_6': {
-        'type': gamms.sensor.SensorType.NEIGHBOR,
-    },
-    'neigh_7': {
-        'type': gamms.sensor.SensorType.NEIGHBOR,
-    },
-    'neigh_8': {
-        'type': gamms.sensor.SensorType.NEIGHBOR,
-    },
-    'neigh_9': {
-        'type': gamms.sensor.SensorType.NEIGHBOR,
-    },
-    'map': {
-        'type': gamms.sensor.SensorType.RANGE,
-    },
-    'agent': {
-        'type': gamms.sensor.SensorType.AGENT,
     }
-}
+
+for i in range(1, 10):
+    sensor_config[f'range_{i}'] = {
+        'type': gamms.sensor.SensorType.ARC,  
+        'sensor_range': 150,  
+        'fov': math.radians(60),   
+    }
+
+for i in range(1, 10):
+    sensor_config[f'agent_{i}'] = {
+        'type': gamms.sensor.SensorType.AGENT_ARC,  
+        'sensor_range': 150,  
+        'fov': math.radians(60),   
+    }
 
 # The configuration of the agents
 agent_config = {
