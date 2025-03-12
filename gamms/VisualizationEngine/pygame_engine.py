@@ -26,7 +26,22 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._simulation_time = 0
         self._will_quit = False
         self._render_manager = RenderManager(ctx, 0, 0, 15, width, height)
+        self._surface_dict : dict[int, pygame.Surface ] = {}
     
+    def create_layer(self, layer_id: int, width : int, height : int) -> int:
+        if layer_id is None:
+            layer_id = 0
+
+        if layer_id not in self._surface_dict:
+            surface = pygame.Surface((width, height), pygame.SRCALPHA)
+            self._surface_dict[layer_id] = surface
+
+        # Order layers by ascending order
+        self._surface_dict = {id: self._surface_dict[id] for id in sorted(self._surface_dict.keys())}
+
+        return layer_id
+
+    #FIXME: add layer as a optional argument
     def set_graph_visual(self, **kwargs):
         graph = self.ctx.graph.graph
         x_list = [node.x for node in graph.nodes.values()]
@@ -40,20 +55,31 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._render_manager.camera_x = x_mean
         self._render_manager.camera_y = y_mean
         self._render_manager.camera_size = max(x_max - x_min, y_max - y_min)
+        layer_id = self.create_layer(10, 3000, 3000)
 
+        #FIXME: add some way to let layer_ID be = None
         graph_data = GraphData(node_color=kwargs.get('node_color', Color.LightGreen),
-                               edge_color=kwargs.get('edge_color', Color.Black), draw_id=kwargs.get('draw_id', False))
+                               edge_color=kwargs.get('edge_color', Color.Black), 
+                               draw_id=kwargs.get('draw_id', False),
+                               layer = layer_id)
+
         data = {}
         data['drawer'] = render_graph
+        data['layer'] = 10
         data['graph_data'] = graph_data
+        data['singleRender'] = True
 
         #Add data for node ID and Color
         self.add_artist('graph', data)
     
     def set_agent_visual(self, name, **kwargs):
+        
+        layer_id = self.create_layer(20, 3000, 3000)
+        
         agent_data = AgentData(name=name, color=kwargs.get('color', Color.Black), size=kwargs.get('size', 8))
         data = {}
         data['drawer'] = render_agent
+        data['layer'] = 40
         data['agent_data'] = agent_data
 
         self.add_artist(name, data)
@@ -84,7 +110,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
         if 'drawer' not in data and 'shape' not in data:
             # default to circle
             data['shape'] = Shape.Circle
-
+        if 'layer' not in data and 30 not in self._surface_dict:
+            self.create_layer(30, 3000, 3000)
+        print("add_artist():self._surface_dict: ", self._surface_dict)
         self._render_manager.add_artist(name, data)
     
     def remove_artist(self, name):
@@ -151,14 +179,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
         
         for key_id, node_id in self._input_options.items():
             node = self.ctx.graph.graph.get_node(node_id)
-            # self._render_manager._draw_node(self.ctx, node)
-
-            # self.ctx.visual._graph_visual.setNodeColor(node, (0, 255, 0))
-
             position = (node.x, node.y)
             (x, y) = self._render_manager.scale_to_screen(position)
             self._render_text_internal(str(key_id), x, y, Space.Screen, Color.Black)
-            # self.render_text(str(key_id), node.x, node.y, Space.World, Color.Black)
 
     def draw_hud(self):
         #FIXME: Add hud manager

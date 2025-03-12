@@ -29,3 +29,12 @@ class RenderNode:
     @property
     def drawer(self):
         return self._data['drawer']
+    
+    @property
+    def layer(self) -> int | None:
+        return self._data.get('layer', 30)
+    
+    @property
+    def singleRender(self) -> bool | None:
+        return self._data.get('singleRender', False)
+

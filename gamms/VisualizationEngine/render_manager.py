@@ -19,13 +19,17 @@ class RenderManager:
         self._update_bounds()
 
         self._render_nodes: dict[str, RenderNode] = {}
+        # This will call drawer on all artists in the respective layer
+        self._update_layer: dict[str, bool] = {} 
+        self._layer_artists: dict[int, list[str]] = {}
+
 
     def _update_bounds(self):
         self._bound_left = -self.camera_size + self.camera_x
         self._bound_right = self.camera_size + self.camera_x
         self._bound_top = -self.camera_size_y + self.camera_y
         self._bound_bottom = self.camera_size_y + self.camera_y
-
+ 
     @property
     def camera_x(self):
         return self._camera_x
@@ -190,6 +194,18 @@ class RenderManager:
         render_node = RenderNode(data)
         self._render_nodes[name] = render_node
 
+        # If layer is specified, will add to list. 
+        if render_node.layer not in self._layer_artists:
+            self._layer_artists[render_node.layer] = [name]
+            self._layer_artists = {k: self._layer_artists[k] for k in sorted(self._layer_artists.keys())}
+        else:
+            self._layer_artists[render_node.layer].append(name)
+        print("add_artist().self._layer_artists: ", self._layer_artists)
+        
+        # Defaults to true, custom drawers can set this to false
+        self._update_layer[name] = True
+        print("add_artist().self._update_layer: ", self._update_layer)
+
     def remove_artist(self, name: str):
         """
         Remove an artist from the render manager.
@@ -198,7 +214,13 @@ class RenderManager:
             name (str): The unique name of the artist to remove.
         """
         if name in self._render_nodes:
+
+            # Case 1: Layer not specified
+            render_node = self._render_nodes[name]                
+            index =  self._layer_artists[render_node.layer].index('name')
+            del self._layer_artists[render_node.layer][index]
             del self._render_nodes[name]
+
         else:
             print(f"Warning: Artist {name} not found.")
 
@@ -215,7 +237,7 @@ class RenderManager:
                 drawer = render_node.drawer
                 drawer(self.ctx, render_node.data)
                 continue
-
+        
             shape = render_node.shape
             if shape == Shape.Circle:
                 self.ctx.visual.render_circle(render_node.x, render_node.y, render_node.data['scale'], render_node.color)
