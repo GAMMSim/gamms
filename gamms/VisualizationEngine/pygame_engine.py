@@ -90,7 +90,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         sensor_type = sensor.type
         data = {}
         data['sensor'] = sensor
-        # data['layer'] = -1
+        data['layer'] = kwargs.get('layer', 30)
         if sensor_type == SensorType.NEIGHBOR:
             data['drawer'] = render_neighbor_sensor
             data['color'] = kwargs.get('color', Color.Cyan)
@@ -101,7 +101,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
             data['edge_color'] = kwargs.get('edge_color', Color.Cyan)
         elif sensor_type == SensorType.AGENT or sensor_type == SensorType.AGENT_RANGE or sensor_type == SensorType.AGENT_ARC:
             data['drawer'] = render_agent_sensor
-            data['color'] = kwargs.get('color', Color.Magenta)
+            data['color'] = kwargs.get('color', Color.Cyan)
             data['size'] = kwargs.get('size', 8)
         else:
             raise ValueError(f"Invalid sensor type: {sensor_type}")
@@ -114,7 +114,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
             data['shape'] = Shape.Circle
 
         layer = data.get('layer', 30)
-        if layer not in self._surface_dict:
+        single_render = data.get('single_render', False)
+        if layer not in self._surface_dict and single_render:
             self.create_layer(layer, 3000, 3000)
 
         print("add_artist():self._surface_dict: ", self._surface_dict)

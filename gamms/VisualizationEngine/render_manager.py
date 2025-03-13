@@ -249,23 +249,27 @@ class RenderManager:
         surface_world_left = self._default_origin[0] - self._surface_size / 2
         surface_world_top = self._default_origin[1] + self._surface_size / 2
         surface_screen_left, surface_screen_top = self.world_to_screen(surface_world_left, surface_world_top)
-        for layer in self._layer_artists.keys():
-            self.ctx.visual.render_layer(layer, surface_screen_left, surface_screen_top, surface_screen_size, surface_screen_size)
+        rendered_layers = set()
+        for layer, artists in self._layer_artists.items():
+            for artist in artists:
+                render_node = self._render_nodes[artist]
+                if render_node.single_render and layer not in rendered_layers:
+                    self.ctx.visual.render_layer(layer, surface_screen_left, surface_screen_top, surface_screen_size,
+                                                 surface_screen_size)
+                    rendered_layers.add(layer)
+                    continue
 
-        for render_node in self._render_nodes.values():
-            if render_node.single_render:
-                continue
+                if 'drawer' in render_node.data:
+                    drawer = render_node.drawer
+                    drawer(self.ctx, render_node.data)
+                    continue
 
-            # if render node uses custom drawer
-            if 'drawer' in render_node.data:
-                drawer = render_node.drawer
-                drawer(self.ctx, render_node.data)
-                continue
-        
-            shape = render_node.shape
-            if shape == Shape.Circle:
-                self.ctx.visual.render_circle(render_node.x, render_node.y, render_node.data['scale'], render_node.color)
-            elif shape == Shape.Rectangle:
-                self.ctx.visual.render_rectangle(render_node.x, render_node.y, render_node.data['width'], render_node.data['height'], render_node.color)
-            else:
-                raise NotImplementedError("Render node not implemented")
+                shape = render_node.shape
+                if shape == Shape.Circle:
+                    self.ctx.visual.render_circle(render_node.x, render_node.y, render_node.data['scale'],
+                                                  render_node.color)
+                elif shape == Shape.Rectangle:
+                    self.ctx.visual.render_rectangle(render_node.x, render_node.y, render_node.data['width'],
+                                                     render_node.data['height'], render_node.color)
+                else:
+                    raise NotImplementedError("Render node not implemented")

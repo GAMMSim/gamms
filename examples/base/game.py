@@ -67,6 +67,7 @@ data['x'] = n1.x
 data['y'] = n1.y
 data['scale'] = 4
 data['color'] = (255, 0, 0)
+# data['layer'] = 9
 
 ctx.visual.add_artist('special_node', data)
 
