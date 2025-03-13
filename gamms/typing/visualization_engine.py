@@ -159,7 +159,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_circle(self, x: float, y: float, radius: float, color: tuple=Color.Black,
+    def render_circle(self, x: float, y: float, radius: float, color: tuple=Color.Black, layer = -1,
                       perform_culling_test: bool=True):
         """
         Render a circle shape at the specified position with the given radius and color.
@@ -169,12 +169,13 @@ class IVisualizationEngine(ABC):
             y (float): The y-coordinate of the circle's center.
             radius (float): The radius of the circle.
             color (tuple): The color of the circle in RGB format.
+            layer (int): The layer to render the circle on.
             perform_culling_test (bool): Whether to perform culling.
         """
         pass
 
     @abstractmethod
-    def render_rectangle(self, x: float, y: float, width: float, height: float, color: tuple = Color.Black,
+    def render_rectangle(self, x: float, y: float, width: float, height: float, color: tuple = Color.Black, layer = -1,
                          perform_culling_test: bool = True):
         """
         Render a rectangle shape at the specified position with the given dimensions and color.
@@ -185,13 +186,14 @@ class IVisualizationEngine(ABC):
             width (float): The width of the rectangle.
             height (float): The height of the rectangle.
             color (tuple): The color of the rectangle in RGB format.
+            layer (int): The layer to render the rectangle on.
             perform_culling_test (bool): Whether to perform culling.
         """
         pass
 
     @abstractmethod
     def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: tuple = Color.Black,
-                    width: int = 1, is_aa: bool = False, perform_culling_test: bool = True):
+                    width: int = 1, layer = -1, is_aa: bool = False, perform_culling_test: bool = True):
         """
         Render a line segment between two points with the specified color and width.
 
@@ -202,13 +204,14 @@ class IVisualizationEngine(ABC):
             end_y (float): The y-coordinate of the ending point.
             color (tuple): The color of the line in RGB format.
             width (int): The width of the line in pixels. Only non-antialiasing lines supports width.
+            layer (int): The layer to render the line on.
             is_aa (bool): Whether to use antialiasing for smoother rendering.
             perform_culling_test (bool): Whether to perform culling.
         """
         pass
 
     @abstractmethod
-    def render_lines(self, points: list[tuple[float, float]], color: tuple = Color.Black, width: int = 1, closed=False,
+    def render_lines(self, points: list[tuple[float, float]], color: tuple = Color.Black, width: int = 1, layer = -1, closed=False,
                      is_aa: bool = False, perform_culling_test: bool = True):
         """
         Render a series of connected line segments between multiple points.
@@ -217,6 +220,7 @@ class IVisualizationEngine(ABC):
             points (list[tuple[float, float]]): A list of (x, y) coordinate tuples defining the line segments.
             color (tuple): The color of the lines in RGB format.
             width (int): The width of the lines in pixels. Only non-antialiasing lines supports width.
+            layer (int): The layer to render the lines on.
             closed (bool): Whether the line segments form a closed shape.
             is_aa (bool): Whether to use antialiasing for smoother rendering.
             perform_culling_test (bool): Whether to perform culling.
@@ -224,7 +228,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_polygon(self, points: list[tuple[float, float]], color: tuple = Color.Black, width: int = 0,
+    def render_polygon(self, points: list[tuple[float, float]], color: tuple = Color.Black, width: int = 0, layer = -1,
                        perform_culling_test: bool = True):
         """
         Render a polygon shape or outline defined by a list of vertices with the specified color and width.
@@ -233,12 +237,13 @@ class IVisualizationEngine(ABC):
             points (list[tuple[float, float]]): A list of (x, y) coordinate tuples defining the polygon vertices.
             color (tuple): The color of the polygon in RGB format.
             width (int): The width of the polygon outline in pixels. If equal to 0, the polygon is filled.
+            layer (int): The layer to render the polygon on.
             perform_culling_test (bool): Whether to perform culling.
         """
         pass
 
     @abstractmethod
-    def render_text(self, text: str, x: float, y: float, color: tuple = Color.Black, perform_culling_test: bool=True):
+    def render_text(self, text: str, x: float, y: float, color: tuple = Color.Black, layer = -1, perform_culling_test: bool=True):
         """
         Render text at the specified position with the given content and color.
 
@@ -247,6 +252,32 @@ class IVisualizationEngine(ABC):
             x (float): The x-coordinate of the text's center position.
             y (float): The y-coordinate of the text's center position.
             color (tuple): The color of the text in RGB format.
+            layer (int): The layer to render the text on.
             perform_culling_test (bool): Whether to perform culling.
+        """
+        pass
+
+    @abstractmethod
+    def fill_layer(self, layer_id: int, color: tuple):
+        """
+        Fill a layer with the specified color.
+
+        Args:
+            layer_id (int): The unique identifier of the layer to fill.
+            color (tuple): The color to fill the layer with in RGB format.
+        """
+        pass
+
+    @abstractmethod
+    def render_layer(self, layer_id: int, left: float, top: float, width: float, height: float):
+        """
+        Render a layer to the screen with the specified dimensions at the given position.
+
+        Args:
+            layer_id (int): The unique identifier of the layer to render.
+            left (float): The x-coordinate of the left edge of the layer.
+            top (float): The y-coordinate of the top edge of the layer.
+            width (float): The width of the layer.
+            height (float): The height of the layer.
         """
         pass

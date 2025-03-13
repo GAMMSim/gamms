@@ -35,6 +35,6 @@ class RenderNode:
         return self._data.get('layer', 30)
     
     @property
-    def singleRender(self) -> bool | None:
-        return self._data.get('singleRender', False)
+    def single_render(self) -> bool | None:
+        return self._data.get('single_render', False)
 

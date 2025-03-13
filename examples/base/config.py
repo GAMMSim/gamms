@@ -140,12 +140,12 @@ agent_vis_config = {
 
 sensor_vis_config = {
     'neigh_0': {
-        'color': 'blue',
-        'size': 4,
+        'color': 'cyan',
+        'size': 2,
     },
     'range_0': {
-        'node_color': 'blue',
-        'edge_color': 'blue',
+        'node_color': 'cyan',
+        'edge_color': 'cyan',
     },
     'agent_0': {
         'color': 'blue',

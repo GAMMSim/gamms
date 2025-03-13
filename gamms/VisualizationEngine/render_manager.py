@@ -23,12 +23,21 @@ class RenderManager:
         self._update_layer: dict[str, bool] = {} 
         self._layer_artists: dict[int, list[str]] = {}
 
+        self._default_origin = (0, 0)
+        self._surface_size = 0
+
 
     def _update_bounds(self):
         self._bound_left = -self.camera_size + self.camera_x
         self._bound_right = self.camera_size + self.camera_x
         self._bound_top = -self.camera_size_y + self.camera_y
         self._bound_bottom = self.camera_size_y + self.camera_y
+
+    def set_origin(self, x: float, y: float, graph_width: float, graph_height: float):
+        self.camera_x = x
+        self.camera_y = y
+        self._default_origin = (x, y)
+        self._surface_size = max(graph_width, graph_height) + 200
  
     @property
     def camera_x(self):
@@ -70,7 +79,7 @@ class RenderManager:
         The orthographic size of the camera represents half the height of the camera view.
 
         Returns:
-            float: The verticle orthographic size.
+            float: The vertical orthographic size.
         """
         return self._camera_size_y
     
@@ -100,7 +109,7 @@ class RenderManager:
         """
         Transforms a world size to a screen size.
         """
-        return world_size / self.camera_size * self.screen_width
+        return world_size / (2 * self.camera_size) * self.screen_width
     
     def screen_to_world_scale(self, screen_size: float) -> float:
         """
@@ -108,15 +117,25 @@ class RenderManager:
         """
         return screen_size / self.screen_width * self.camera_size
     
-    def world_to_screen(self, x: float, y: float) -> tuple[float, float]:
+    def world_to_screen(self, x: float, y: float, layer=-1) -> tuple[float, float]:
         """
         Transforms a world coordinate to a screen coordinate.
         """
-        x -= self.camera_x
-        y -= self.camera_y
-        screen_x = (x + self.camera_size) / (2 * self.camera_size) * self.screen_width
-        screen_y = (-y + self.camera_size_y) / (2 * self.camera_size_y) * self.screen_height
-        return screen_x, screen_y
+        if layer == -1:
+            x -= self.camera_x
+            y -= self.camera_y
+            screen_x = (x + self.camera_size) / (2 * self.camera_size) * self.screen_width
+            screen_y = (-y + self.camera_size_y) / (2 * self.camera_size_y) * self.screen_height
+            return screen_x, screen_y
+        else:
+            x -= self._default_origin[0]
+            y -= self._default_origin[1]
+            x_scale = (self._surface_size / 2 + x) / self._surface_size
+            y_scale = (self._surface_size / 2 - y) / self._surface_size
+            surface_x = x_scale * 3000
+            surface_y = y_scale * 3000
+
+            return surface_x, surface_y
     
     def screen_to_world(self, x: float, y: float) -> tuple[float, float]:
         """
@@ -153,11 +172,6 @@ class RenderManager:
         Transforms a screen size to a viewport size.
         """
         return screen_size / self.screen_width
-
-    def scale_to_screen(self, position) -> tuple[float, float]:
-        # map_position = ((position[0] - self._graph_center[0]), (position[1] - self._graph_center[1]))
-        map_position = self.world_to_screen(position[0], position[1])
-        return map_position
 
     def check_circle_culled(self, x, y, radius):
         return (x + radius < self._bound_left or x - radius > self._bound_right or
@@ -231,8 +245,18 @@ class RenderManager:
         Raises:
             NotImplementedError: If the shape of a render node is not implemented and a custom drawer is not provided.
         """
+        surface_screen_size = self.world_to_screen_scale(self._surface_size)
+        surface_world_left = self._default_origin[0] - self._surface_size / 2
+        surface_world_top = self._default_origin[1] + self._surface_size / 2
+        surface_screen_left, surface_screen_top = self.world_to_screen(surface_world_left, surface_world_top)
+        for layer in self._layer_artists.keys():
+            self.ctx.visual.render_layer(layer, surface_screen_left, surface_screen_top, surface_screen_size, surface_screen_size)
+
         for render_node in self._render_nodes.values():
-            # if use custom drawer
+            if render_node.single_render:
+                continue
+
+            # if render node uses custom drawer
             if 'drawer' in render_node.data:
                 drawer = render_node.drawer
                 drawer(self.ctx, render_node.data)

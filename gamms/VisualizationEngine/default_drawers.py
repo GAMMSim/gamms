@@ -68,6 +68,7 @@ def render_graph(ctx: Context, data: dict):
         data (dict): The data dictionary.
     """
     graph_data: GraphData = data['graph_data']
+    layer = data.get('layer', 30)
     graph = ctx.graph.graph
     node_color = graph_data.node_color
     edge_color = graph_data.edge_color
@@ -76,13 +77,15 @@ def render_graph(ctx: Context, data: dict):
     if ctx.visual._waiting_agent_name:
         target_node_id_set = set(ctx.visual._input_options.values())
 
+    # ctx.visual.fill_layer(layer, Color.Cyan)
+
     for edge in graph.get_edges().values():
-        _render_graph_edge(ctx, graph_data, graph, edge, edge_color, target_node_id_set)
+        _render_graph_edge(ctx, graph_data, graph, edge, edge_color, layer, target_node_id_set)
     for node in graph.get_nodes().values():
-        _render_graph_node(ctx, node, node_color, draw_id)
+        _render_graph_node(ctx, node, node_color, draw_id, layer)
 
 
-def _render_graph_edge(ctx, graph_data, graph, edge, edge_color, target_node_id_set):
+def _render_graph_edge(ctx: Context, graph_data, graph, edge, edge_color, layer, target_node_id_set):
     """Draw an edge as a curve or straight line based on the linestring."""
     source = graph.get_node(edge.source)
     target = graph.get_node(edge.target)
@@ -108,26 +111,26 @@ def _render_graph_edge(ctx, graph_data, graph, edge, edge_color, target_node_id_
             edge_line_points[edge.id] = linestring
 
         line_points = edge_line_points[edge.id]
-        ctx.visual.render_lines(line_points, color, is_aa=True, perform_culling_test=False)
+        ctx.visual.render_lines(line_points, color, layer=layer, is_aa=True, perform_culling_test=False)
     else:
-        ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2, perform_culling_test=False)
+        ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2, layer=layer, perform_culling_test=False)
 
 
-def _render_graph_node(ctx, node, node_color=(169, 169, 169), draw_id=False):
+def _render_graph_node(ctx: Context, node, node_color, draw_id, layer):
     if ctx.visual._render_manager.check_circle_culled(node.x, node.y, 10):
         return
 
     if ctx.visual._waiting_user_input and node.id in ctx.visual._input_options.values():
         color = (0, 255, 0)
-        radius = 8
+        radius = 16
     else:
         color = node_color
-        radius = 4
+        radius = 8
 
-    ctx.visual.render_circle(node.x, node.y, radius, color)
+    ctx.visual.render_circle(node.x, node.y, radius, color, layer=layer)
 
     if draw_id:
-        ctx.visual.render_text(str(node.id), node.x, node.y + 10, (0, 0, 0))
+        ctx.visual.render_text(str(node.id), node.x, node.y + 10, (0, 0, 0), layer=layer)
 
 
 def render_neighbor_sensor(ctx: Context, data: dict):
@@ -143,7 +146,7 @@ def render_neighbor_sensor(ctx: Context, data: dict):
     sensor_data: dict = sensor.data
     for neighbor_node_id in sensor_data:
         neighbor_node = ctx.graph.graph.get_node(neighbor_node_id)
-        ctx.visual.render_circle(neighbor_node.x, neighbor_node.y, 4, color)
+        ctx.visual.render_circle(neighbor_node.x, neighbor_node.y, 2, color)
 
 
 def render_map_sensor(ctx: Context, data: dict):
@@ -160,7 +163,7 @@ def render_map_sensor(ctx: Context, data: dict):
     sensed_nodes: list[int] = list(sensor_data['nodes'].keys())
     for node_id in sensed_nodes:
         node = ctx.graph.graph.get_node(node_id)
-        ctx.visual.render_circle(node.x, node.y, 4, node_color)
+        ctx.visual.render_circle(node.x, node.y, 2, node_color)
 
     edge_color = data.get('edge_color', Color.Cyan)
     sensed_edges: list = list(sensor_data['edges'].values())

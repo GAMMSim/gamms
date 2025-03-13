@@ -27,6 +27,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._will_quit = False
         self._render_manager = RenderManager(ctx, 0, 0, 15, width, height)
         self._surface_dict : dict[int, pygame.Surface ] = {}
+        self._scaled_surface_cache: dict[int, pygame.Surface] = {}
     
     def create_layer(self, layer_id: int, width : int, height : int) -> int:
         if layer_id is None:
@@ -44,16 +45,15 @@ class PygameVisualizationEngine(IVisualizationEngine):
     #FIXME: add layer as a optional argument
     def set_graph_visual(self, **kwargs):
         graph = self.ctx.graph.graph
-        x_list = [node.x for node in graph.nodes.values()]
-        y_list = [node.y for node in graph.nodes.values()]
+        x_list = [node.x for node in graph.get_nodes().values()]
+        y_list = [node.y for node in graph.get_nodes().values()]
         x_min = min(x_list)
         x_max = max(x_list)
         y_min = min(y_list)
         y_max = max(y_list)
         x_mean = sum(x_list) / len(x_list) if len(x_list) > 0 else 0
         y_mean = sum(y_list) / len(y_list) if len(y_list) > 0 else 0
-        self._render_manager.camera_x = x_mean
-        self._render_manager.camera_y = y_mean
+        self._render_manager.set_origin(x_mean, y_mean, x_max - x_min, y_max - y_min)
         self._render_manager.camera_size = max(x_max - x_min, y_max - y_min)
         layer_id = self.create_layer(10, 3000, 3000)
 
@@ -67,19 +67,20 @@ class PygameVisualizationEngine(IVisualizationEngine):
         data['drawer'] = render_graph
         data['layer'] = 10
         data['graph_data'] = graph_data
-        data['singleRender'] = True
+        data['single_render'] = True
 
         #Add data for node ID and Color
         self.add_artist('graph', data)
+
+        render_graph(self.ctx, data)
     
     def set_agent_visual(self, name, **kwargs):
-        
-        layer_id = self.create_layer(20, 3000, 3000)
+        # layer_id = self.create_layer(20, 3000, 3000)
         
         agent_data = AgentData(name=name, color=kwargs.get('color', Color.Black), size=kwargs.get('size', 8))
         data = {}
         data['drawer'] = render_agent
-        data['layer'] = 40
+        data['layer'] = 20
         data['agent_data'] = agent_data
 
         self.add_artist(name, data)
@@ -89,6 +90,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         sensor_type = sensor.type
         data = {}
         data['sensor'] = sensor
+        # data['layer'] = -1
         if sensor_type == SensorType.NEIGHBOR:
             data['drawer'] = render_neighbor_sensor
             data['color'] = kwargs.get('color', Color.Cyan)
@@ -110,8 +112,11 @@ class PygameVisualizationEngine(IVisualizationEngine):
         if 'drawer' not in data and 'shape' not in data:
             # default to circle
             data['shape'] = Shape.Circle
-        if 'layer' not in data and 30 not in self._surface_dict:
-            self.create_layer(30, 3000, 3000)
+
+        layer = data.get('layer', 30)
+        if layer not in self._surface_dict:
+            self.create_layer(layer, 3000, 3000)
+
         print("add_artist():self._surface_dict: ", self._surface_dict)
         self._render_manager.add_artist(name, data)
     
@@ -120,18 +125,18 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
     def handle_input(self):
         pressed_keys = pygame.key.get_pressed()
-        scroll_speed = self._render_manager.camera_size / 100
+        scroll_speed = self._render_manager.camera_size / 2
         if pressed_keys[pygame.K_a] or pressed_keys[pygame.K_LEFT]:
-            self._render_manager.camera_x -= scroll_speed #* self._clock.get_time() / 1000
+            self._render_manager.camera_x -= scroll_speed * self._clock.get_time() / 1000
 
         if pressed_keys[pygame.K_d] or pressed_keys[pygame.K_RIGHT]:
-            self._render_manager.camera_x += scroll_speed #* self._clock.get_time() / 1000
+            self._render_manager.camera_x += scroll_speed * self._clock.get_time() / 1000
 
         if pressed_keys[pygame.K_w] or pressed_keys[pygame.K_UP]:
-            self._render_manager.camera_y += scroll_speed #* self._clock.get_time() / 1000
+            self._render_manager.camera_y += scroll_speed * self._clock.get_time() / 1000
 
         if pressed_keys[pygame.K_s] or pressed_keys[pygame.K_DOWN]:
-            self._render_manager.camera_y -= scroll_speed #* self._clock.get_time() / 1000
+            self._render_manager.camera_y -= scroll_speed * self._clock.get_time() / 1000
         
         for event in pygame.event.get():
             if event.type == pygame.MOUSEWHEEL:
@@ -140,6 +145,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
                         self._render_manager.camera_size /= 1.05
                 else:
                     self._render_manager.camera_size *= 1.05
+
+                self._scaled_surface_cache.clear()
             if event.type == pygame.QUIT:
                 self._will_quit = True
                 self._input_option_result = -1
@@ -179,8 +186,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         
         for key_id, node_id in self._input_options.items():
             node = self.ctx.graph.graph.get_node(node_id)
-            position = (node.x, node.y)
-            (x, y) = self._render_manager.scale_to_screen(position)
+            (x, y) = self._render_manager.world_to_screen(node.x, node.y)
             self._render_text_internal(str(key_id), x, y, Space.Screen, Color.Black)
 
     def draw_hud(self):
@@ -194,10 +200,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         top += size_y + 10
         size_x, size_y = self._render_text_internal(f"FPS: {round(self._clock.get_fps(), 2)}", 10, top, Space.Screen)
 
-    def cleanup(self):
-        pygame.quit()
 
-    def _render_text_internal(self, text: str, x: int, y: int, coord_space: Space=Space.World, color: tuple=Color.Black):
+    def _render_text_internal(self, text: str, x: float, y: float, coord_space: Space=Space.World, color: tuple=Color.Black):
         if coord_space == Space.World:
             screen_x, screen_y = self._render_manager.world_to_screen(x, y)
         elif coord_space == Space.Screen:
@@ -221,70 +225,97 @@ class PygameVisualizationEngine(IVisualizationEngine):
             return self._render_manager.screen_to_viewport_scale(text_size[0]), self._render_manager.screen_to_viewport_scale(text_size[1])
         else:
             raise ValueError("Invalid coord_space value. Must be one of the values in the Space enum.")
+        
+    def _get_target_surface(self, layer: int):
+        if layer >= 0:
+            return self._surface_dict[layer]
+        else:
+            return self._screen
 
-    def render_text(self, text: str, x: float, y: float, color: tuple = Color.Black, perform_culling_test: bool=True):
+    def render_text(self, text: str, x: float, y: float, color: tuple = Color.Black, layer = -1, perform_culling_test: bool=True):
         text_size = self._default_font.size(text)
         if perform_culling_test and self._render_manager.check_rectangle_culled(x, y, text_size[0], text_size[1]):
             return
 
-        (x, y) = self._render_manager.scale_to_screen((x, y))
+        (x, y) = self._render_manager.world_to_screen(x, y, layer)
         text_surface = self._default_font.render(text, True, color)
         text_rect = text_surface.get_rect(center=(x, y))
         text_rect.move_ip(text_size[0] / 2, text_size[1] / 2)
 
-        self._screen.blit(text_surface, text_rect)
+        surface = self._get_target_surface(layer)
+        surface.blit(text_surface, text_rect)
 
-    def render_rectangle(self, x: float, y: float, width: float, height: float, color: tuple=Color.Black,
+    def render_rectangle(self, x: float, y: float, width: float, height: float, color: tuple=Color.Black, layer = -1,
                          perform_culling_test: bool=True):
         if perform_culling_test and self._render_manager.check_rectangle_culled(x, y, width, height):
             return
 
-        (x, y) = self._render_manager.scale_to_screen((x, y))
+        (x, y) = self._render_manager.world_to_screen(x, y, layer)
 
-        pygame.draw.rect(self._screen, color, pygame.Rect(x, y, width, height))
+        surface = self._get_target_surface(layer)
+        pygame.draw.rect(surface, color, pygame.Rect(x, y, width, height))
 
-    def render_circle(self, x: float, y: float, radius: float, color: tuple=Color.Black,
+    def render_circle(self, x: float, y: float, radius: float, color: tuple=Color.Black, layer = -1,
                       perform_culling_test: bool=True):
         if perform_culling_test and self._render_manager.check_circle_culled(x, y, radius):
             return
 
-        (x, y) = self._render_manager.scale_to_screen((x, y))
+        (x, y) = self._render_manager.world_to_screen(x, y, layer)
+        radius = self._render_manager.world_to_screen_scale(radius)
 
-        pygame.draw.circle(self._screen, color, (x, y), radius)
+        surface = self._get_target_surface(layer)
+        pygame.draw.circle(surface, color, (x, y), radius)
 
     def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: tuple=Color.Black,
-                    width: int=1, is_aa: bool=False, perform_culling_test: bool=True):
+                    width: int=1, layer = -1, is_aa: bool=False, perform_culling_test: bool=True):
         if perform_culling_test and self._render_manager.check_line_culled(start_x, start_y, end_x, end_y):
             return
 
-        (start_x, start_y) = self._render_manager.scale_to_screen((start_x, start_y))
-        (end_x, end_y) = self._render_manager.scale_to_screen((end_x, end_y))
+        (start_x, start_y) = self._render_manager.world_to_screen(start_x, start_y, layer)
+        (end_x, end_y) = self._render_manager.world_to_screen(end_x, end_y, layer)
 
+        surface = self._get_target_surface(layer)
         if is_aa:
-            pygame.draw.aaline(self._screen, color, (start_x, start_y), (end_x, end_y))
+            pygame.draw.aaline(surface, color, (start_x, start_y), (end_x, end_y))
         else:
-            pygame.draw.line(self._screen, color, (start_x, start_y), (end_x, end_y), width)
+            pygame.draw.line(surface, color, (start_x, start_y), (end_x, end_y), width)
 
-    def render_lines(self, points: list[tuple[float, float]], color: tuple=Color.Black, width: int=1, closed=False,
+    def render_lines(self, points: list[tuple[float, float]], color: tuple=Color.Black, width: int=1, layer = -1, closed=False,
                      is_aa: bool=False, perform_culling_test: bool=True):
         if perform_culling_test and self._render_manager.check_lines_culled(points):
             return
 
-        points = [self._render_manager.scale_to_screen(point) for point in points]
+        points = [self._render_manager.world_to_screen(point[0], point[1], layer) for point in points]
 
+        surface = self._get_target_surface(layer)
         if is_aa:
-            pygame.draw.aalines(self._screen, color, closed, points)
+            pygame.draw.aalines(surface, color, closed, points)
         else:
-            pygame.draw.lines(self._screen, color, closed, points, width)
+            pygame.draw.lines(surface, color, closed, points, width)
 
-    def render_polygon(self, points: list[tuple[float, float]], color: tuple=Color.Black, width: int=0,
+    def render_polygon(self, points: list[tuple[float, float]], color: tuple=Color.Black, width: int=0, layer = -1,
                        perform_culling_test: bool=True):
         if perform_culling_test and self._render_manager.check_polygon_culled(points):
             return
 
-        points = [self._render_manager.scale_to_screen(point) for point in points]
+        points = [self._render_manager.world_to_screen(point[0], point[1], layer) for point in points]
 
-        pygame.draw.polygon(self._screen, color, points, width)
+        surface = self._get_target_surface(layer)
+        pygame.draw.polygon(surface, color, points, width)
+
+    def fill_layer(self, layer_id: int, color: tuple):
+        if layer_id in self._surface_dict:
+            self._surface_dict[layer_id].fill(color)
+
+    def render_layer(self, layer_id: int, left: float, top: float, width: float, height: float):
+        if layer_id in self._surface_dict:
+            surface = self._surface_dict[layer_id]
+
+            if layer_id not in self._scaled_surface_cache:
+                scaled_surface = pygame.transform.scale(surface, (width, height))
+                self._scaled_surface_cache[layer_id] = scaled_surface
+
+            self._screen.blit(self._scaled_surface_cache[layer_id], (left, top))
 
     def _draw_grid(self):
         x_min = self._render_manager.camera_x - self._render_manager.camera_size * 4
@@ -366,4 +397,4 @@ class PygameVisualizationEngine(IVisualizationEngine):
             self.update()
 
     def terminate(self):
-        self.cleanup()
+        pygame.quit()
