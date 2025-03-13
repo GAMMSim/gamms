@@ -23,12 +23,12 @@ for i in range(0, 10):
 for i in range(0, 10):
     sensor_config[f'range_{i}'] = {
         'type': gamms.sensor.SensorType.ARC,  
-        'sensor_range': 150,  
+        'sensor_range': 20,  
         'fov': math.radians(60),   
     }
 
 for i in range(0, 10):
-    sensor_config[f'agent_{i}'] = {
+    sensor_config[f'agent_sense{i}'] = {
         'type': gamms.sensor.SensorType.AGENT_ARC,  
         'sensor_range': 150,  
         'fov': math.radians(60),   
@@ -38,52 +38,52 @@ for i in range(0, 10):
 agent_config = {
     'agent_0': {
         'meta': {'team': 0},
-        'sensors': ['neigh_0', 'range_0', 'agent_0'],  
+        'sensors': ['neigh_0', 'range_0', 'agent_sense_0'],  
         'start_node_id': 0
     },
     'agent_1': {
         'meta': {'team': 0},
-        'sensors': ['neigh_1', 'range_1', 'agent_1'],  
+        'sensors': ['neigh_1', 'range_1', 'agent_sense_1'],  
         'start_node_id': 10
     },
     'agent_2': {
         'meta': {'team': 0},
-        'sensors': ['neigh_2', 'range_2', 'agent_2'],  
+        'sensors': ['neigh_2', 'range_2', 'agent_sense_2'],  
         'start_node_id': 20
     },
     'agent_3': {
         'meta': {'team': 0},
-        'sensors': ['neigh_3', 'range_3', 'agent_3'],  
+        'sensors': ['neigh_3', 'range_3', 'agent_sense_3'],  
         'start_node_id': 30
     },
     'agent_4': {
         'meta': {'team': 0},
-        'sensors': ['neigh_4', 'range_4', 'agent_4'],  
+        'sensors': ['neigh_4', 'range_4', 'agent_sense_4'],  
         'start_node_id': 40
     },
     'agent_5': {
         'meta': {'team': 1},
-        'sensors': ['neigh_5', 'range_5', 'agent_5'],  
+        'sensors': ['neigh_5', 'range_5', 'agent_sense_5'],  
         'start_node_id': 500
     },
     'agent_6': {
         'meta': {'team': 1},
-        'sensors': ['neigh_6', 'range_6', 'agent_6'], 
+        'sensors': ['neigh_6', 'range_6', 'agent_sense_6'], 
         'start_node_id': 501
     },
     'agent_7': {
         'meta': {'team': 1},
-        'sensors': ['neigh_7', 'range_7', 'agent_7'],  
+        'sensors': ['neigh_7', 'range_7', 'agent_sense_7'],  
         'start_node_id': 502
     },
     'agent_8': {
         'meta': {'team': 1},
-        'sensors': ['neigh_8', 'range_8', 'agent_8'],  
+        'sensors': ['neigh_8', 'range_8', 'agent_sense_8'],  
         'start_node_id': 503
     },
     'agent_9': {
         'meta': {'team': 1},
-        'sensors': ['neigh_9', 'range_9', 'agent_9'],  
+        'sensors': ['neigh_9', 'range_9', 'agent_sense_9'],  
         'start_node_id': 504
     }
 }
@@ -138,20 +138,20 @@ agent_vis_config = {
     }
 }
 
-# sensor_vis_config = {
-#     'neigh_0': {
-#         'color': 'cyan',
-#         'size': 2,
-#     },
-#     'range_0': {
-#         'node_color': 'cyan',
-#         'edge_color': 'cyan',
-#     },
-#     'agent_0': {
-#         'color': 'blue',
-#         'size': 8,
-#     }
-# }
+sensor_vis_config = {
+    'neigh_1': {
+        'color': 'cyan',
+        'size': 2,
+    },
+    'range_1': {
+        'node_color': 'cyan',
+        'edge_color': 'cyan',
+    },
+    'agent_sense_1': {
+        'color': 'blue',
+        'size': 8,
+    }
+}
 sensor_vis_config = {}
 for i in range(10):
     sensor_vis_config[f'neigh_{i}'] = {

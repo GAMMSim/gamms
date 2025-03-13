@@ -160,6 +160,7 @@ def render_map_sensor(ctx: Context, data: dict):
     sensor = data['sensor']
     node_color = data.get('node_color', Color.Cyan)
     sensor_data: dict = sensor.data
+    print(sensor_data)
     sensed_nodes: list[int] = list(sensor_data['nodes'].keys())
     for node_id in sensed_nodes:
         node = ctx.graph.graph.get_node(node_id)
