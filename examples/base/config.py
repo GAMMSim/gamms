@@ -24,14 +24,14 @@ for i in range(0, 10):
     sensor_config[f'range_{i}'] = {
         'type': gamms.sensor.SensorType.ARC,  
         'sensor_range': 20,  
-        'fov': math.radians(60),   
+        'fov': math.radians(360),   
     }
 
 for i in range(0, 10):
-    sensor_config[f'agent_sense{i}'] = {
+    sensor_config[f'agent_sense_{i}'] = {
         'type': gamms.sensor.SensorType.AGENT_ARC,  
         'sensor_range': 150,  
-        'fov': math.radians(60),   
+        'fov': math.radians(360),   
     }
 
 # The configuration of the agents
@@ -155,14 +155,14 @@ sensor_vis_config = {
 sensor_vis_config = {}
 for i in range(10):
     sensor_vis_config[f'neigh_{i}'] = {
-        'color': 'cyan',
+        'color': 'purple',
         'size': 2,
     }
     sensor_vis_config[f'range_{i}'] = {
         'node_color': 'cyan',
         'edge_color': 'cyan',
     }
-    sensor_vis_config[f'agent_{i}'] = {
-        'color': 'cyan',
+    sensor_vis_config[f'agent_sense_{i}'] = {
+        'color': 'grey',
         'size': 8,
     }

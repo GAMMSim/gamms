@@ -102,12 +102,15 @@ def valid_step(ctx):
 while not ctx.is_terminated():
     for agent in ctx.agent.create_iter():
         if agent.strategy is not None:
-            agent.step()
+            state = agent.get_state()
+            agent.strategy(state)
         else:
             state = agent.get_state()
             node = ctx.visual.human_input(agent.name, state)
             state['action'] = node
-            agent.set_state()
+            
+    for agent in ctx.agent.create_iter():
+        agent.set_state()
 
     # valid_step(ctx)
     agent_reset(ctx)
