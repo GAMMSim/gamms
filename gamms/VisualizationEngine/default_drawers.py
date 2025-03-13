@@ -165,25 +165,33 @@ def render_map_sensor(ctx: Context, data: dict):
     for node_id in sensed_nodes:
         node = ctx.graph.graph.get_node(node_id)
         ctx.visual.render_circle(node.x, node.y, 2, node_color)
+    sensed_nodes = sensor_data.get('nodes', None)
+    if sensed_nodes:
+        sensed_nodes: list[int] = list(sensed_nodes.keys())
+        for node_id in sensed_nodes:
+            node = ctx.graph.graph.get_node(node_id)
+            ctx.visual.render_circle(node.x, node.y, 2, node_color)
 
     edge_color = data.get('edge_color', Color.Cyan)
-    sensed_edges: list = list(sensor_data['edges'].values())
-    for edge_list in sensed_edges:
-        for edge in edge_list:
-            source = ctx.graph.graph.get_node(edge.source)
-            target = ctx.graph.graph.get_node(edge.target)
+    sensed_edges = sensor_data.get('edges', None)
+    if sensed_edges:
+        sensed_edges: list = list(  sensed_edges.values())
+        for edge_list in sensed_edges:
+            for edge in edge_list:
+                source = ctx.graph.graph.get_node(edge.source)
+                target = ctx.graph.graph.get_node(edge.target)
 
-            if ctx.visual._render_manager.check_line_culled(source.x, source.y, target.x, target.y):
-                continue
-        
-            if edge.linestring:
-                # linestring[1:-1]
-                line_points = ([(source.x, source.y)] + [(x, y) for (x, y) in edge.linestring.coords] +
-                                [(target.x, target.y)])
+                if ctx.visual._render_manager.check_line_culled(source.x, source.y, target.x, target.y):
+                    continue
 
-                ctx.visual.render_lines(line_points, edge_color, is_aa=True, perform_culling_test=False)
-            else:
-                ctx.visual.render_line(source.x, source.y, target.x, target.y, edge_color, 2, perform_culling_test=False)
+                if edge.linestring:
+                    # linestring[1:-1]
+                    line_points = ([(source.x, source.y)] + [(x, y) for (x, y) in edge.linestring.coords] +
+                                    [(target.x, target.y)])
+
+                    ctx.visual.render_lines(line_points, edge_color, is_aa=True, perform_culling_test=False)
+                else:
+                    ctx.visual.render_line(source.x, source.y, target.x, target.y, edge_color, 2, perform_culling_test=False)
 
 
 def render_agent_sensor(ctx: Context, data: dict):

@@ -163,6 +163,6 @@ for i in range(10):
         'edge_color': 'cyan',
     }
     sensor_vis_config[f'agent_{i}'] = {
-        'color': 'blue',
+        'color': 'cyan',
         'size': 8,
     }
