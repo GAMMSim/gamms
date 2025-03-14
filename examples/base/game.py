@@ -25,7 +25,7 @@ ctx.graph.attach_networkx_graph(G)
 
 # Create the sensors
 for name, sensor in sensor_config.items():
-    ctx.sensor.create_sensor(name, sensor['type'], **sensor.get('args', {}))
+    ctx.sensor.create_sensor(name, sensor['type'], **sensor)
 
 
 # Create the agents
