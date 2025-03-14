@@ -6,7 +6,7 @@ from gamms.typing.sensor_engine import SensorType
 from gamms.SensorEngine.sensor_engine import SensorEngine
 
 # --- Setup context, graph, sensors, and agents ---
-ctx = gamms.create_context()
+ctx = gamms.create_context(vis_engine=gamms.visual.Engine.PYGAME)
 
 # Load the graph from file and attach it to the context.
 with open("graph.pkl", 'rb') as f:
@@ -41,15 +41,16 @@ sensor_engine = SensorEngine(ctx)
 
 # # --- Test MAP Sensor ---
 # # MAP sensor: using MapSensor (via ArcSensor) with range=inf and fov=360 should detect all nodes.
-map_sensor = sensor_engine.create_sensor("map_test", SensorType.MAP)
-map_sensor.sense(0)  # Sense from node 0
-print("=== MAP Sensor Output ===")
-print("Nodes detected:", list(map_sensor.data.get('nodes', {}).keys()))
+# map_sensor = sensor_engine.create_sensor("map_test", SensorType.MAP)
+# map_sensor.sense(0)  # Sense from node 0
+# print("=== MAP Sensor Output ===")
+# print("Nodes detected:", list(map_sensor.data.get('nodes', {}).keys()))
 # (MAP sensor doesn't process agents)
 
 # # --- Test RANGE Sensor ---
 # # RANGE sensor: using MapSensor with finite range (30) and fov=360.
-range_sensor = sensor_engine.create_sensor("range_test", SensorType.RANGE)
+range_sensor = sensor_engine.create_sensor("range_test", SensorType.RANGE, sensor_range=150)
+range_sensor.set_owner("agent_0")
 range_sensor.sense(0)  # Sense from node 0
 print("=== RANGE Sensor Output ===")
 print("Nodes detected:", list(range_sensor.data.get('nodes', {}).keys()))
@@ -57,8 +58,8 @@ print("Nodes detected:", list(range_sensor.data.get('nodes', {}).keys()))
 # # --- Test ARC Sensor ---
 # # ARC sensor: using MapSensor with finite range (30) and a narrow fov (90).
 # # Set the owner so that the sensor automatically uses agent_0's orientation.
-arc_sensor = sensor_engine.create_sensor("arc_test", SensorType.ARC)
-arc_sensor.owner = "agent_0"
+arc_sensor = sensor_engine.create_sensor("arc_test", SensorType.ARC, sensor_range=150, fov=math.radians(90))
+range_sensor.set_owner("agent_0")
 arc_sensor.sense(0)  # Sense from node 0; will use agent_0.orientation
 print("=== ARC Sensor Output ===")
 print("Nodes detected:", list(arc_sensor.data.get('nodes', {}).keys()))
