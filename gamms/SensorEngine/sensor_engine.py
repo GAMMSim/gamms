@@ -25,6 +25,9 @@ class NeighborSensor(ISensor):
     @property
     def data(self):
         return self._data
+    
+    def set_owner(self, owner: str) -> None:
+        self._owner = owner
 
     def sense(self, node_id: int) -> None:
         nearest_neighbors = {node_id,}
@@ -66,6 +69,9 @@ class MapSensor(ISensor):
     @property
     def data(self) -> Dict[str, Any]:
         return self._data
+    
+    def set_owner(self, owner: str) -> None:
+        self._owner = owner
 
     def sense(self, node_id: int) -> None:
         """
@@ -159,6 +165,9 @@ class AgentSensor(ISensor):
     def data(self) -> Dict[str, Any]:
         return self._data
 
+    def set_owner(self, owner: str) -> None:
+        self._owner = owner
+        
     def sense(self, node_id: int) -> None:
         """
         Detects agents within the sensor range of the sensing node.

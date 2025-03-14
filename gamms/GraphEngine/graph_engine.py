@@ -90,12 +90,8 @@ class Graph(IGraph):
             }
             self.add_node(node_data)
             
-        for u, v, key, data in G.edges(data=True, keys=True):
+        for u, v, data in G.edges(data=True):
             linestring = data.get('linestring', None)
-            if key == 1:
-                u, v = v, u
-                linestring = LineString(linestring.coords[::-1])
-
             edge_data = {
                 'id': data.get('id', -1),
                 'source': u,

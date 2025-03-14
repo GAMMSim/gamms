@@ -145,7 +145,7 @@ class Agent(IAgent):
         self._strategy = strategy
     
     def register_sensor(self, name, sensor):
-        sensor.owner = self._name
+        sensor.set_owner(self._name)
         self._sensor_list[name] = sensor
     
     def register_strategy(self, strategy):
