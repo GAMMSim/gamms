@@ -254,7 +254,7 @@ class SensorEngine(ISensorEngine):
                 sensor_id, 
                 sensor_type, 
                 self.ctx.graph_engine.graph.nodes, 
-                sensor_range=20,
+                sensor_range=kwargs.get('sensor_range', 30),
                 fov=2 * math.pi,
                 orientation=0
             )
@@ -264,8 +264,8 @@ class SensorEngine(ISensorEngine):
                 sensor_id, 
                 sensor_type, 
                 self.ctx.graph_engine.graph.nodes, 
-                sensor_range=30,
-                fov=math.radians(90),
+                sensor_range=kwargs.get('sensor_range', 30),
+                fov=kwargs.get('fov', 2 * math.pi),
                 orientation=0
             )
         elif sensor_type == SensorType.AGENT:
@@ -274,7 +274,7 @@ class SensorEngine(ISensorEngine):
                 sensor_id, 
                 sensor_type, 
                 self.ctx.agent, 
-                sensor_range=30,
+                sensor_range=kwargs.get('sensor_range', 30),
                 fov=2 * math.pi,
                 owner=None  # Set owner when registering sensor to an agent.
             )
@@ -284,8 +284,8 @@ class SensorEngine(ISensorEngine):
                 sensor_id, 
                 sensor_type, 
                 self.ctx.agent, 
-                sensor_range=30,
-                fov=math.radians(90),  
+                sensor_range=kwargs.get('sensor_range', 30),
+                fov=kwargs.get('fov', math.radians(90)),
                 owner=None  # Set owner when registering sensor to an agent.
             )
         elif sensor_type == SensorType.AGENT_RANGE:
@@ -294,8 +294,8 @@ class SensorEngine(ISensorEngine):
                 sensor_id, 
                 sensor_type, 
                 self.ctx.agent, 
-                sensor_range=30,
-                fov=2 * math.pi,
+                sensor_range= kwargs.get('sensor_range', 30),
+                fov= kwargs.get('fov', 2 * math.pi),
                 owner=None  # Set owner when registering sensor to an agent.
             )
         else:
