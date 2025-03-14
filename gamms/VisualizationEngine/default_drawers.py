@@ -42,7 +42,7 @@ def render_agent(ctx: Context, artist: IArtist):
 
     Args:
         ctx (Context): The current simulation context.
-        data (dict): The data dictionary.
+        artist (IArtist): The artist object containing the agent data.
     """
     agent_data: AgentData = artist.get_data('agent_data')
     size = agent_data.size
@@ -95,7 +95,7 @@ def render_graph(ctx: Context, artist: IArtist):
 
     Args:
         ctx (Context): The current simulation context.
-        data (dict): The data dictionary.
+        artist (IArtist): The artist object containing the graph data.
     """
     graph_data: GraphData = artist.get_data('graph_data')
     layer = artist.get_layer()
@@ -122,9 +122,6 @@ def _render_graph_edge(ctx: Context, graph_data, graph, edge, edge_color, layer,
     source = graph.get_node(edge.source)
     target = graph.get_node(edge.target)
 
-    if ctx.visual._render_manager.check_line_culled(source.x, source.y, target.x, target.y):
-        return
-
     color = edge_color
     if waiting_agent_name:
         current_waiting_agent = ctx.agent.get_agent(waiting_agent_name)
@@ -149,9 +146,6 @@ def _render_graph_edge(ctx: Context, graph_data, graph, edge, edge_color, layer,
 
 
 def _render_graph_node(ctx: Context, node, node_color, draw_id, layer, input_options):
-    if ctx.visual._render_manager.check_circle_culled(node.x, node.y, 10):
-        return
-
     if ctx.visual.is_waiting_input() and node.id in input_options.values():
         color = (0, 255, 0)
         radius = 16
@@ -171,7 +165,7 @@ def render_neighbor_sensor(ctx: Context, artist: IArtist):
 
     Args:
         ctx (Context): The current simulation context.
-        data (dict): The data dictionary.
+        artist (IArtist): The artist object containing the sensor data.
     """
     sensor = artist.get_data('sensor')
     color = artist.get_data('color', Color.Cyan)
@@ -187,39 +181,34 @@ def render_map_sensor(ctx: Context, artist: IArtist):
 
     Args:
         ctx (Context): The current simulation context.
-        data (dict): The data dictionary.
+        artist (IArtist): The artist object containing the sensor data.
     """
     sensor = artist.get_data('sensor')
     node_color = artist.get_data('node_color', Color.Cyan)
     sensor_data: dict = sensor.data
 
-    sensed_nodes = sensor_data.get('nodes', None)
-    if sensed_nodes:
-        sensed_nodes: list[int] = list(sensed_nodes.keys())
-        for node_id in sensed_nodes:
-            node = ctx.graph.graph.get_node(node_id)
-            ctx.visual.render_circle(node.x, node.y, 2, node_color)
+    sensed_nodes = sensor_data.get('nodes', {})
+    sensed_nodes = list(sensed_nodes.keys())
+    for node_id in sensed_nodes:
+        node = ctx.graph.graph.get_node(node_id)
+        ctx.visual.render_circle(node.x, node.y, 2, node_color)
 
     edge_color = artist.get_data('edge_color', Color.Cyan)
-    sensed_edges = sensor_data.get('edges', None)
-    if sensed_edges:
-        sensed_edges: list = list(  sensed_edges.values())
-        for edge_list in sensed_edges:
-            for edge in edge_list:
-                source = ctx.graph.graph.get_node(edge.source)
-                target = ctx.graph.graph.get_node(edge.target)
+    sensed_edges = sensor_data.get('edges', {})
+    sensed_edges = list(sensed_edges.values())
+    for edge_list in sensed_edges:
+        for edge in edge_list:
+            source = ctx.graph.graph.get_node(edge.source)
+            target = ctx.graph.graph.get_node(edge.target)
 
-                if ctx.visual._render_manager.check_line_culled(source.x, source.y, target.x, target.y):
-                    continue
+            if edge.linestring:
+                # linestring[1:-1]
+                line_points = ([(source.x, source.y)] + [(x, y) for (x, y) in edge.linestring.coords] +
+                                [(target.x, target.y)])
 
-                if edge.linestring:
-                    # linestring[1:-1]
-                    line_points = ([(source.x, source.y)] + [(x, y) for (x, y) in edge.linestring.coords] +
-                                    [(target.x, target.y)])
-
-                    ctx.visual.render_lines(line_points, edge_color, is_aa=True, perform_culling_test=False)
-                else:
-                    ctx.visual.render_line(source.x, source.y, target.x, target.y, edge_color, 2, perform_culling_test=False)
+                ctx.visual.render_lines(line_points, edge_color, is_aa=True, perform_culling_test=False)
+            else:
+                ctx.visual.render_line(source.x, source.y, target.x, target.y, edge_color, 2, perform_culling_test=False)
 
 
 def render_agent_sensor(ctx: Context, artist: IArtist):

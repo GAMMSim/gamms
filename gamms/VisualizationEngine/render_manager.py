@@ -19,7 +19,7 @@ class RenderManager:
 
         self._artists: dict[str, IArtist] = {}
         # This will call drawer on all artists in the respective layer
-        self._update_layer: dict[str, bool] = {} 
+        # self._update_layer: dict[str, bool] = {}
         self._layer_artists: dict[int, list[str]] = {}
         self._graph_layers = set()
 
@@ -218,8 +218,8 @@ class RenderManager:
             self._graph_layers.add(artist.get_layer())
         
         # Defaults to true, custom drawers can set this to false
-        self._update_layer[name] = True
-        print("add_artist().self._update_layer: ", self._update_layer)
+        # self._update_layer[name] = True
+        # print("add_artist().self._update_layer: ", self._update_layer)
 
     def remove_artist(self, name: str):
         """
