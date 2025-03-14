@@ -31,6 +31,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._surface_dict : dict[int, pygame.Surface ] = {}
         self._scaled_surface_cache: dict[int, pygame.Surface] = {}
         self._agent_artists: dict[str, IArtist] = {}
+        self._graph_artists: dict[str, IArtist] = {}
     
     def create_layer(self, layer_id: int, width : int, height : int) -> int:
         if layer_id is None:
@@ -84,6 +85,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         artist = Artist(self.ctx, render_agent, 20)
         artist.set_data('agent_data', agent_data)
         artist.set_artist_type(ArtistType.AGENT)
+        artist.set_data('_alpha', 1)
 
         self.add_artist(name, artist)
 
@@ -120,12 +122,23 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         if artist.get_artist_type() == ArtistType.AGENT:
             self._agent_artists[name] = artist
+        elif artist.get_artist_type() == ArtistType.GRAPH:
+            self._graph_artists[name] = artist
 
         print("add_artist():self._surface_dict: ", self._surface_dict)
         self._render_manager.add_artist(name, artist)
 
     def remove_artist(self, name):
         self._render_manager.remove_artist(name)
+
+    def on_artist_change_layer(self):
+        self._render_manager.on_artist_change_layer()
+
+    def is_waiting_simulation(self):
+        return self._waiting_simulation
+
+    def is_waiting_input(self):
+        return self._waiting_user_input
 
     def handle_input(self):
         pressed_keys = pygame.key.get_pressed()
@@ -173,6 +186,10 @@ class PygameVisualizationEngine(IVisualizationEngine):
                 self._simulation_time = 0
             else:
                 self._simulation_time += self._clock.get_time() / 1000
+                alpha = self._simulation_time / self._sim_time_constant
+                alpha = pygame.math.clamp(alpha, 0, 1)
+                for agent_artist in self._agent_artists.values():
+                    agent_artist.set_data('_alpha', alpha)
 
     def handle_single_draw(self):
         self._screen.fill(Color.White)
@@ -203,7 +220,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         size_x, size_y = self._render_text_internal(f"Current turn: {self._waiting_agent_name}", 10, top, Space.Screen)
         top += size_y + 10
         size_x, size_y = self._render_text_internal(f"FPS: {round(self._clock.get_fps(), 2)}", 10, top, Space.Screen)
-
 
     def _render_text_internal(self, text: str, x: float, y: float, coord_space: Space=Space.World, color: tuple=Color.Black):
         if coord_space == Space.World:
@@ -356,10 +372,16 @@ class PygameVisualizationEngine(IVisualizationEngine):
             for (type, data) in state["sensor"].values():
                 if type == SensorType.NEIGHBOR:
                     return data
-                
-        # current_agent = self.ctx.agent.get_agent(agent_name)
-        
+
+        prev_waiting_agent_name = self._waiting_agent_name
+        if prev_waiting_agent_name is not None:
+            prev_waiting_agent_artist = self._agent_artists[prev_waiting_agent_name]
+            prev_waiting_agent_artist.set_data('_is_waiting', False)
+
         self._waiting_agent_name = agent_name
+        waiting_agent_artist = self._agent_artists[agent_name]
+        waiting_agent_artist.set_data('_is_waiting', True)
+
         options = get_neighbours(state)
         # options: list[int] = [edge.target for edge in edges]
 
@@ -371,6 +393,10 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._input_options: dict[int, int] = {}
         for i in range(min(len(options), 10)):
             self._input_options[i] = options[i]
+
+        for graph_artist in self._graph_artists.values():
+            graph_artist.set_data('_waiting_agent_name', agent_name)
+            graph_artist.set_data('_input_options', self._input_options)
 
         while self._waiting_user_input:
             # still need to update the render
@@ -388,10 +414,16 @@ class PygameVisualizationEngine(IVisualizationEngine):
                 return result                
 
     def end_handle_human_input(self):
+        for agent_artist in self._agent_artists.values():
+            agent_artist.set_data('_is_waiting', False)
+
+        for graph_artist in self._graph_artists.values():
+            graph_artist.set_data('_waiting_agent_name', None)
+            graph_artist.set_data('_input_options', None)
+
         self._waiting_user_input = False
         self._input_option_result = None
         self._waiting_agent_name = None
-        # self.ctx.visual._graph_visual.resetGraphColor()
 
     def simulate(self):
         self._waiting_simulation = True

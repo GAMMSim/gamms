@@ -82,9 +82,7 @@ class IVisualizationEngine(ABC):
 
         Args:
             name (str): The unique name identifier for the custom artist.
-            data (Dict[str, Any]): A dictionary containing the data and settings
-                for the custom artist. The structure of the data may vary based
-                on the type of artist being added.
+            artist (IArtist): The artist object representing the custom visualization element.
         """
         pass
 
@@ -127,6 +125,7 @@ class IVisualizationEngine(ABC):
         on user actions.
 
         Args:
+            agent_name (str): The unique name of the agent.
             state (Dict[str, Any]): A dictionary containing the current state of
                 the system or the input data from the user. Expected keys may include:
                 - `command` (str): The command issued by the user.
@@ -280,5 +279,35 @@ class IVisualizationEngine(ABC):
             top (float): The y-coordinate of the top edge of the layer.
             width (float): The width of the layer.
             height (float): The height of the layer.
+        """
+        pass
+
+    @abstractmethod
+    def is_waiting_simulation(self) -> bool:
+        """
+        Check if the visualization engine is waiting for simulation to complete.
+
+        Returns:
+            bool: A boolean indicating whether the engine is waiting for simulation.
+        """
+        pass
+
+    @abstractmethod
+    def is_waiting_input(self) -> bool:
+        """
+        Check if the visualization engine is waiting for user input.
+
+        Returns:
+            bool: A boolean indicating whether the engine is waiting for user input.
+        """
+        pass
+
+    @abstractmethod
+    def on_artist_change_layer(self) -> None:
+        """
+        Notify the visualization engine that one or more artists has changed its layer.
+
+        This method should be called whenever an artist changes its layer to
+        ensure that the visualization engine updates the rendering accordingly.
         """
         pass

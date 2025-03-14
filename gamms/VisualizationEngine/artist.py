@@ -23,6 +23,7 @@ class Artist(IArtist):
 
     def set_layer(self, layer):
         self._layer = layer
+        self._ctx.visual.on_artist_change_layer()
 
     def get_layer(self):
         return self._layer
@@ -51,5 +52,5 @@ class Artist(IArtist):
     def set_artist_type(self, artist_type):
         self._artist_type = artist_type
 
-    def draw(self, data):
-        self._drawer(data)
+    def draw(self):
+        self._drawer(self._ctx, self)

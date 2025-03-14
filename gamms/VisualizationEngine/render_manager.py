@@ -1,5 +1,3 @@
-from gamms.VisualizationEngine import Shape
-from gamms.VisualizationEngine.render_node import RenderNode
 from gamms.context import Context
 from gamms.typing.artist import IArtist, ArtistType
 
@@ -19,15 +17,14 @@ class RenderManager:
 
         self._update_bounds()
 
-        self._render_nodes: dict[str, RenderNode] = {}
         self._artists: dict[str, IArtist] = {}
         # This will call drawer on all artists in the respective layer
         self._update_layer: dict[str, bool] = {} 
         self._layer_artists: dict[int, list[str]] = {}
+        self._graph_layers = set()
 
         self._default_origin = (0, 0)
         self._surface_size = 0
-
 
     def _update_bounds(self):
         self._bound_left = -self.camera_size + self.camera_x
@@ -123,7 +120,7 @@ class RenderManager:
         """
         Transforms a world coordinate to a screen coordinate.
         """
-        if layer == -1:
+        if layer not in self._graph_layers:
             x -= self.camera_x
             y -= self.camera_y
             screen_x = (x + self.camera_size) / (2 * self.camera_size) * self.screen_width
@@ -205,12 +202,8 @@ class RenderManager:
 
         Args:
             name (str): The unique name of the artist.
-            data (dict): A dictionary containing the artist's data.
+            artist (IArtist): The artist to add.
         """
-        # data: dict
-        # render_node = RenderNode(data)
-        # self._render_nodes[name] = render_node
-
         self._artists[name] = artist
 
         # If layer is specified, will add to list. 
@@ -220,6 +213,9 @@ class RenderManager:
         else:
             self._layer_artists[artist.get_layer()].append(name)
         print("add_artist().self._layer_artists: ", self._layer_artists)
+
+        if artist.get_artist_type() == ArtistType.GRAPH:
+            self._graph_layers.add(artist.get_layer())
         
         # Defaults to true, custom drawers can set this to false
         self._update_layer[name] = True
@@ -239,6 +235,20 @@ class RenderManager:
             del self._artists[name]
         else:
             print(f"Warning: Artist {name} not found.")
+
+    def on_artist_change_layer(self):
+        self._layer_artists.clear()
+        self._graph_layers.clear()
+        for name, artist in self._artists.items():
+            if artist.get_layer() not in self._layer_artists:
+                self._layer_artists[artist.get_layer()] = [name]
+            else:
+                self._layer_artists[artist.get_layer()].append(name)
+
+            if artist.get_artist_type() == ArtistType.GRAPH:
+                self._graph_layers.add(artist.get_layer())
+
+        self._layer_artists = {k: self._layer_artists[k] for k in sorted(self._layer_artists.keys())}
 
     def handle_render(self):
         """

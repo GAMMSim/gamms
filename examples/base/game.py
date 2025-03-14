@@ -120,9 +120,11 @@ while not ctx.is_terminated():
     if turn_count % 2 == 0:
         artist.set_data('x', n1.x)
         artist.set_data('y', n1.y)
+        # artist.set_layer(1)
     else:
         artist.set_data('x', n2.x)
         artist.set_data('y', n2.y)
+        # artist.set_layer(100)
     ctx.visual.simulate()
 
     rule_terminate(ctx)

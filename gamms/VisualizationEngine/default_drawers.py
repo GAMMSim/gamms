@@ -47,14 +47,14 @@ def render_agent(ctx: Context, artist: IArtist):
     agent_data: AgentData = artist.get_data('agent_data')
     size = agent_data.size
     color = agent_data.color
-    if agent_data.name == ctx.visual._waiting_agent_name:
+    is_waiting = artist.get_data('_is_waiting', False)
+    if is_waiting:
         color = Color.Magenta
         size = agent_data.size * 1.5
 
-    size = ctx.visual._render_manager.screen_to_world_scale(size) * 2.5
     agent = ctx.agent.get_agent(agent_data.name)
     target_node = ctx.graph.graph.get_node(agent.current_node_id)
-    if ctx.visual._waiting_simulation:
+    if ctx.visual.is_waiting_simulation():
         prev_node = ctx.graph.graph.get_node(agent.prev_node_id)
         prev_position = (prev_node.x, prev_node.y)
         target_position = (target_node.x, target_node.y)
@@ -64,8 +64,7 @@ def render_agent(ctx: Context, artist: IArtist):
             if edge.source == agent.prev_node_id and edge.target == agent.current_node_id:
                 current_edge = edge
 
-        alpha = ctx.visual._simulation_time / ctx.visual._sim_time_constant
-        alpha = min(1, max(0, alpha))
+        alpha = artist.get_data('_alpha')
         if current_edge is not None:
             point = current_edge.linestring.interpolate(alpha, True)
             position = (point.x, point.y)
@@ -100,23 +99,25 @@ def render_graph(ctx: Context, artist: IArtist):
     """
     graph_data: GraphData = artist.get_data('graph_data')
     layer = artist.get_layer()
+    waiting_agent_name = artist.get_data('_waiting_agent_name')
+    input_options = artist.get_data('_input_options', {})
     graph = ctx.graph.graph
     node_color = graph_data.node_color
     edge_color = graph_data.edge_color
     draw_id = graph_data.draw_id
     target_node_id_set = None
-    if ctx.visual._waiting_agent_name:
-        target_node_id_set = set(ctx.visual._input_options.values())
+    if waiting_agent_name:
+        target_node_id_set = set(input_options.values())
 
     # ctx.visual.fill_layer(layer, Color.Cyan)
 
     for edge in graph.get_edges().values():
-        _render_graph_edge(ctx, graph_data, graph, edge, edge_color, layer, target_node_id_set)
+        _render_graph_edge(ctx, graph_data, graph, edge, edge_color, layer, waiting_agent_name, target_node_id_set)
     for node in graph.get_nodes().values():
-        _render_graph_node(ctx, node, node_color, draw_id, layer)
+        _render_graph_node(ctx, node, node_color, draw_id, layer, input_options)
 
 
-def _render_graph_edge(ctx: Context, graph_data, graph, edge, edge_color, layer, target_node_id_set):
+def _render_graph_edge(ctx: Context, graph_data, graph, edge, edge_color, layer, waiting_agent_name, target_node_id_set):
     """Draw an edge as a curve or straight line based on the linestring."""
     source = graph.get_node(edge.source)
     target = graph.get_node(edge.target)
@@ -125,8 +126,8 @@ def _render_graph_edge(ctx: Context, graph_data, graph, edge, edge_color, layer,
         return
 
     color = edge_color
-    if ctx.visual._waiting_agent_name:
-        current_waiting_agent = ctx.agent.get_agent(ctx.visual._waiting_agent_name)
+    if waiting_agent_name:
+        current_waiting_agent = ctx.agent.get_agent(waiting_agent_name)
         if (current_waiting_agent is not None and edge.source == current_waiting_agent.current_node_id and
                 edge.target in target_node_id_set):
             color = (0, 255, 0)
@@ -147,11 +148,11 @@ def _render_graph_edge(ctx: Context, graph_data, graph, edge, edge_color, layer,
         ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2, layer=layer, perform_culling_test=False)
 
 
-def _render_graph_node(ctx: Context, node, node_color, draw_id, layer):
+def _render_graph_node(ctx: Context, node, node_color, draw_id, layer, input_options):
     if ctx.visual._render_manager.check_circle_culled(node.x, node.y, 10):
         return
 
-    if ctx.visual._waiting_user_input and node.id in ctx.visual._input_options.values():
+    if ctx.visual.is_waiting_input() and node.id in input_options.values():
         color = (0, 255, 0)
         radius = 16
     else:
@@ -225,7 +226,6 @@ def render_agent_sensor(ctx: Context, artist: IArtist):
     sensor = artist.get_data('sensor')
     color = artist.get_data('color', Color.Cyan)
     size = artist.get_data('size', 8)
-    size = ctx.visual._render_manager.screen_to_world_scale(size) * 2.5
     sensor_data: dict = sensor.data
     sensed_agents = list(sensor_data.values())
     for agent in sensed_agents:
