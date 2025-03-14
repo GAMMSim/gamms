@@ -138,20 +138,6 @@ agent_vis_config = {
     }
 }
 
-sensor_vis_config = {
-    'neigh_1': {
-        'color': 'cyan',
-        'size': 2,
-    },
-    'range_1': {
-        'node_color': 'cyan',
-        'edge_color': 'cyan',
-    },
-    'agent_sense_1': {
-        'color': 'blue',
-        'size': 8,
-    }
-}
 sensor_vis_config = {}
 for i in range(10):
     sensor_vis_config[f'neigh_{i}'] = {
