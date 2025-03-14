@@ -255,7 +255,7 @@ class SensorEngine(ISensorEngine):
                 sensor_type, 
                 self.ctx.graph_engine.graph.nodes, 
                 sensor_range=kwargs.get('sensor_range', 30),
-                fov=2 * math.pi,
+                fov=(2 * math.pi),
                 orientation=0
             )
         elif sensor_type == SensorType.ARC:
@@ -275,7 +275,7 @@ class SensorEngine(ISensorEngine):
                 sensor_type, 
                 self.ctx.agent, 
                 sensor_range=kwargs.get('sensor_range', 30),
-                fov=2 * math.pi,
+                fov=kwargs.get('fov', 2 * math.pi),
                 owner=None  # Set owner when registering sensor to an agent.
             )
         elif sensor_type == SensorType.AGENT_ARC:
@@ -285,7 +285,7 @@ class SensorEngine(ISensorEngine):
                 sensor_type, 
                 self.ctx.agent, 
                 sensor_range=kwargs.get('sensor_range', 30),
-                fov=kwargs.get('fov', math.radians(90)),
+                fov=kwargs.get('fov', math.radians(90)), 
                 owner=None  # Set owner when registering sensor to an agent.
             )
         elif sensor_type == SensorType.AGENT_RANGE:
@@ -294,8 +294,8 @@ class SensorEngine(ISensorEngine):
                 sensor_id, 
                 sensor_type, 
                 self.ctx.agent, 
-                sensor_range= kwargs.get('sensor_range', 30),
-                fov= kwargs.get('fov', 2 * math.pi),
+                sensor_range=kwargs.get('sensor_range', 30),
+                fov=2 * math.pi,
                 owner=None  # Set owner when registering sensor to an agent.
             )
         else:
