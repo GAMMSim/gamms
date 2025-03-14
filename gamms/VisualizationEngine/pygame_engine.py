@@ -1,9 +1,11 @@
 from gamms.typing import IVisualizationEngine
-from gamms.VisualizationEngine import Color, Space, Shape
+from gamms.VisualizationEngine import Color, Space
 from gamms.VisualizationEngine.render_manager import RenderManager
+from gamms.VisualizationEngine.artist import Artist
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
 from gamms.VisualizationEngine.default_drawers import render_agent, render_graph, render_neighbor_sensor, render_map_sensor, render_agent_sensor
 from gamms.context import Context
+from gamms.typing.artist import IArtist, ArtistType
 from gamms.typing.sensor_engine import SensorType
 
 from typing import Dict, Any
@@ -28,6 +30,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._render_manager = RenderManager(ctx, 0, 0, 15, width, height)
         self._surface_dict : dict[int, pygame.Surface ] = {}
         self._scaled_surface_cache: dict[int, pygame.Surface] = {}
+        self._agent_artists: dict[str, IArtist] = {}
     
     def create_layer(self, layer_id: int, width : int, height : int) -> int:
         if layer_id is None:
@@ -63,64 +66,64 @@ class PygameVisualizationEngine(IVisualizationEngine):
                                draw_id=kwargs.get('draw_id', False),
                                layer = layer_id)
 
-        data = {}
-        data['drawer'] = render_graph
-        data['layer'] = 10
-        data['graph_data'] = graph_data
-        data['single_render'] = True
+        artist = Artist(self.ctx, render_graph, 10)
+        artist.set_data('graph_data', graph_data)
+        artist.set_will_draw(False)
+        artist.set_artist_type(ArtistType.GRAPH)
 
         #Add data for node ID and Color
-        self.add_artist('graph', data)
+        self.add_artist('graph', artist)
 
-        render_graph(self.ctx, data)
+        render_graph(self.ctx, artist)
     
     def set_agent_visual(self, name, **kwargs):
         # layer_id = self.create_layer(20, 3000, 3000)
         
         agent_data = AgentData(name=name, color=kwargs.get('color', Color.Black), size=kwargs.get('size', 8))
-        data = {}
-        data['drawer'] = render_agent
-        data['layer'] = 20
-        data['agent_data'] = agent_data
 
-        self.add_artist(name, data)
+        artist = Artist(self.ctx, render_agent, 20)
+        artist.set_data('agent_data', agent_data)
+        artist.set_artist_type(ArtistType.AGENT)
+
+        self.add_artist(name, artist)
 
     def set_sensor_visual(self, sensor_name, **kwargs):
         sensor = self.ctx.sensor.get_sensor(sensor_name)
         sensor_type = sensor.type
-        data = {}
-        data['sensor'] = sensor
-        data['layer'] = kwargs.get('layer', 30)
+        artist = Artist(self.ctx, None, kwargs.get('layer', 30))
+        artist.set_data('sensor', sensor)
+
         if sensor_type == SensorType.NEIGHBOR:
-            data['drawer'] = render_neighbor_sensor
-            data['color'] = kwargs.get('color', Color.Cyan)
-            data['size'] = kwargs.get('size', 8)
+            artist.set_drawer(render_neighbor_sensor)
+            artist.set_data('color', kwargs.get('color', Color.Cyan))
+            artist.set_data('size', kwargs.get('size', 8))
         elif sensor_type == SensorType.MAP or sensor_type == SensorType.RANGE or sensor_type == SensorType.ARC:
-            data['drawer'] = render_map_sensor
-            data['node_color'] = kwargs.get('node_color', Color.LightGreen)
-            data['edge_color'] = kwargs.get('edge_color', Color.Cyan)
+            artist.set_drawer(render_map_sensor)
+            artist.set_data('node_color', kwargs.get('node_color', Color.Cyan))
+            artist.set_data('edge_color', kwargs.get('edge_color', Color.Cyan))
         elif sensor_type == SensorType.AGENT or sensor_type == SensorType.AGENT_RANGE or sensor_type == SensorType.AGENT_ARC:
-            data['drawer'] = render_agent_sensor
-            data['color'] = kwargs.get('color', Color.Cyan)
-            data['size'] = kwargs.get('size', 8)
+            artist.set_drawer(render_agent_sensor)
+            artist.set_data('color', kwargs.get('color', Color.Cyan))
+            artist.set_data('size', kwargs.get('size', 8))
         else:
             raise ValueError(f"Invalid sensor type: {sensor_type}")
 
-        self.add_artist(f'sensor_{sensor_name}', data)
+        self.add_artist(f'sensor_{sensor_name}', artist)
     
-    def add_artist(self, name: str, data: Dict[str, Any]) -> None:
-        if 'drawer' not in data and 'shape' not in data:
-            # default to circle
-            data['shape'] = Shape.Circle
+    def add_artist(self, name: str, artist: IArtist) -> None:
+        if artist.get_drawer() is None:
+            raise ValueError("Drawer must be set in the artist object.")
 
-        layer = data.get('layer', 30)
-        single_render = data.get('single_render', False)
-        if layer not in self._surface_dict and single_render:
+        layer = artist.get_layer()
+        if artist.get_artist_type() == ArtistType.GRAPH and layer not in self._surface_dict:
             self.create_layer(layer, 3000, 3000)
 
+        if artist.get_artist_type() == ArtistType.AGENT:
+            self._agent_artists[name] = artist
+
         print("add_artist():self._surface_dict: ", self._surface_dict)
-        self._render_manager.add_artist(name, data)
-    
+        self._render_manager.add_artist(name, artist)
+
     def remove_artist(self, name):
         self._render_manager.remove_artist(name)
 
@@ -229,7 +232,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         
     def _get_target_surface(self, layer: int):
         if layer >= 0:
-            return self._surface_dict[layer]
+            return self._surface_dict.get(layer, self._screen)
         else:
             return self._screen
 

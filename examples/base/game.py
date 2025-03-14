@@ -1,4 +1,7 @@
 import gamms
+from gamms.VisualizationEngine.artist import Artist
+from gamms.VisualizationEngine.default_drawers import render_circle
+from gamms.VisualizationEngine import Color
 from config import (
     vis_engine,
     graph_path,
@@ -62,14 +65,13 @@ for name, config in sensor_vis_config.items():
 # Special nodes
 n1 = ctx.graph.graph.get_node(0)
 n2 = ctx.graph.graph.get_node(1)
-data = {}
-data['x'] = n1.x
-data['y'] = n1.y
-data['scale'] = 4
-data['color'] = (255, 0, 0)
-# data['layer'] = 9
 
-ctx.visual.add_artist('special_node', data)
+artist = Artist(ctx, render_circle)
+artist.set_data('x', n1.x)
+artist.set_data('y', n1.y)
+artist.set_data('radius', 4)
+artist.set_data('color', Color.Red)
+ctx.visual.add_artist('special_node', artist)
 
 turn_count = 0
 # Rules for the game
@@ -116,11 +118,11 @@ while not ctx.is_terminated():
     # valid_step(ctx)
     agent_reset(ctx)
     if turn_count % 2 == 0:
-        data['x'] = n1.x
-        data['y'] = n1.y
+        artist.set_data('x', n1.x)
+        artist.set_data('y', n1.y)
     else:
-        data['x'] = n2.x
-        data['y'] = n2.y
+        artist.set_data('x', n2.x)
+        artist.set_data('y', n2.y)
     ctx.visual.simulate()
 
     rule_terminate(ctx)

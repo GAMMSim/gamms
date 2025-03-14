@@ -1,4 +1,5 @@
 from gamms.VisualizationEngine import Color
+from gamms.typing.artist import IArtist
 from typing import Dict, Any
 from abc import ABC, abstractmethod
 
@@ -70,7 +71,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def add_artist(self, name: str, data: Dict[str, Any]) -> None:
+    def add_artist(self, name: str, artist: IArtist) -> None:
         """
         Add a custom artist or object to the visualization.
 

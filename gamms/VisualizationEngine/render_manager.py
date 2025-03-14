@@ -1,6 +1,7 @@
 from gamms.VisualizationEngine import Shape
 from gamms.VisualizationEngine.render_node import RenderNode
 from gamms.context import Context
+from gamms.typing.artist import IArtist, ArtistType
 
 
 class RenderManager:
@@ -19,6 +20,7 @@ class RenderManager:
         self._update_bounds()
 
         self._render_nodes: dict[str, RenderNode] = {}
+        self._artists: dict[str, IArtist] = {}
         # This will call drawer on all artists in the respective layer
         self._update_layer: dict[str, bool] = {} 
         self._layer_artists: dict[int, list[str]] = {}
@@ -197,7 +199,7 @@ class RenderManager:
 
         return True
 
-    def add_artist(self, name: str, data: dict):
+    def add_artist(self, name: str, artist: IArtist) -> None:
         """
         Add an artist to the render manager. An artist can draw one or more shapes on the screen and may have a customized drawer.
 
@@ -205,15 +207,18 @@ class RenderManager:
             name (str): The unique name of the artist.
             data (dict): A dictionary containing the artist's data.
         """
-        render_node = RenderNode(data)
-        self._render_nodes[name] = render_node
+        # data: dict
+        # render_node = RenderNode(data)
+        # self._render_nodes[name] = render_node
+
+        self._artists[name] = artist
 
         # If layer is specified, will add to list. 
-        if render_node.layer not in self._layer_artists:
-            self._layer_artists[render_node.layer] = [name]
+        if artist.get_layer() not in self._layer_artists:
+            self._layer_artists[artist.get_layer()] = [name]
             self._layer_artists = {k: self._layer_artists[k] for k in sorted(self._layer_artists.keys())}
         else:
-            self._layer_artists[render_node.layer].append(name)
+            self._layer_artists[artist.get_layer()].append(name)
         print("add_artist().self._layer_artists: ", self._layer_artists)
         
         # Defaults to true, custom drawers can set this to false
@@ -227,14 +232,11 @@ class RenderManager:
         Args:
             name (str): The unique name of the artist to remove.
         """
-        if name in self._render_nodes:
-
-            # Case 1: Layer not specified
-            render_node = self._render_nodes[name]                
-            index =  self._layer_artists[render_node.layer].index('name')
-            del self._layer_artists[render_node.layer][index]
-            del self._render_nodes[name]
-
+        if name in self._artists:
+            artist = self._artists[name]
+            index = self._layer_artists[artist.get_layer()].index(name)
+            del self._layer_artists[artist.get_layer()][index]
+            del self._artists[name]
         else:
             print(f"Warning: Artist {name} not found.")
 
@@ -250,26 +252,22 @@ class RenderManager:
         surface_world_top = self._default_origin[1] + self._surface_size / 2
         surface_screen_left, surface_screen_top = self.world_to_screen(surface_world_left, surface_world_top)
         rendered_layers = set()
-        for layer, artists in self._layer_artists.items():
-            for artist in artists:
-                render_node = self._render_nodes[artist]
-                if render_node.single_render and layer not in rendered_layers:
-                    self.ctx.visual.render_layer(layer, surface_screen_left, surface_screen_top, surface_screen_size,
-                                                 surface_screen_size)
-                    rendered_layers.add(layer)
+        for layer, artist_name_list in self._layer_artists.items():
+            for artist_name in artist_name_list:
+                artist = self._artists[artist_name]
+                if not artist.get_visible():
                     continue
 
-                if 'drawer' in render_node.data:
-                    drawer = render_node.drawer
-                    drawer(self.ctx, render_node.data)
+                if not artist.get_will_draw():
+                    if artist.get_artist_type() == ArtistType.GRAPH and layer not in rendered_layers:
+                        self.ctx.visual.render_layer(layer, surface_screen_left, surface_screen_top,
+                                                     surface_screen_size,surface_screen_size)
+                        rendered_layers.add(layer)
                     continue
 
-                shape = render_node.shape
-                if shape == Shape.Circle:
-                    self.ctx.visual.render_circle(render_node.x, render_node.y, render_node.data['scale'],
-                                                  render_node.color)
-                elif shape == Shape.Rectangle:
-                    self.ctx.visual.render_rectangle(render_node.x, render_node.y, render_node.data['width'],
-                                                     render_node.data['height'], render_node.color)
-                else:
-                    raise NotImplementedError("Render node not implemented")
+                drawer = artist.get_drawer()
+                if drawer is None:
+                    print(f"Warning: Drawer not found for artist {artist_name}.")
+                    continue
+
+                drawer(self.ctx, artist)
