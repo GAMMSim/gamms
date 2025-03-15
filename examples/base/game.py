@@ -72,16 +72,6 @@ for name, config in sensor_vis_config.items():
     artist.set_visible(False)
     sensor_artists[name] = artist
 
-# Special nodes
-n1 = ctx.graph.graph.get_node(0)
-n2 = ctx.graph.graph.get_node(1)
-
-artist = Artist(ctx, render_circle)
-artist.set_data('x', n1.x)
-artist.set_data('y', n1.y)
-artist.set_data('radius', 4)
-artist.set_data('color', Color.Red)
-ctx.visual.add_artist('special_node', artist)
 
 turn_count = 0
 # Rules for the game
@@ -126,7 +116,8 @@ while not ctx.is_terminated():
             node = ctx.visual.human_input(agent.name, state)
             state['action'] = node
 
-        # agent_artists[agent.name].set_visible(False)
+        
+        agent_artists[agent.name].set_visible(False)
         for sensor in agent._sensor_list.values():
             sensor_artists[sensor.sensor_id].set_visible(False)
             
@@ -135,14 +126,11 @@ while not ctx.is_terminated():
 
     # valid_step(ctx)
     agent_reset(ctx)
-    if turn_count % 2 == 0:
-        artist.set_data('x', n1.x)
-        artist.set_data('y', n1.y)
-        # artist.set_layer(1)
-    else:
-        artist.set_data('x', n2.x)
-        artist.set_data('y', n2.y)
-        # artist.set_layer(100)
-
+    graph_artist.set_visible(True)
+    for agent in ctx.agent.create_iter():
+        agent_artists[agent.name].set_visible(True)
     ctx.visual.simulate()
+    for agent in ctx.agent.create_iter():
+        agent_artists[agent.name].set_visible(False)
+    graph_artist.set_visible(False)
     rule_terminate(ctx)
