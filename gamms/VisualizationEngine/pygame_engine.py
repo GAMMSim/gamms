@@ -54,17 +54,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         return self._waiting_agent_name
     
     def set_graph_visual(self, **kwargs):
-<<<<<<< HEAD
-        self._graph_visual = GraphVisual(
-            self.ctx.graph.graph,
-            kwargs.get('width', 1920),
-            kwargs.get('height', 1080),
-            kwargs.get('draw_id', False),
-            kwargs.get('node_color', Color.LightGreen),
-            kwargs.get('edge_color', Color.Black)
-        )
-        self._graph_visual.setCamera(self._camera)
-=======
         def graph_drawer(ctx, data):
             graph = data['graph']
             draw_id = data['draw_id']
@@ -85,7 +74,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._graph_visual = GraphVisual(self.ctx.graph.graph, kwargs['width'], kwargs['height'])
         self._graph_visual.setRenderManager(self._render_manager)
 
->>>>>>> dev
         print("Successfully set graph visual")
     
     def set_agent_visual(self, name, **kwargs):
@@ -128,49 +116,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
             self._render_manager.camera_y += scrollSpeed #* self._clock.get_time() / 1000
         
         for event in pygame.event.get():
-<<<<<<< HEAD
-            pressed_keys = pygame.key.get_pressed()
-            # Multi key Event
-            if pressed_keys[pygame.K_a] and pressed_keys[pygame.K_w]:
-                self._camera.x += self._camera.size / 100
-                self._camera.y += -self._camera.size / 100
-                return
-            if pressed_keys[pygame.K_a] and pressed_keys[pygame.K_s]:
-                self._camera.x += self._camera.size / 100
-                self._camera.y += self._camera.size / 100
-                return
-            if pressed_keys[pygame.K_s] and pressed_keys[pygame.K_d]:
-                self._camera.x += -self._camera.size / 100
-                self._camera.y += self._camera.size / 100
-                return
-            if pressed_keys[pygame.K_d] and pressed_keys[pygame.K_w]:
-                self._camera.x += -self._camera.size / 100
-                self._camera.y += -self._camera.size / 100
-                return
-            if pressed_keys[pygame.K_a] and pressed_keys[pygame.K_d]:
-                return
-            if pressed_keys[pygame.K_w] and pressed_keys[pygame.K_s]:
-                return
-            
-            # Single Input Event
-            if pressed_keys[pygame.K_a]:
-                self._camera.x += self._camera.size / 100
-                self._camera.y += 0
-                return
-            if pressed_keys[pygame.K_s]:
-                self._camera.x += 0
-                self._camera.y += self._camera.size / 100
-                return
-            if pressed_keys[pygame.K_d]:
-                self._camera.x += -self._camera.size / 100
-                self._camera.y += 0
-                return
-            if pressed_keys[pygame.K_w]:
-                self._camera.x += 0
-                self._camera.y += -self._camera.size / 100
-                return
-=======
->>>>>>> dev
             if event.type == pygame.MOUSEWHEEL:
                 if event.y > 0:
                     # self._camera.size /= 1.05
@@ -216,28 +161,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         # Note: Draw in layer order of back layer -> front layer
         # self._draw_grid()
-<<<<<<< HEAD
-        self._graph_visual.draw_graph(self._screen)
-        self.draw_agents()
-        for artist in self._artists.values():
-            artist['draw'](self.ctx, artist['data'])
-        self.draw_input_overlay()
-        self.draw_hud()
-
-    def draw_agents(self):
-        waiting_agent_visual = None
-        for agent in self.ctx.agent.create_iter():
-            agent_visual = self._agent_visuals.get(agent.name, None)
-            if agent_visual is None:
-                continue
-            if agent_visual.position is None:
-                node = self.ctx.graph.graph.get_node(agent.current_node_id)
-                agent_visual.position = (node.x, node.y)
-            agent_visual.draw_agent(self._screen, self._graph_visual.ScalePositionToScreen)
-            if agent_visual.name == self._waiting_agent_name:
-                waiting_agent_visual = agent_visual
-=======
->>>>>>> dev
         
         self.draw_input_overlay()
         self._render_manager.handle_render()
@@ -319,19 +242,11 @@ class PygameVisualizationEngine(IVisualizationEngine):
         pygame.draw.polygon(self._screen, color, points, width)
 
     def _draw_grid(self):
-<<<<<<< HEAD
-        x_min = self._camera.x - self._camera.size * 4
-        x_max = self._camera.x + self._camera.size * 4
-        y_min = self._camera.y - self._camera.size_y * 4
-        y_max = self._camera.y + self._camera.size_y * 4
-        step = int(self._camera.size / 100)
-=======
         x_min = self._render_manager.camera_x - self._render_manager.camera_size * 4
         x_max = self._render_manager.camera_x + self._render_manager.camera_size * 4
         y_min = self._render_manager.camera_y - self._render_manager.camera_size_y * 4
         y_max = self._render_manager.camera_y + self._render_manager.camera_size_y * 4
         step = 1
->>>>>>> dev
         for x in range(int(x_min), int(x_max) + 1, step):
             screen_start_x, screen_start_y = self._render_manager.world_to_screen(x, y_min)
             screen_end_x, screen_end_y = self._render_manager.world_to_screen(x, y_max)
@@ -350,14 +265,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self.handle_single_draw()
         self.handle_tick()
         pygame.display.flip()
-<<<<<<< HEAD
-    
-    def update_agent_visual_pos(self):
-        for agent in self.ctx.agent.create_iter():
-            agent_visual = self._agent_visuals[agent._name]
-            agent_visual.set_postions(agent.prev_node_id, agent.current_node_id)
-=======
->>>>>>> dev
 
     def human_input(self, agent_name, state: Dict[str, Any]) -> int:
         if self.ctx.is_terminated():
