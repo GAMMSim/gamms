@@ -18,7 +18,7 @@ import pickle
 
 ctx = gamms.create_context(vis_engine=vis_engine)
 
-ctx.record.start(path="recording")
+# ctx.record.start(path="recording")
 
 # Load the graph
 with open(graph_path, 'rb') as f:
@@ -55,14 +55,22 @@ for agent in ctx.agent.create_iter():
 # Set visualization configurations
 graph_artist = ctx.visual.set_graph_visual(**graph_vis_config)
 
+# for fog of war
+graph_artist.set_visible(False)
+
 # Set agent visualization configurations
 agent_artists = {}
 for name, config in agent_vis_config.items():
     artist = ctx.visual.set_agent_visual(name, **config)
+    artist.set_visible(False)
     agent_artists[name] = artist
 
+
+sensor_artists = {}
 for name, config in sensor_vis_config.items():
-    ctx.visual.set_sensor_visual(name, **config)
+    artist = ctx.visual.set_sensor_visual(name, **config)
+    artist.set_visible(False)
+    sensor_artists[name] = artist
 
 # Special nodes
 n1 = ctx.graph.graph.get_node(0)
@@ -80,7 +88,7 @@ turn_count = 0
 def rule_terminate(ctx):
     global turn_count
     turn_count += 1
-    if turn_count > 3:
+    if turn_count > 5:
         ctx.terminate()
 
 def agent_reset(ctx):
@@ -106,6 +114,10 @@ def valid_step(ctx):
 # Run the game
 while not ctx.is_terminated():
     for agent in ctx.agent.create_iter():
+        agent_artists[agent.name].set_visible(True)
+        for sensor in agent._sensor_list.values():
+            sensor_artists[sensor.sensor_id].set_visible(True)
+    
         if agent.strategy is not None:
             state = agent.get_state()
             agent.strategy(state)
@@ -113,6 +125,10 @@ while not ctx.is_terminated():
             state = agent.get_state()
             node = ctx.visual.human_input(agent.name, state)
             state['action'] = node
+
+        # agent_artists[agent.name].set_visible(False)
+        for sensor in agent._sensor_list.values():
+            sensor_artists[sensor.sensor_id].set_visible(False)
             
     for agent in ctx.agent.create_iter():
         agent.set_state()
@@ -127,6 +143,6 @@ while not ctx.is_terminated():
         artist.set_data('x', n2.x)
         artist.set_data('y', n2.y)
         # artist.set_layer(100)
-    ctx.visual.simulate()
 
+    ctx.visual.simulate()
     rule_terminate(ctx)
