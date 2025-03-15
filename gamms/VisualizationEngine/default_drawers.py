@@ -74,11 +74,7 @@ def render_agent(ctx: Context, artist: IArtist):
             
         agent_data.current_position = position
     else:
-        if agent_data.current_position is None:
-            position = (target_node.x, target_node.y)
-            agent_data.current_position = position
-        else:
-            position = agent_data.current_position
+        position = (target_node.x, target_node.y)
 
     # Draw each agent as a triangle at its current position
     angle = math.radians(45)
