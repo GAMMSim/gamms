@@ -53,11 +53,13 @@ for agent in ctx.agent.create_iter():
     agent.register_strategy(strategies.get(agent.name, None))
 
 # Set visualization configurations
-ctx.visual.set_graph_visual(**graph_vis_config)
+graph_artist = ctx.visual.set_graph_visual(**graph_vis_config)
 
 # Set agent visualization configurations
+agent_artists = {}
 for name, config in agent_vis_config.items():
-    ctx.visual.set_agent_visual(name, **config)
+    artist = ctx.visual.set_agent_visual(name, **config)
+    agent_artists[name] = artist
 
 for name, config in sensor_vis_config.items():
     ctx.visual.set_sensor_visual(name, **config)

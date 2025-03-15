@@ -76,6 +76,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self.add_artist('graph', artist)
 
         render_graph(self.ctx, artist)
+
+        return artist
     
     def set_agent_visual(self, name, **kwargs):
         # layer_id = self.create_layer(20, 3000, 3000)
@@ -88,6 +90,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         artist.set_data('_alpha', 1)
 
         self.add_artist(name, artist)
+
+        return artist
 
     def set_sensor_visual(self, sensor_name, **kwargs):
         sensor = self.ctx.sensor.get_sensor(sensor_name)
@@ -111,6 +115,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
             raise ValueError(f"Invalid sensor type: {sensor_type}")
 
         self.add_artist(f'sensor_{sensor_name}', artist)
+
+        return artist
     
     def add_artist(self, name: str, artist: IArtist) -> None:
         if artist.get_drawer() is None:
