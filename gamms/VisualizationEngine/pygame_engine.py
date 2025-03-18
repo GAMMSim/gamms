@@ -203,8 +203,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         # Note: Draw in layer order of back layer -> front layer
         # self._draw_grid()
         
-        self.draw_input_overlay()
         self._render_manager.handle_render()
+        self.draw_input_overlay()
         self.draw_hud()
 
     def draw_input_overlay(self):
