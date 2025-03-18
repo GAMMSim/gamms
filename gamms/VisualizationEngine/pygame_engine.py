@@ -62,8 +62,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         layer_id = self.create_layer(10, 3000, 3000)
 
         #FIXME: add some way to let layer_ID be = None
-        graph_data = GraphData(node_color=kwargs.get('node_color', Color.LightGreen),
-                               edge_color=kwargs.get('edge_color', Color.Black), 
+        graph_data = GraphData(node_color=kwargs.get('node_color', Color.LightGray),
+                               edge_color=kwargs.get('edge_color', Color.LightGray), 
                                draw_id=kwargs.get('draw_id', False),
                                layer = layer_id)
 
@@ -131,7 +131,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         elif artist.get_artist_type() == ArtistType.GRAPH:
             self._graph_artists[name] = artist
 
-        print("add_artist():self._surface_dict: ", self._surface_dict)
+        #print("add_artist():self._surface_dict: ", self._surface_dict)
         self._render_manager.add_artist(name, artist)
 
     def remove_artist(self, name):
@@ -293,7 +293,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         pygame.draw.circle(surface, color, (x, y), radius)
 
     def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: tuple=Color.Black,
-                    width: int=1, layer = -1, is_aa: bool=False, perform_culling_test: bool=True):
+                    width: int=1, layer = -1, is_aa: bool=False, perform_culling_test: bool=True, force_no_aa: bool = False):
         if perform_culling_test and self._render_manager.check_line_culled(start_x, start_y, end_x, end_y):
             return
 
@@ -306,7 +306,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         else:
             pygame.draw.line(surface, color, (start_x, start_y), (end_x, end_y), width)
 
-    def render_lines(self, points: list[tuple[float, float]], color: tuple=Color.Black, width: int=1, layer = -1, closed=False,
+    def render_linestring(self, points: list[tuple[float, float]], color: tuple=Color.Black, width: int=1, layer = -1, closed=False,
                      is_aa: bool=False, perform_culling_test: bool=True):
         if perform_culling_test and self._render_manager.check_lines_culled(points):
             return

@@ -136,7 +136,7 @@ def _render_graph_edge(ctx: Context, graph_data, graph, edge, edge_color, layer,
             edge_line_points[edge.id] = linestring
 
         line_points = edge_line_points[edge.id]
-        ctx.visual.render_lines(line_points, color, layer=layer, is_aa=True, perform_culling_test=False)
+        ctx.visual.render_linestring(line_points, color, layer=layer, is_aa=True, perform_culling_test=False)
     else:
         ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2, layer=layer, perform_culling_test=False)
 
@@ -202,9 +202,9 @@ def render_map_sensor(ctx: Context, artist: IArtist):
                 line_points = ([(source.x, source.y)] + [(x, y) for (x, y) in edge.linestring.coords] +
                                 [(target.x, target.y)])
 
-                ctx.visual.render_lines(line_points, edge_color, is_aa=True, perform_culling_test=False)
+                ctx.visual.render_linestring(line_points, edge_color, 4, is_aa=False, perform_culling_test=False)
             else:
-                ctx.visual.render_line(source.x, source.y, target.x, target.y, edge_color, 2, perform_culling_test=False)
+                ctx.visual.render_line(source.x, source.y, target.x, target.y, edge_color, 4, perform_culling_test=False)
 
 
 def render_agent_sensor(ctx: Context, artist: IArtist):

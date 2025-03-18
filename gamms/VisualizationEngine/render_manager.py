@@ -212,7 +212,7 @@ class RenderManager:
             self._layer_artists = {k: self._layer_artists[k] for k in sorted(self._layer_artists.keys())}
         else:
             self._layer_artists[artist.get_layer()].append(name)
-        print("add_artist().self._layer_artists: ", self._layer_artists)
+        #print("add_artist().self._layer_artists: ", self._layer_artists)
 
         if artist.get_artist_type() == ArtistType.GRAPH:
             self._graph_layers.add(artist.get_layer())

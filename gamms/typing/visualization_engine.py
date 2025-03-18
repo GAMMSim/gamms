@@ -211,7 +211,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_lines(self, points: list[tuple[float, float]], color: tuple = Color.Black, width: int = 1, layer = -1, closed=False,
+    def render_linestring(self, points: list[tuple[float, float]], color: tuple = Color.Black, width: int = 1, layer = -1, closed=False,
                      is_aa: bool = False, perform_culling_test: bool = True):
         """
         Render a series of connected line segments between multiple points.

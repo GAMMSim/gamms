@@ -56,7 +56,7 @@ for agent in ctx.agent.create_iter():
 graph_artist = ctx.visual.set_graph_visual(**graph_vis_config)
 
 # for fog of war
-graph_artist.set_visible(False)
+graph_artist.set_visible(True)
 
 # Set agent visualization configurations
 agent_artists = {}
@@ -126,7 +126,7 @@ while not ctx.is_terminated():
 
     # valid_step(ctx)
     agent_reset(ctx)
-    graph_artist.set_visible(True)
+    #graph_artist.set_visible(True)
     for agent in ctx.agent.create_iter():
         agent_artists[agent.name].set_visible(True)
     ctx.visual.simulate()
