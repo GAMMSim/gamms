@@ -192,8 +192,11 @@ def render_map_sensor(ctx: Context, artist: IArtist):
     edge_color = artist.get_data('edge_color', Color.Cyan)
     sensed_edges = sensor_data.get('edges', {})
     sensed_edges = list(sensed_edges.values())
+    
     for edge_list in sensed_edges:
+        
         for edge in edge_list:
+            print("     edge: ",edge )
             source = ctx.graph.graph.get_node(edge.source)
             target = ctx.graph.graph.get_node(edge.target)
 

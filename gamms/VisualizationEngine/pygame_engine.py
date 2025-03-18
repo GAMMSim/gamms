@@ -62,7 +62,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         layer_id = self.create_layer(10, 3000, 3000)
 
         #FIXME: add some way to let layer_ID be = None
-        graph_data = GraphData(node_color=kwargs.get('node_color', Color.LightGray),
+        graph_data = GraphData(node_color=kwargs.get('node_color', Color.DarkGray),
                                edge_color=kwargs.get('edge_color', Color.LightGray), 
                                draw_id=kwargs.get('draw_id', False),
                                layer = layer_id)
