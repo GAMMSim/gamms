@@ -14,7 +14,7 @@ class IVisualizationEngine(ABC):
     """
 
     @abstractmethod
-    def set_graph_visual(self, **kwargs) -> None:
+    def set_graph_visual(self, **kwargs) -> IArtist:
         """
         Configure the visual representation of the graph.
 
@@ -38,7 +38,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def set_agent_visual(self, agent_name: str, **kwargs) -> None:
+    def set_agent_visual(self, agent_name: str, **kwargs) -> IArtist:
         """
         Configure the visual representation of a specific agent.
 
@@ -63,7 +63,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def set_sensor_visual(self, sensor_name: str, **kwargs) -> None:
+    def set_sensor_visual(self, sensor_name: str, **kwargs) -> IArtist:
         """
         Configure the visual representation of a specific sensor.
 
