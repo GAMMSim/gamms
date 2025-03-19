@@ -24,14 +24,14 @@ for i in range(0, 10):
     sensor_config[f'range_{i}'] = {
         'type': gamms.sensor.SensorType.ARC,  
         'sensor_range': 30,  
-        'fov': math.radians(360),
+        'fov': math.radians(90),
     }
 
 for i in range(0, 10):
     sensor_config[f'agent_sense_{i}'] = {
         'type': gamms.sensor.SensorType.AGENT_ARC,  
         'sensor_range': 30,  
-        'fov': math.radians(360),
+        'fov': math.radians(90),
     }
 
 # The configuration of the agents
