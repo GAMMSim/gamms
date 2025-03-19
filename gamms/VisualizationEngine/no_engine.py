@@ -5,7 +5,7 @@ from gamms.context import Context
 from gamms.VisualizationEngine.artist import Artist
 from gamms.VisualizationEngine import Color, Space
 
-from typing import Dict, Any
+from typing import Dict, Any, List, Tuple
 
 class NoEngine(IVisualizationEngine):
     def __init__(self, ctx: Context, **kwargs):
@@ -52,11 +52,11 @@ class NoEngine(IVisualizationEngine):
                     width: int = 1, layer = -1, is_aa: bool = False, perform_culling_test: bool = True):
         return
 
-    def render_linestring(self, points: list[tuple[float, float]], color: tuple = Color.Black, width: int = 1, layer = -1, closed=False,
+    def render_linestring(self, points: List[Tuple[float, float]], color: tuple = Color.Black, width: int = 1, layer = -1, closed=False,
                      is_aa: bool = False, perform_culling_test: bool = True):
         return
 
-    def render_polygon(self, points: list[tuple[float, float]], color: tuple = Color.Black, width: int = 0, layer = -1,
+    def render_polygon(self, points: List[Tuple[float, float]], color: tuple = Color.Black, width: int = 0, layer = -1,
                        perform_culling_test: bool = True):
         return
 

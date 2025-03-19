@@ -1,6 +1,5 @@
-from gamms.VisualizationEngine import Color
 from gamms.typing.artist import IArtist
-from typing import Dict, Any
+from typing import Dict, Any, List, Tuple
 from abc import ABC, abstractmethod
 
 
@@ -159,8 +158,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_circle(self, x: float, y: float, radius: float, color: tuple=Color.Black, layer = -1,
-                      perform_culling_test: bool=True):
+    def render_circle(self, x: float, y: float, radius: float, color: tuple, layer: int, perform_culling_test: bool):
         """
         Render a circle shape at the specified position with the given radius and color.
 
@@ -175,8 +173,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_rectangle(self, x: float, y: float, width: float, height: float, color: tuple = Color.Black, layer = -1,
-                         perform_culling_test: bool = True):
+    def render_rectangle(self, x: float, y: float, width: float, height: float, color: tuple, layer: int, perform_culling_test: bool):
         """
         Render a rectangle shape at the specified position with the given dimensions and color.
 
@@ -192,8 +189,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: tuple = Color.Black,
-                    width: int = 1, layer = -1, is_aa: bool = False, perform_culling_test: bool = True):
+    def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: tuple, width: int, layer: int, is_aa: bool, perform_culling_test: bool):
         """
         Render a line segment between two points with the specified color and width.
 
@@ -211,8 +207,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_linestring(self, points: list[tuple[float, float]], color: tuple = Color.Black, width: int = 1, layer = -1, closed=False,
-                     is_aa: bool = False, perform_culling_test: bool = True):
+    def render_linestring(self, points: List[Tuple[float, float]], color: tuple, width: int, layer: int, closed: bool, is_aa: bool, perform_culling_test: bool):
         """
         Render a series of connected line segments between multiple points.
 
@@ -228,7 +223,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_polygon(self, points: list[tuple[float, float]], color: tuple = Color.Black, width: int = 0, layer = -1,
+    def render_polygon(self, points: List[Tuple[float, float]], color: tuple = Color.Black, width: int = 0, layer = -1,
                        perform_culling_test: bool = True):
         """
         Render a polygon shape or outline defined by a list of vertices with the specified color and width.
@@ -243,7 +238,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_text(self, text: str, x: float, y: float, color: tuple = Color.Black, layer = -1, perform_culling_test: bool=True):
+    def render_text(self, text: str, x: float, y: float, color: tuple, layer: int, perform_culling_test: bool):
         """
         Render text at the specified position with the given content and color.
 

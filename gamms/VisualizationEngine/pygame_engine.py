@@ -8,7 +8,7 @@ from gamms.context import Context
 from gamms.typing.artist import IArtist, ArtistType
 from gamms.typing.sensor_engine import SensorType
 from gamms.typing.opcodes import OpCodes
-from typing import Dict, Any
+from typing import Dict, Any, List, Tuple
 
 import pygame
 
@@ -306,7 +306,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         else:
             pygame.draw.line(surface, color, (start_x, start_y), (end_x, end_y), width)
 
-    def render_linestring(self, points: list[tuple[float, float]], color: tuple=Color.Black, width: int=1, layer = -1, closed=False,
+    def render_linestring(self, points: List[Tuple[float, float]], color: tuple=Color.Black, width: int=1, layer = -1, closed=False,
                      is_aa: bool=False, perform_culling_test: bool=True):
         if perform_culling_test and self._render_manager.check_lines_culled(points):
             return
@@ -319,7 +319,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         else:
             pygame.draw.lines(surface, color, closed, points, width)
 
-    def render_polygon(self, points: list[tuple[float, float]], color: tuple=Color.Black, width: int=0, layer = -1,
+    def render_polygon(self, points: List[Tuple[float, float]], color: tuple=Color.Black, width: int=0, layer = -1,
                        perform_culling_test: bool=True):
         if perform_culling_test and self._render_manager.check_polygon_culled(points):
             return
