@@ -1,11 +1,15 @@
 import gamms
+from gamms.VisualizationEngine.artist import Artist
+from gamms.VisualizationEngine.default_drawers import render_circle
+from gamms.VisualizationEngine import Color
 from config import (
     vis_engine,
     graph_path,
     sensor_config,
     agent_config,
     graph_vis_config,
-    agent_vis_config
+    agent_vis_config,
+    sensor_vis_config,
 )
 import blue_strategy
 import red_strategy
@@ -24,7 +28,7 @@ ctx.graph.attach_networkx_graph(G)
 
 # Create the sensors
 for name, sensor in sensor_config.items():
-    ctx.sensor.create_sensor(name, sensor['type'], **sensor.get('args', {}))
+    ctx.sensor.create_sensor(name, sensor['type'], **sensor)
 
 
 # Create the agents
@@ -49,29 +53,32 @@ for agent in ctx.agent.create_iter():
     agent.register_strategy(strategies.get(agent.name, None))
 
 # Set visualization configurations
-ctx.visual.set_graph_visual(**graph_vis_config)
+graph_artist = ctx.visual.set_graph_visual(**graph_vis_config)
+
+# for fog of war
+graph_artist.set_visible(False)
 
 # Set agent visualization configurations
+agent_artists = {}
 for name, config in agent_vis_config.items():
-    ctx.visual.set_agent_visual(name, **config)
+    artist = ctx.visual.set_agent_visual(name, **config)
+    artist.set_visible(False)
+    agent_artists[name] = artist
 
-# Special nodes
-n1 = ctx.graph.graph.get_node(0)
-n2 = ctx.graph.graph.get_node(1)
-data = {}
-data['x'] = n1.x
-data['y'] = n1.y
-data['scale'] = 10.0
-data['color'] = (255, 0, 0)
 
-ctx.visual.add_artist('special_node', data)
+sensor_artists = {}
+for name, config in sensor_vis_config.items():
+    artist = ctx.visual.set_sensor_visual(name, **config)
+    artist.set_visible(False)
+    sensor_artists[name] = artist
+
 
 turn_count = 0
 # Rules for the game
 def rule_terminate(ctx):
     global turn_count
     turn_count += 1
-    if turn_count > 3:
+    if turn_count > 5:
         ctx.terminate()
 
 def agent_reset(ctx):
@@ -97,22 +104,33 @@ def valid_step(ctx):
 # Run the game
 while not ctx.is_terminated():
     for agent in ctx.agent.create_iter():
+        agent_artists[agent.name].set_visible(True)
+        for sensor in agent._sensor_list.values():
+            sensor_artists[sensor.sensor_id].set_visible(True)
+    
         if agent.strategy is not None:
-            agent.step()
+            state = agent.get_state()
+            agent.strategy(state)
         else:
             state = agent.get_state()
             node = ctx.visual.human_input(agent.name, state)
             state['action'] = node
-            agent.set_state()
+
+        
+        agent_artists[agent.name].set_visible(False)
+        for sensor in agent._sensor_list.values():
+            sensor_artists[sensor.sensor_id].set_visible(False)
+            
+    for agent in ctx.agent.create_iter():
+        agent.set_state()
 
     # valid_step(ctx)
     agent_reset(ctx)
-    if turn_count % 2 == 0:
-        data['x'] = n1.x
-        data['y'] = n1.y
-    else:
-        data['x'] = n2.x
-        data['y'] = n2.y
+    graph_artist.set_visible(True)
+    for agent in ctx.agent.create_iter():
+        agent_artists[agent.name].set_visible(True)
     ctx.visual.simulate()
-
+    for agent in ctx.agent.create_iter():
+        agent_artists[agent.name].set_visible(False)
+    graph_artist.set_visible(False)
     rule_terminate(ctx)

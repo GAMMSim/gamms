@@ -1,3 +1,5 @@
+from gamms.VisualizationEngine import Color
+from gamms.typing.artist import IArtist
 from typing import Dict, Any
 from abc import ABC, abstractmethod
 
@@ -61,7 +63,15 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def add_artist(self, name: str, data: Dict[str, Any]) -> None:
+    def set_sensor_visual(self, sensor_name: str, **kwargs) -> None:
+        """
+        Configure the visual representation of a specific sensor.
+
+        """
+        pass
+
+    @abstractmethod
+    def add_artist(self, name: str, artist: IArtist) -> None:
         """
         Add a custom artist or object to the visualization.
 
@@ -72,9 +82,7 @@ class IVisualizationEngine(ABC):
 
         Args:
             name (str): The unique name identifier for the custom artist.
-            data (Dict[str, Any]): A dictionary containing the data and settings
-                for the custom artist. The structure of the data may vary based
-                on the type of artist being added.
+            artist (IArtist): The artist object representing the custom visualization element.
         """
         pass
 
@@ -117,6 +125,7 @@ class IVisualizationEngine(ABC):
         on user actions.
 
         Args:
+            agent_name (str): The unique name of the agent.
             state (Dict[str, Any]): A dictionary containing the current state of
                 the system or the input data from the user. Expected keys may include:
                 - `command` (str): The command issued by the user.
@@ -146,5 +155,159 @@ class IVisualizationEngine(ABC):
         Raises:
             RuntimeError: If the engine fails to terminate gracefully.
             IOError: If there are issues during the cleanup process.
+        """
+        pass
+
+    @abstractmethod
+    def render_circle(self, x: float, y: float, radius: float, color: tuple=Color.Black, layer = -1,
+                      perform_culling_test: bool=True):
+        """
+        Render a circle shape at the specified position with the given radius and color.
+
+        Args:
+            x (float): The x-coordinate of the circle's center.
+            y (float): The y-coordinate of the circle's center.
+            radius (float): The radius of the circle.
+            color (tuple): The color of the circle in RGB format.
+            layer (int): The layer to render the circle on.
+            perform_culling_test (bool): Whether to perform culling.
+        """
+        pass
+
+    @abstractmethod
+    def render_rectangle(self, x: float, y: float, width: float, height: float, color: tuple = Color.Black, layer = -1,
+                         perform_culling_test: bool = True):
+        """
+        Render a rectangle shape at the specified position with the given dimensions and color.
+
+        Args:
+            x (float): The x-coordinate of the rectangle's center.
+            y (float): The y-coordinate of the rectangle's center.
+            width (float): The width of the rectangle.
+            height (float): The height of the rectangle.
+            color (tuple): The color of the rectangle in RGB format.
+            layer (int): The layer to render the rectangle on.
+            perform_culling_test (bool): Whether to perform culling.
+        """
+        pass
+
+    @abstractmethod
+    def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: tuple = Color.Black,
+                    width: int = 1, layer = -1, is_aa: bool = False, perform_culling_test: bool = True):
+        """
+        Render a line segment between two points with the specified color and width.
+
+        Args:
+            start_x (float): The x-coordinate of the starting point.
+            start_y (float): The y-coordinate of the starting point.
+            end_x (float): The x-coordinate of the ending point.
+            end_y (float): The y-coordinate of the ending point.
+            color (tuple): The color of the line in RGB format.
+            width (int): The width of the line in pixels. Only non-antialiasing lines supports width.
+            layer (int): The layer to render the line on.
+            is_aa (bool): Whether to use antialiasing for smoother rendering.
+            perform_culling_test (bool): Whether to perform culling.
+        """
+        pass
+
+    @abstractmethod
+    def render_linestring(self, points: list[tuple[float, float]], color: tuple = Color.Black, width: int = 1, layer = -1, closed=False,
+                     is_aa: bool = False, perform_culling_test: bool = True):
+        """
+        Render a series of connected line segments between multiple points.
+
+        Args:
+            points (list[tuple[float, float]]): A list of (x, y) coordinate tuples defining the line segments.
+            color (tuple): The color of the lines in RGB format.
+            width (int): The width of the lines in pixels. Only non-antialiasing lines supports width.
+            layer (int): The layer to render the lines on.
+            closed (bool): Whether the line segments form a closed shape.
+            is_aa (bool): Whether to use antialiasing for smoother rendering.
+            perform_culling_test (bool): Whether to perform culling.
+        """
+        pass
+
+    @abstractmethod
+    def render_polygon(self, points: list[tuple[float, float]], color: tuple = Color.Black, width: int = 0, layer = -1,
+                       perform_culling_test: bool = True):
+        """
+        Render a polygon shape or outline defined by a list of vertices with the specified color and width.
+
+        Args:
+            points (list[tuple[float, float]]): A list of (x, y) coordinate tuples defining the polygon vertices.
+            color (tuple): The color of the polygon in RGB format.
+            width (int): The width of the polygon outline in pixels. If equal to 0, the polygon is filled.
+            layer (int): The layer to render the polygon on.
+            perform_culling_test (bool): Whether to perform culling.
+        """
+        pass
+
+    @abstractmethod
+    def render_text(self, text: str, x: float, y: float, color: tuple = Color.Black, layer = -1, perform_culling_test: bool=True):
+        """
+        Render text at the specified position with the given content and color.
+
+        Args:
+            text (str): The text content to display.
+            x (float): The x-coordinate of the text's center position.
+            y (float): The y-coordinate of the text's center position.
+            color (tuple): The color of the text in RGB format.
+            layer (int): The layer to render the text on.
+            perform_culling_test (bool): Whether to perform culling.
+        """
+        pass
+
+    @abstractmethod
+    def fill_layer(self, layer_id: int, color: tuple):
+        """
+        Fill a layer with the specified color.
+
+        Args:
+            layer_id (int): The unique identifier of the layer to fill.
+            color (tuple): The color to fill the layer with in RGB format.
+        """
+        pass
+
+    @abstractmethod
+    def render_layer(self, layer_id: int, left: float, top: float, width: float, height: float):
+        """
+        Render a layer to the screen with the specified dimensions at the given position.
+
+        Args:
+            layer_id (int): The unique identifier of the layer to render.
+            left (float): The x-coordinate of the left edge of the layer.
+            top (float): The y-coordinate of the top edge of the layer.
+            width (float): The width of the layer.
+            height (float): The height of the layer.
+        """
+        pass
+
+    @abstractmethod
+    def is_waiting_simulation(self) -> bool:
+        """
+        Check if the visualization engine is waiting for simulation to complete.
+
+        Returns:
+            bool: A boolean indicating whether the engine is waiting for simulation.
+        """
+        pass
+
+    @abstractmethod
+    def is_waiting_input(self) -> bool:
+        """
+        Check if the visualization engine is waiting for user input.
+
+        Returns:
+            bool: A boolean indicating whether the engine is waiting for user input.
+        """
+        pass
+
+    @abstractmethod
+    def on_artist_change_layer(self) -> None:
+        """
+        Notify the visualization engine that one or more artists has changed its layer.
+
+        This method should be called whenever an artist changes its layer to
+        ensure that the visualization engine updates the rendering accordingly.
         """
         pass

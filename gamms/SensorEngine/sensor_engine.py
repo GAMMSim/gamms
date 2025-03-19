@@ -25,13 +25,17 @@ class NeighborSensor(ISensor):
     @property
     def data(self):
         return self._data
+    
+    def set_owner(self, owner: str) -> None:
+        self._owner = owner
 
     def sense(self, node_id: int) -> None:
-        outgoing_edges = []
+        nearest_neighbors = {node_id,}
         for edge in self.edges.values():
             if edge.source == node_id:
-                outgoing_edges.append(edge)
-        self._data = outgoing_edges
+                nearest_neighbors.add(edge.target)
+                        
+        self._data = list(nearest_neighbors)
 
     def update(self, data: Dict[str, Any]) -> None:
         pass
@@ -65,6 +69,9 @@ class MapSensor(ISensor):
     @property
     def data(self) -> Dict[str, Any]:
         return self._data
+    
+    def set_owner(self, owner: str) -> None:
+        self._owner = owner
 
     def sense(self, node_id: int) -> None:
         """
@@ -109,7 +116,6 @@ class MapSensor(ISensor):
         graph_edges = self.ctx.graph_engine.graph.edges
         for candidate_id in sensed_nodes.keys():
             candidate_edges = []
-            # Look for an edge from the sensing node to this candidate node.
             for edge in graph_edges.values():
                 if edge.source == node_id and edge.target == candidate_id:
                     candidate_edges.append(edge)
@@ -160,6 +166,9 @@ class AgentSensor(ISensor):
     def data(self) -> Dict[str, Any]:
         return self._data
 
+    def set_owner(self, owner: str) -> None:
+        self._owner = owner
+        
     def sense(self, node_id: int) -> None:
         """
         Detects agents within the sensor range of the sensing node.
@@ -255,8 +264,8 @@ class SensorEngine(ISensorEngine):
                 sensor_id, 
                 sensor_type, 
                 self.ctx.graph_engine.graph.nodes, 
-                sensor_range=20,
-                fov=2 * math.pi,
+                sensor_range=kwargs.get('sensor_range', 30),
+                fov=(2 * math.pi),
                 orientation=0
             )
         elif sensor_type == SensorType.ARC:
@@ -265,8 +274,8 @@ class SensorEngine(ISensorEngine):
                 sensor_id, 
                 sensor_type, 
                 self.ctx.graph_engine.graph.nodes, 
-                sensor_range=30,
-                fov=math.radians(90),
+                sensor_range=kwargs.get('sensor_range', 30),
+                fov=kwargs.get('fov', 2 * math.pi),
                 orientation=0
             )
         elif sensor_type == SensorType.AGENT:
@@ -275,8 +284,8 @@ class SensorEngine(ISensorEngine):
                 sensor_id, 
                 sensor_type, 
                 self.ctx.agent, 
-                sensor_range=30,
-                fov=2 * math.pi,
+                sensor_range=kwargs.get('sensor_range', 30),
+                fov=kwargs.get('fov', 2 * math.pi),
                 owner=None  # Set owner when registering sensor to an agent.
             )
         elif sensor_type == SensorType.AGENT_ARC:
@@ -285,8 +294,8 @@ class SensorEngine(ISensorEngine):
                 sensor_id, 
                 sensor_type, 
                 self.ctx.agent, 
-                sensor_range=30,
-                fov=math.radians(90),  
+                sensor_range=kwargs.get('sensor_range', 30),
+                fov=kwargs.get('fov', math.radians(90)), 
                 owner=None  # Set owner when registering sensor to an agent.
             )
         elif sensor_type == SensorType.AGENT_RANGE:
@@ -295,7 +304,7 @@ class SensorEngine(ISensorEngine):
                 sensor_id, 
                 sensor_type, 
                 self.ctx.agent, 
-                sensor_range=30,
+                sensor_range=kwargs.get('sensor_range', 30),
                 fov=2 * math.pi,
                 owner=None  # Set owner when registering sensor to an agent.
             )

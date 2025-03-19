@@ -1,6 +1,6 @@
 # The file describes the configuration for the game
 import gamms
-
+import math
 
 # Visualization
 vis_engine = gamms.visual.Engine.PYGAME
@@ -11,96 +11,79 @@ resolution = 10.0
 graph_path = 'graph.pkl'
 
 # Sensor configuration
-sensor_config = {
-    'neigh_0': {
-        'type': gamms.sensor.SensorType.NEIGHBOR,
-    },
-    'neigh_1': {
-        'type': gamms.sensor.SensorType.NEIGHBOR,
-    },
-    'neigh_2': {
-        'type': gamms.sensor.SensorType.NEIGHBOR,
-    },
-    'neigh_3': {
-        'type': gamms.sensor.SensorType.NEIGHBOR,
-    },
-    'neigh_4': {
-        'type': gamms.sensor.SensorType.NEIGHBOR,
-    },
-    'neigh_5': {
-        'type': gamms.sensor.SensorType.NEIGHBOR,
-    },
-    'neigh_6': {
-        'type': gamms.sensor.SensorType.NEIGHBOR,
-    },
-    'neigh_7': {
-        'type': gamms.sensor.SensorType.NEIGHBOR,
-    },
-    'neigh_8': {
-        'type': gamms.sensor.SensorType.NEIGHBOR,
-    },
-    'neigh_9': {
-        'type': gamms.sensor.SensorType.NEIGHBOR,
-    },
-    'map': {
-        'type': gamms.sensor.SensorType.RANGE,
-    },
-    'agent': {
-        'type': gamms.sensor.SensorType.AGENT,
+import math
+
+sensor_config = {}
+
+for i in range(0, 10):
+    sensor_config[f'neigh_{i}'] = {
+        'type': gamms.sensor.SensorType.NEIGHBOR
     }
-}
+
+for i in range(0, 10):
+    sensor_config[f'range_{i}'] = {
+        'type': gamms.sensor.SensorType.ARC,  
+        'sensor_range': 30,  
+        'fov': math.radians(90),
+    }
+
+for i in range(0, 10):
+    sensor_config[f'agent_sense_{i}'] = {
+        'type': gamms.sensor.SensorType.AGENT_ARC,  
+        'sensor_range': 30,  
+        'fov': math.radians(90),
+    }
 
 # The configuration of the agents
 agent_config = {
     'agent_0': {
         'meta': {'team': 0},
-        'sensors': ['neigh_0', 'map', 'agent'],
+        'sensors': ['neigh_0', 'range_0', 'agent_sense_0'],  
         'start_node_id': 0
     },
     'agent_1': {
         'meta': {'team': 0},
-        'sensors': ['neigh_1', 'map', 'agent'],
+        'sensors': ['neigh_1', 'range_1', 'agent_sense_1'],  
         'start_node_id': 10
     },
     'agent_2': {
         'meta': {'team': 0},
-        'sensors': ['neigh_2', 'map', 'agent'],
+        'sensors': ['neigh_2', 'range_2', 'agent_sense_2'],  
         'start_node_id': 20
     },
     'agent_3': {
         'meta': {'team': 0},
-        'sensors': ['neigh_3', 'map', 'agent'],
+        'sensors': ['neigh_3', 'range_3', 'agent_sense_3'],  
         'start_node_id': 30
     },
     'agent_4': {
         'meta': {'team': 0},
-        'sensors': ['neigh_4', 'map', 'agent'],
+        'sensors': ['neigh_4', 'range_4', 'agent_sense_4'],  
         'start_node_id': 40
     },
     'agent_5': {
         'meta': {'team': 1},
-        'sensors': ['neigh_5', 'map', 'agent'],
+        'sensors': ['neigh_5', 'range_5', 'agent_sense_5'],  
         'start_node_id': 500
     },
     'agent_6': {
         'meta': {'team': 1},
-        'sensors': ['neigh_6', 'map', 'agent'],
+        'sensors': ['neigh_6', 'range_6', 'agent_sense_6'], 
         'start_node_id': 501
     },
     'agent_7': {
         'meta': {'team': 1},
-        'sensors': ['neigh_7', 'map', 'agent'],
+        'sensors': ['neigh_7', 'range_7', 'agent_sense_7'],  
         'start_node_id': 502
     },
-    
     'agent_8': {
         'meta': {'team': 1},
-        'sensors': ['neigh_8', 'map', 'agent'],
+        'sensors': ['neigh_8', 'range_8', 'agent_sense_8'],  
         'start_node_id': 503
     },
     'agent_9': {
         'meta': {'team': 1},
-        'sensors': ['neigh_9', 'map', 'agent'],
+        'sensors': ['neigh_9', 'range_9', 'agent_sense_9'],  
         'start_node_id': 504
     }
 }
@@ -154,3 +137,20 @@ agent_vis_config = {
         'size': 8,
     }
 }
+
+sensor_vis_config = {}
+for i in range(10):
+    sensor_vis_config[f'neigh_{i}'] = {
+        'color': 'purple',
+        'size': 2,
+        'layer': 25,
+    }
+    sensor_vis_config[f'range_{i}'] = {
+        'node_color': 'cyan',
+        'edge_color': 'cyan',
+        'layer': 24,
+    }
+    sensor_vis_config[f'agent_sense_{i}'] = {
+        'color': 'grey',
+        'size': 8,
+    }

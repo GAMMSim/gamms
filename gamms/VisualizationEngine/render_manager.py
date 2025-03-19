@@ -1,21 +1,43 @@
-from gamms.VisualizationEngine import Color, Shape, Space
-from gamms.VisualizationEngine.render_node import RenderNode
-from gamms.VisualizationEngine.agent_visual import AgentVisual
-from gamms.typing.graph_engine import IGraph
 from gamms.context import Context
-import math
+from gamms.typing.artist import IArtist, ArtistType
 
 
 class RenderManager:
     def __init__(self, ctx: Context, camera_x: float, camera_y: float, camera_size: float, screen_width: int, screen_height: int):
         self.ctx: Context = ctx
+
+        self._screen_width = screen_width
+        self._screen_height = screen_height
+        self._aspect_ratio = self._screen_width / self._screen_height
+
         self._camera_x = camera_x
         self._camera_y = camera_y
         self._camera_size = camera_size
-        self._screen_width = screen_width
-        self._screen_height = screen_height
-        self._render_nodes: dict[str, RenderNode] = {}
+        self._camera_size_y = camera_size / self.aspect_ratio
 
+        self._update_bounds()
+
+        self._artists: dict[str, IArtist] = {}
+        # This will call drawer on all artists in the respective layer
+        # self._update_layer: dict[str, bool] = {}
+        self._layer_artists: dict[int, list[str]] = {}
+        self._graph_layers = set()
+
+        self._default_origin = (0, 0)
+        self._surface_size = 0
+
+    def _update_bounds(self):
+        self._bound_left = -self.camera_size + self.camera_x
+        self._bound_right = self.camera_size + self.camera_x
+        self._bound_top = -self.camera_size_y + self.camera_y
+        self._bound_bottom = self.camera_size_y + self.camera_y
+
+    def set_origin(self, x: float, y: float, graph_width: float, graph_height: float):
+        self.camera_x = x
+        self.camera_y = y
+        self._default_origin = (x, y)
+        self._surface_size = max(graph_width, graph_height) + 200
+ 
     @property
     def camera_x(self):
         return self._camera_x
@@ -23,6 +45,7 @@ class RenderManager:
     @camera_x.setter
     def camera_x(self, value: float):
         self._camera_x = value
+        self._update_bounds()
 
     @property
     def camera_y(self):
@@ -31,6 +54,7 @@ class RenderManager:
     @camera_y.setter
     def camera_y(self, value: float):
         self._camera_y = value
+        self._update_bounds()
 
     @property
     def camera_size(self):
@@ -45,6 +69,8 @@ class RenderManager:
     @camera_size.setter
     def camera_size(self, value: float):
         self._camera_size = value
+        self._camera_size_y = self.camera_size / self.aspect_ratio
+        self._update_bounds()
     
     @property
     def camera_size_y(self):
@@ -52,27 +78,37 @@ class RenderManager:
         The orthographic size of the camera represents half the height of the camera view.
 
         Returns:
-            float: The verticle orthographic size.
+            float: The vertical orthographic size.
         """
-        return self.camera_size / self.aspect_ratio
+        return self._camera_size_y
     
     @property
     def screen_width(self):
         return self._screen_width
+
+    @screen_width.setter
+    def screen_width(self, value: int):
+        self._screen_width = value
+        self._aspect_ratio = self._screen_width / self._screen_height
     
     @property
     def screen_height(self):
         return self._screen_height
+
+    @screen_height.setter
+    def screen_height(self, value: int):
+        self._screen_height = value
+        self._aspect_ratio = self._screen_width / self._screen_height
     
     @property
     def aspect_ratio(self):
-        return self.screen_width / self.screen_height
+        return self._aspect_ratio
 
     def world_to_screen_scale(self, world_size: float) -> float:
         """
         Transforms a world size to a screen size.
         """
-        return world_size / self.camera_size * self.screen_width
+        return world_size / (2 * self.camera_size) * self.screen_width
     
     def screen_to_world_scale(self, screen_size: float) -> float:
         """
@@ -80,13 +116,25 @@ class RenderManager:
         """
         return screen_size / self.screen_width * self.camera_size
     
-    def world_to_screen(self, x: float, y: float) -> tuple[float, float]:
+    def world_to_screen(self, x: float, y: float, layer=-1) -> tuple[float, float]:
         """
         Transforms a world coordinate to a screen coordinate.
         """
-        screen_x = (x + self.camera_size) / (2 * self.camera_size) * self.screen_width
-        screen_y = (-y + self.camera_size_y) / (2 * self.camera_size_y) * self.screen_height
-        return screen_x, screen_y
+        if layer not in self._graph_layers:
+            x -= self.camera_x
+            y -= self.camera_y
+            screen_x = (x + self.camera_size) / (2 * self.camera_size) * self.screen_width
+            screen_y = (-y + self.camera_size_y) / (2 * self.camera_size_y) * self.screen_height
+            return screen_x, screen_y
+        else:
+            x -= self._default_origin[0]
+            y -= self._default_origin[1]
+            x_scale = (self._surface_size / 2 + x) / self._surface_size
+            y_scale = (self._surface_size / 2 - y) / self._surface_size
+            surface_x = x_scale * 3000
+            surface_y = y_scale * 3000
+
+            return surface_x, surface_y
     
     def screen_to_world(self, x: float, y: float) -> tuple[float, float]:
         """
@@ -124,31 +172,83 @@ class RenderManager:
         """
         return screen_size / self.screen_width
 
-    # @property
-    # def visual_engine(self):
-    #     return self.ctx.visual_engine
+    def check_circle_culled(self, x, y, radius):
+        return (x + radius < self._bound_left or x - radius > self._bound_right or
+                y + radius < self._bound_top or y - radius > self._bound_bottom)
 
-    def add_render_node(self, name: str, render_node: RenderNode):
+    def check_rectangle_culled(self, x, y, width, height):
+        return (x - width / 2 > self._bound_right or x + width / 2 < self._bound_left or
+                y - height / 2 > self._bound_bottom or y + height / 2 < self._bound_top)
+
+    def check_line_culled(self, x1, y1, x2, y2):
+        return (x1 < self._bound_left and x2 < self._bound_left or x1 > self._bound_right and x2 > self._bound_right or
+                y1 < self._bound_top and y2 < self._bound_top or y1 > self._bound_bottom and y2 > self._bound_bottom)
+
+    def check_lines_culled(self, points):
+        source = points[0]
+        target = points[-1]
+        return self.check_line_culled(source[0], source[1], target[0], target[1])
+
+    def check_polygon_culled(self, points):
+        for point in points:
+            if self._bound_left <= point[0] <= self._bound_right and self._bound_top <= point[1] <= self._bound_bottom:
+                return False
+
+        return True
+
+    def add_artist(self, name: str, artist: IArtist) -> None:
         """
-        Add a render node to the render manager. A render node can draw one or more shapes on the screen and may have a customized drawer.
+        Add an artist to the render manager. An artist can draw one or more shapes on the screen and may have a customized drawer.
 
         Args:
-            name (str): The unique name of the render node.
-            render_node (RenderNode): The render node to add to the render manager.
+            name (str): The unique name of the artist.
+            artist (IArtist): The artist to add.
         """
-        self._render_nodes[name] = render_node
+        self._artists[name] = artist
 
-    def remove_render_node(self, name: str):
-        """
-        Remove a render node from the render manager.
-
-        Args:
-            name (str): The unique name of the render node to remove.
-        """
-        if name in self._render_nodes:
-            del self._render_nodes[name]
+        # If layer is specified, will add to list. 
+        if artist.get_layer() not in self._layer_artists:
+            self._layer_artists[artist.get_layer()] = [name]
+            self._layer_artists = {k: self._layer_artists[k] for k in sorted(self._layer_artists.keys())}
         else:
-            print(f"Warning: Render node {name} not found.")
+            self._layer_artists[artist.get_layer()].append(name)
+        #print("add_artist().self._layer_artists: ", self._layer_artists)
+
+        if artist.get_artist_type() == ArtistType.GRAPH:
+            self._graph_layers.add(artist.get_layer())
+        
+        # Defaults to true, custom drawers can set this to false
+        # self._update_layer[name] = True
+        # print("add_artist().self._update_layer: ", self._update_layer)
+
+    def remove_artist(self, name: str):
+        """
+        Remove an artist from the render manager.
+
+        Args:
+            name (str): The unique name of the artist to remove.
+        """
+        if name in self._artists:
+            artist = self._artists[name]
+            index = self._layer_artists[artist.get_layer()].index(name)
+            del self._layer_artists[artist.get_layer()][index]
+            del self._artists[name]
+        else:
+            print(f"Warning: Artist {name} not found.")
+
+    def on_artist_change_layer(self):
+        self._layer_artists.clear()
+        self._graph_layers.clear()
+        for name, artist in self._artists.items():
+            if artist.get_layer() not in self._layer_artists:
+                self._layer_artists[artist.get_layer()] = [name]
+            else:
+                self._layer_artists[artist.get_layer()].append(name)
+
+            if artist.get_artist_type() == ArtistType.GRAPH:
+                self._graph_layers.add(artist.get_layer())
+
+        self._layer_artists = {k: self._layer_artists[k] for k in sorted(self._layer_artists.keys())}
 
     def handle_render(self):
         """
@@ -157,170 +257,27 @@ class RenderManager:
         Raises:
             NotImplementedError: If the shape of a render node is not implemented and a custom drawer is not provided.
         """
-        for render_node in self._render_nodes.values():
-            # if use custom drawer
-            if 'drawer' in render_node.data:
-                drawer = render_node.drawer
-                drawer(self.ctx, render_node.data)
-                continue
+        surface_screen_size = self.world_to_screen_scale(self._surface_size)
+        surface_world_left = self._default_origin[0] - self._surface_size / 2
+        surface_world_top = self._default_origin[1] + self._surface_size / 2
+        surface_screen_left, surface_screen_top = self.world_to_screen(surface_world_left, surface_world_top)
+        rendered_layers = set()
+        for layer, artist_name_list in self._layer_artists.items():
+            for artist_name in artist_name_list:
+                artist = self._artists[artist_name]
+                if not artist.get_visible():
+                    continue
 
-            shape = render_node.shape
-            if shape == Shape.Circle:
-                RenderManager.render_circle(self.ctx, render_node.x, render_node.y, render_node.data['scale'], render_node.color)
-            elif shape == Shape.Rectangle:
-                RenderManager.render_rectangle(self.ctx, render_node.x, render_node.y, render_node.data['width'], render_node.data['height'], render_node.color)
-            else:
-                raise NotImplementedError("Render node not implemented")
+                if not artist.get_will_draw():
+                    if artist.get_artist_type() == ArtistType.GRAPH and layer not in rendered_layers:
+                        self.ctx.visual.render_layer(layer, surface_screen_left, surface_screen_top,
+                                                     surface_screen_size,surface_screen_size)
+                        rendered_layers.add(layer)
+                    continue
 
-    @staticmethod
-    def render_circle(ctx: Context, x: float, y: float, radius: float, color: tuple=Color.Black):
-        """
-        Render a circle at the given position with the given radius and color.
+                drawer = artist.get_drawer()
+                if drawer is None:
+                    print(f"Warning: Drawer not found for artist {artist_name}.")
+                    continue
 
-        Args:
-            ctx (Context): The current simulation context.
-            x (float): The x coordinate of the circle's center.
-            y (float): The y coordinate of the circle's center.
-            radius (float): The radius of the circle.
-            color (tuple, optional): The color the the circle. Defaults to Color.Black.
-        """
-        (x, y) = ctx.visual._graph_visual.ScalePositionToScreen((x, y))
-        
-        _screen = ctx.visual.screen
-        _width = _screen.get_width()
-        _height = _screen.get_height()
-        if (x < 0 or x > _width or y < 0 or y > _height):
-            return
-
-        ctx.visual.render_circle(x, y, radius, color)
-
-    @staticmethod
-    def render_rectangle(ctx: Context, x: float, y: float, width: float, height: float, color: tuple=Color.Black):
-        """
-        Render a rectangle at the given position with the given width, height, and color.
-
-        Args:
-            ctx (Context): The current simulation context.
-            x (float): The x coordinate of the rectangle's center.
-            y (float): The y coordinate of the rectangle's center.
-            width (float): The width of the rectangle.
-            height (float): The height of the rectangle.
-            color (tuple, optional): The color of the rectangle. Defaults to Color.Black.
-        """
-        # render_manager = ctx.visual.render_manager
-        (x, y) = ctx.visual._graph_visual.ScalePositionToScreen((x, y))
-        # scaled_width = ctx.visual.render_manager.world_to_screen_scale(width)
-
-        ctx.visual.render_rectangle(x, y, width, height, color)
-
-    @staticmethod
-    def render_agent(ctx: Context, agent_visual: AgentVisual):
-        """
-        Render an agent as a triangle at its current position on the screen. This is the default rendering method for agents.
-
-        Args:
-            ctx (Context): The current simulation context.
-            agent_visual (AgentVisual): The visual representation of the agent to render.
-        """
-        screen = ctx.visual.screen
-        position = agent_visual.position
-        size = agent_visual.size
-        (scaled_x, scaled_y) = ctx.visual._graph_visual.ScalePositionToScreen(position)
-        color = agent_visual.color
-        if agent_visual.name == ctx.visual.waiting_agent_name:
-            color = Color.Magenta
-            size = agent_visual.size * 1.5
-        # Draw each agent as a triangle at its current position
-        angle = math.radians(45)
-        point1 = (scaled_x + size * math.cos(angle), scaled_y + size * math.sin(angle))
-        point2 = (scaled_x + size * math.cos(angle + 2.5), scaled_y + size * math.sin(angle + 2.5))
-        point3 = (scaled_x + size * math.cos(angle - 2.5), scaled_y + size * math.sin(angle - 2.5))
-
-        _width = screen.get_width()
-        _height = screen.get_height()
-        # Check points to cull
-        if(point1[0] < 0 and point2[0] < 0 and point3[0] < 0) or (point1[0] > _width and point2[0] > _width and point3[0] > _width):
-            return
-        if(point1[1] < 0 and point2[1] < 0 and point3[1] < 0) or (point1[1] > _height and point2[1] > _height and point3[1] > _height):
-            return
-
-        ctx.visual.render_polygon([point1, point2, point3], color)
-        # pygame.draw.polygon(screen, color, [point1, point2, point3])
-
-    @staticmethod
-    def render_graph(ctx: Context, graph: IGraph, draw_id: bool, node_color: tuple, edge_color: tuple):
-        """
-        Render the graph by drawing its nodes and edges on the screen. This is the default rendering method for graphs.
-
-        Args:
-            ctx (Context): The current simulation context.
-            graph (IGraph): The graph to render.
-        """
-        
-        screen = ctx.visual.screen
-        for edge in graph.edges.values():
-            RenderManager._draw_edge(ctx, screen, graph, edge, edge_color)
-        for node in graph.nodes.values():
-            RenderManager._draw_node(ctx, screen, node, node_color, draw_id)
-        
-
-    @staticmethod
-    def _draw_edge(ctx, screen, graph, edge, edge_color):
-        """Draw an edge as a curve or straight line based on the linestring."""
-        source = graph.nodes[edge.source]
-        target = graph.nodes[edge.target]
-        
-        (_source_x, _source_y) = ctx.visual._graph_visual.ScalePositionToScreen((source.x, source.y))
-        (_target_x, _target_y) = ctx.visual._graph_visual.ScalePositionToScreen((target.x, target.y))
-
-        _width = screen.get_width()
-        _height = screen.get_height()
-        # Check points to cull
-        if(_source_x < 0 and _target_x < 0) or (_source_x > _width and _target_x > _width):
-            return
-        if(_source_y < 0 and _target_y < 0) or (_source_y > _height and _target_y > _height ):
-            return
-        
-        _color = ctx.visual._graph_visual.getEdgeColor(edge.source, edge.target)
-        if _color is None:
-            _color = edge_color
-
-        # If linestring is present, draw it as a curve
-        if edge.linestring:
-            #linestring[1:-1]
-            linestring = [(source.x, source.y)] + [(x, y) for (x, y) in edge.linestring.coords] + [(target.x, target.y)]
-            scaled_points = [
-                (ctx.visual._graph_visual.ScalePositionToScreen((x, y)))
-                for x, y in linestring
-            ]
-            ctx.visual.render_lines(scaled_points, _color, isAA=True)
-        else:
-            # Straight line
-            source_position = (source.x, source.y)
-            target_position = (target.x, target.y)
-            (x1, y1) = ctx.visual._graph_visual.ScalePositionToScreen(source_position)
-            (x2, y2) = ctx.visual._graph_visual.ScalePositionToScreen(target_position)
-
-            ctx.visual.render_line(x1, y1, x2, y2, _color, 2)
-
-    @staticmethod
-    def _draw_node(ctx, screen, node, node_color=(169, 169, 169), draw_id=False):
-        position = (node.x, node.y)
-        (x, y) = ctx.visual._graph_visual.ScalePositionToScreen(position)
-
-        _width = screen.get_width()
-        _height = screen.get_height()
-        # Check points to cull
-        if (x < 0 or x > _width or y < 0 or y > _height):
-            return
-        
-        color = ctx.visual._graph_visual.getNodeColorById(node.id)
-        scale = 8
-        if color is None:
-            color = node_color
-            scale = 4
-
-        ctx.visual.render_circle(int(x), int(y), scale, color)
-
-        if draw_id:
-            ctx.visual.render_text(str(node.id), int(x), int(y) + 10, (0, 0, 0), Space.Screen)
+                drawer(self.ctx, artist)
