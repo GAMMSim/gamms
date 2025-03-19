@@ -7,7 +7,7 @@ from gamms.VisualizationEngine.default_drawers import render_agent, render_graph
 from gamms.context import Context
 from gamms.typing.artist import IArtist, ArtistType
 from gamms.typing.sensor_engine import SensorType
-
+from gamms.typing.opcodes import OpCodes
 from typing import Dict, Any
 
 import pygame
@@ -432,6 +432,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._waiting_agent_name = None
 
     def simulate(self):
+        if self.ctx.record.record():
+            self.ctx.record.write(opCode=OpCodes.SIMULATE, data={})
         self._waiting_simulation = True
         self._simulation_time = 0
 
