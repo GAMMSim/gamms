@@ -30,3 +30,15 @@ class NoEngine(IVisualizationEngine):
     
     def terminate(self):
         return
+    
+    # METHODS TO BE DELETED
+    # ONLY FOR BETA v0.2
+
+    def is_waiting_simulation(self) -> bool:
+        return False
+    
+    def is_waiting_input(self) -> bool:
+        return False
+    
+    def on_artist_change_layer(self) -> None:
+        return

@@ -257,30 +257,6 @@ class IVisualizationEngine(ABC):
         """
         pass
 
-    @abstractmethod
-    def fill_layer(self, layer_id: int, color: tuple):
-        """
-        Fill a layer with the specified color.
-
-        Args:
-            layer_id (int): The unique identifier of the layer to fill.
-            color (tuple): The color to fill the layer with in RGB format.
-        """
-        pass
-
-    @abstractmethod
-    def render_layer(self, layer_id: int, left: float, top: float, width: float, height: float):
-        """
-        Render a layer to the screen with the specified dimensions at the given position.
-
-        Args:
-            layer_id (int): The unique identifier of the layer to render.
-            left (float): The x-coordinate of the left edge of the layer.
-            top (float): The y-coordinate of the top edge of the layer.
-            width (float): The width of the layer.
-            height (float): The height of the layer.
-        """
-        pass
 
     @abstractmethod
     def is_waiting_simulation(self) -> bool:
