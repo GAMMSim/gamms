@@ -18,7 +18,7 @@ import pickle
 
 ctx = gamms.create_context(vis_engine=vis_engine)
 
-# ctx.record.start(path="recording")
+ctx.record.start(path="recording")
 
 # Load the graph
 with open(graph_path, 'rb') as f:
