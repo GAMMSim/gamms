@@ -110,6 +110,7 @@ class MapSensor(ISensor):
                 valid_indices = in_range_indices[valid_mask]
             sensed_nodes = {self.node_ids[i]: self.nodes[self.node_ids[i]] for i in valid_indices}
 
+        # Now, compute the connecting edges from the sensing node to each sensed node.
         sensed_edges = {}
         # Retrieve edges from the graph via the context's graph engine.
         graph_edges = self.ctx.graph_engine.graph.edges
