@@ -144,10 +144,10 @@ def _render_graph_edge(ctx: Context, graph_data, graph, edge, edge_color, layer,
 def _render_graph_node(ctx: Context, node, node_color, draw_id, layer, input_options):
     if ctx.visual.is_waiting_input() and node.id in input_options.values():
         color = (0, 255, 0)
-        radius = 16
+        radius = 4
     else:
         color = node_color
-        radius = 8
+        radius = 2
 
     ctx.visual.render_circle(node.x, node.y, radius, color, layer=layer)
 
@@ -187,7 +187,7 @@ def render_map_sensor(ctx: Context, artist: IArtist):
     sensed_nodes = list(sensed_nodes.keys())
     for node_id in sensed_nodes:
         node = ctx.graph.graph.get_node(node_id)
-        ctx.visual.render_circle(node.x, node.y, 2, node_color)
+        ctx.visual.render_circle(node.x, node.y, 1, node_color)
 
     edge_color = artist.get_data('edge_color', Color.Cyan)
     sensed_edges = sensor_data.get('edges', {})

@@ -120,21 +120,27 @@ class RenderManager:
         """
         Transforms a world coordinate to a screen coordinate.
         """
-        if layer not in self._graph_layers:
-            x -= self.camera_x
-            y -= self.camera_y
-            screen_x = (x + self.camera_size) / (2 * self.camera_size) * self.screen_width
-            screen_y = (-y + self.camera_size_y) / (2 * self.camera_size_y) * self.screen_height
-            return screen_x, screen_y
-        else:
-            x -= self._default_origin[0]
-            y -= self._default_origin[1]
-            x_scale = (self._surface_size / 2 + x) / self._surface_size
-            y_scale = (self._surface_size / 2 - y) / self._surface_size
-            surface_x = x_scale * 3000
-            surface_y = y_scale * 3000
+        x -= self.camera_x
+        y -= self.camera_y
+        screen_x = (x + self.camera_size) / (2 * self.camera_size) * self.screen_width
+        screen_y = (-y + self.camera_size_y) / (2 * self.camera_size_y) * self.screen_height
+        return screen_x, screen_y
 
-            return surface_x, surface_y
+        # if layer not in self._graph_layers:
+        #     x -= self.camera_x
+        #     y -= self.camera_y
+        #     screen_x = (x + self.camera_size) / (2 * self.camera_size) * self.screen_width
+        #     screen_y = (-y + self.camera_size_y) / (2 * self.camera_size_y) * self.screen_height
+        #     return screen_x, screen_y
+        # else:
+        #     x -= self._default_origin[0]
+        #     y -= self._default_origin[1]
+        #     x_scale = (self._surface_size / 2 + x) / self._surface_size
+        #     y_scale = (self._surface_size / 2 - y) / self._surface_size
+        #     surface_x = x_scale * 3000
+        #     surface_y = y_scale * 3000
+        #
+        #     return surface_x, surface_y
     
     def screen_to_world(self, x: float, y: float) -> tuple[float, float]:
         """
