@@ -51,6 +51,5 @@ def create_context(
     else:
         ctx.logger.setLevel(logger.INFO)
     ctx.logger.info(f"Setting log level to {ctx.logger.level}")
-    ctx.logger.setLevel(logger.WARNING)
     ctx.set_alive()
     return ctx
