@@ -10,8 +10,8 @@ class RenderManager:
         self._screen_height = screen_height
         self._aspect_ratio = self._screen_width / self._screen_height
 
-        self._camera_x = camera_x
-        self._camera_y = camera_y
+        self._camera_x = int(camera_x)
+        self._camera_y = int(camera_y)
         self._camera_size = camera_size
         self._camera_size_y = camera_size / self.aspect_ratio
 
@@ -33,9 +33,9 @@ class RenderManager:
         self._bound_bottom = self.camera_size_y + self.camera_y
 
     def set_origin(self, x: float, y: float, graph_width: float, graph_height: float):
-        self.camera_x = x
-        self.camera_y = y
-        self._default_origin = (x, y)
+        self.camera_x = int(x)
+        self.camera_y = int(y)
+        self._default_origin = (self.camera_x, self.camera_y)
         self._surface_size = max(graph_width, graph_height) + 200
  
     @property

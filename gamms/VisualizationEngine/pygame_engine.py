@@ -152,19 +152,19 @@ class PygameVisualizationEngine(IVisualizationEngine):
         pressed_keys = pygame.key.get_pressed()
         scroll_speed = self._render_manager.camera_size / 2
         if pressed_keys[pygame.K_a] or pressed_keys[pygame.K_LEFT]:
-            self._render_manager.camera_x -= scroll_speed * self._clock.get_time() / 1000
+            self._render_manager.camera_x -= int(scroll_speed * self._clock.get_time() / 1000)
             self._redraw_graph_artists()
 
         if pressed_keys[pygame.K_d] or pressed_keys[pygame.K_RIGHT]:
-            self._render_manager.camera_x += scroll_speed * self._clock.get_time() / 1000
+            self._render_manager.camera_x += int(scroll_speed * self._clock.get_time() / 1000)
             self._redraw_graph_artists()
 
         if pressed_keys[pygame.K_w] or pressed_keys[pygame.K_UP]:
-            self._render_manager.camera_y += scroll_speed * self._clock.get_time() / 1000
+            self._render_manager.camera_y += int(scroll_speed * self._clock.get_time() / 1000)
             self._redraw_graph_artists()
 
         if pressed_keys[pygame.K_s] or pressed_keys[pygame.K_DOWN]:
-            self._render_manager.camera_y -= scroll_speed * self._clock.get_time() / 1000
+            self._render_manager.camera_y -= int(scroll_speed * self._clock.get_time() / 1000)
             self._redraw_graph_artists()
         
         for event in pygame.event.get():
@@ -298,10 +298,12 @@ class PygameVisualizationEngine(IVisualizationEngine):
                       perform_culling_test: bool=True):
         if perform_culling_test and self._render_manager.check_circle_culled(x, y, radius):
             return
-
-        (x, y) = self._render_manager.world_to_screen(x, y, layer)
+        
         radius = self._render_manager.world_to_screen_scale(radius)
-
+        if radius < 1:
+            return
+        
+        (x, y) = self._render_manager.world_to_screen(x, y, layer)
         surface = self._get_target_surface(layer)
         pygame.draw.circle(surface, color, (x, y), radius)
 
