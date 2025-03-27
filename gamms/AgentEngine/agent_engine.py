@@ -207,7 +207,7 @@ class AgentEngine(IAgentEngine):
             try:
                 agent.register_sensor(sensor, self.ctx.sensor.get_sensor(sensor))
             except KeyError:
-                print(f"Ignoring sensor {sensor} for agent {name}")
+                self.ctx.logger.warning(f"Ignoring sensor {sensor} for agent {name}")
         if name in self.agents:
             raise ValueError(f"Agent {name} already exists.")
         self.agents[name] = agent
@@ -225,7 +225,7 @@ class AgentEngine(IAgentEngine):
             self.ctx.record.write(opCode=OpCodes.AGENT_DELETE, data=name)
             
         if name not in self.agents:
-            print("Warning: Deleting non-existent agent")
+            self.ctx.logger.warning(f"Deleting non-existent agent {name}")
         self.agents.pop(name, None)
 
     def terminate(self):
