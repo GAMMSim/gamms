@@ -1,4 +1,4 @@
-# GAMMS v0.1
+# GAMMS v0.2
 
 ## Requirements
 
