@@ -77,15 +77,3 @@ class ILogger(ABC):
             level (str): The logging level to set (e.g., 'DEBUG', 'INFO', 'WARNING', 'ERROR').
         """
         pass
-
-    @abstractmethod
-    def basicConfig(self, **kwargs) -> None:
-        """
-        Configure the logging system.
-
-        Args:
-            **kwargs: Additional keyword arguments for configuration.
-        """
-        pass
-
-
