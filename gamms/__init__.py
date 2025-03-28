@@ -15,8 +15,11 @@ import os
 def create_context(
     vis_engine: Enum = visual.Engine.NO_VIS,
     vis_kwargs: dict = None,
+    logger_config: dict = None,
 ) -> Context:
     _logger = logging.getLogger("gamms")
+    if logger_config is None:
+        logger_config = {}
     ctx = Context(logger=_logger)
     if vis_kwargs is None:
         vis_kwargs = {}
@@ -39,17 +42,21 @@ def create_context(
     ctx.recorder = Recorder(ctx)
     loglevel = os.environ.get("GAMMS_LOG_LEVEL", "INFO").upper()
     if loglevel == "DEBUG":
-        ctx.logger.setLevel(logger.DEBUG)
+        loglevel = logger.DEBUG
     elif loglevel == "INFO":
-        ctx.logger.setLevel(logger.INFO)
+        loglevel = logger.INFO
     elif loglevel == "WARNING":
-        ctx.logger.setLevel(logger.WARNING)
+        loglevel = logger.WARNING
     elif loglevel == "ERROR":
-        ctx.logger.setLevel(logger.ERROR)
+        loglevel = logger.ERROR
     elif loglevel == "CRITICAL":
-        ctx.logger.setLevel(logger.CRITICAL)
+        loglevel = logger.CRITICAL
     else:
-        ctx.logger.setLevel(logger.INFO)
+        loglevel = logger.INFO
+    if "level" not in logger_config:
+        logger_config["level"] = loglevel
+    
+    ctx.logger.basicConfig(**logger_config)
     ctx.logger.info(f"Setting log level to {ctx.logger.level}")
     ctx.set_alive()
     return ctx
