@@ -4,10 +4,10 @@ from gamms.typing import (
     ISensorEngine,
     IVisualizationEngine,
     IAgentEngine,
-    IGraphEngine
+    IGraphEngine,
+    IRecorder,
+    ILogger,
 )
-from gamms.typing.recorder import IRecorder
-
 
 class IContext(ABC):
     """
@@ -126,3 +126,20 @@ class IContext(ABC):
         """
         pass
 
+    @property
+    @abstractmethod
+    def logger(self) -> ILogger:
+        """
+        Retrieve the logger.
+
+        The logger is responsible for logging messages and events within the system.
+        It provides various logging levels (debug, info, warning, error, critical)
+        for structured logging.
+
+        Returns:
+            ILogger: An instance of the logger engine.
+
+        Raises:
+            RuntimeError: If the logger engine is not properly initialized.
+        """
+        pass

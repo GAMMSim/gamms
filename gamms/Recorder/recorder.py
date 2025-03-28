@@ -13,39 +13,39 @@ _T = TypeVar('_T')
 
 def _record_switch_case(ctx: IContext, opCode: OpCodes, data: JsonType) -> None:
     if opCode == OpCodes.AGENT_CREATE:
-        print(f"Creating agent {data['name']} at node {data['kwargs']['start_node_id']}")
+        ctx.logger.info(f"Creating agent {data['name']} at node {data['kwargs']['start_node_id']}")
         ctx.agent.create_agent(data["name"], **data["kwargs"])
     elif opCode == OpCodes.AGENT_DELETE:
-        print(f"Deleting agent {data}")
+        ctx.logger.info(f"Deleting agent {data['name']}")
         ctx.agent.delete_agent(data)
     elif opCode == OpCodes.SIMULATE:
         ctx.visual.simulate()
     elif opCode == OpCodes.AGENT_CURRENT_NODE:
-        print(f"Agent {data['agent_name']} moved to node {data['node_id']}")
+        ctx.logger.info(f"Agent {data['agent_name']} moved to node {data['node_id']}")
         ctx.agent.get_agent(data["agent_name"]).current_node_id = data["node_id"]
     elif opCode == OpCodes.AGENT_PREV_NODE:
         ctx.agent.get_agent(data["agent_name"]).prev_node_id = data["node_id"]
     elif opCode == OpCodes.COMPONENT_REGISTER:
         cls_key = tuple(data["key"])
         if ctx.record.is_component_registered(cls_key):
-            print(f"Component {cls_key} already registered.")
+            ctx.logger.warning(f"Component {cls_key} already registered.")
         else:
-            print(f"Registering component {cls_key} of type {data['struct']}")
+            ctx.logger.info(f"Registering component {cls_key} of type {data['struct']}")
             module, name = cls_key
             cls_type = type(name, (object,), {})
             cls_type.__module__ = module
             struct = {key: eval(value) for key, value in data["struct"].items()}
             ctx.record.component(struct=struct)(cls_type)
     elif opCode == OpCodes.COMPONENT_CREATE:
-        print(f"Creating component {data['name']} of type {data['type']}")
+        ctx.logger.info(f"Creating component {data['name']} of type {data['type']}")
         cls_key = tuple(data["type"])
         ctx.record._component_registry[cls_key](name=data["name"])
     elif opCode == OpCodes.COMPONENT_UPDATE:
-        print(f"Updating component {data['name']} with key {data['key']} to value {data['value']}")
+        ctx.logger.info(f"Updating component {data['name']} with key {data['key']} to value {data['value']}")
         obj = ctx.record.get_component(data["name"])
         setattr(obj, data["key"], data["value"])
     elif opCode == OpCodes.TERMINATE:
-        print("Terminating...")
+        ctx.logger.info("Terminating...")
     else:
         raise ValueError(f"Invalid opcode {opCode}")
 
@@ -102,21 +102,21 @@ class Recorder(IRecorder):
 
     def pause(self) -> None:
         if not self.is_recording:
-            print("Warning: Recording has not started.")
+            self.ctx.logger.warning("Recording has not started.")
         elif self.is_paused:
-            print("Warning: Recording is already paused.")
+            self.ctx.logger.warning("Recording is already paused.")
         else:
             self.is_paused = True
-            print("Recording paused.")
+            self.ctx.logger.info("Recording paused.")
 
     def play(self) -> None:
         if not self.is_recording:
-            print("Warning: Recording has not started.")
+            self.ctx.logger.warning("Recording has not started.")
         elif not self.is_paused:
-            print("Warning: Recording is already playing.")
+            self.ctx.logger.warning("Recording is not paused.")
         else:
             self.is_paused = False
-            print("Recording resumed.")
+            self.ctx.logger.info("Recording resumed.")
 
     def replay(self, path: Union[str, BinaryIO]):
         if self._fp_replay is not None:
@@ -152,7 +152,7 @@ class Recorder(IRecorder):
                 self.is_replaying = False
                 self._fp_replay.close()
                 self._fp_replay = None
-                print(f"Error reading record: {e}")
+                self.ctx.logger.error(f"Error reading record: {e}")
                 raise ValueError("Recording ended unexpectedly.")
             self._time = record["timestamp"]
             opCode = OpCodes(record["opCode"])

@@ -6,11 +6,21 @@ from gamms.Recorder.recorder import Recorder
 from gamms.context import Context
 from enum import Enum
 
+from gamms.typing import logger
+
+import logging
+
+import os
+
 def create_context(
     vis_engine: Enum = visual.Engine.NO_VIS,
     vis_kwargs: dict = None,
+    logger_config: dict = None,
 ) -> Context:
-    ctx = Context()
+    _logger = logging.getLogger("gamms")
+    if logger_config is None:
+        logger_config = {}
+    ctx = Context(logger=_logger)
     if vis_kwargs is None:
         vis_kwargs = {}
     if vis_engine == visual.Engine.NO_VIS:
@@ -30,5 +40,23 @@ def create_context(
     ctx.visual_engine = visual_engine
     ctx.sensor_engine = sensor_engine
     ctx.recorder = Recorder(ctx)
+    loglevel = os.environ.get("GAMMS_LOG_LEVEL", "INFO").upper()
+    if loglevel == "DEBUG":
+        loglevel = logger.DEBUG
+    elif loglevel == "INFO":
+        loglevel = logger.INFO
+    elif loglevel == "WARNING":
+        loglevel = logger.WARNING
+    elif loglevel == "ERROR":
+        loglevel = logger.ERROR
+    elif loglevel == "CRITICAL":
+        loglevel = logger.CRITICAL
+    else:
+        loglevel = logger.INFO
+    if "level" not in logger_config:
+        logger_config["level"] = loglevel
+    
+    logging.basicConfig(**logger_config)
+    ctx.logger.info(f"Setting log level to {ctx.logger.level}")
     ctx.set_alive()
     return ctx
