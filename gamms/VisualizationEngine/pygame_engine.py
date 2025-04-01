@@ -29,7 +29,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._will_quit = False
         self._render_manager = RenderManager(ctx, 0, 0, 15, width, height)
         self._surface_dict : dict[int, pygame.Surface ] = {}
-        self._scaled_surface_cache: dict[int, pygame.Surface] = {}
         self._agent_artists: dict[str, IArtist] = {}
         self._graph_artists: dict[str, IArtist] = {}
     
@@ -46,7 +45,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         return layer_id
 
-    #FIXME: add layer as a optional argument
     def set_graph_visual(self, **kwargs):
         graph = self.ctx.graph.graph
         x_list = [node.x for node in graph.get_nodes().values()]
@@ -59,9 +57,10 @@ class PygameVisualizationEngine(IVisualizationEngine):
         y_mean = sum(y_list) / len(y_list) if len(y_list) > 0 else 0
         self._render_manager.set_origin(x_mean, y_mean, x_max - x_min, y_max - y_min)
         self._render_manager.camera_size = max(x_max - x_min, y_max - y_min)
-        layer_id = self.create_layer(10, 3000, 3000)
-
-        #FIXME: add some way to let layer_ID be = None
+        width = self._render_manager.screen_width
+        height = self._render_manager.screen_height
+        layer_id = self.create_layer(10, width, height)
+        
         graph_data = GraphData(node_color=kwargs.get('node_color', Color.DarkGray),
                                edge_color=kwargs.get('edge_color', Color.LightGray), 
                                draw_id=kwargs.get('draw_id', False),
@@ -80,7 +79,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         return artist
     
     def set_agent_visual(self, name, **kwargs):
-        # layer_id = self.create_layer(20, 3000, 3000)
         
         agent_data = AgentData(name=name, color=kwargs.get('color', Color.Black), size=kwargs.get('size', 8))
 
@@ -130,8 +128,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
             self._agent_artists[name] = artist
         elif artist.get_artist_type() == ArtistType.GRAPH:
             self._graph_artists[name] = artist
-
-        #print("add_artist():self._surface_dict: ", self._surface_dict)
+            
         self._render_manager.add_artist(name, artist)
 
     def remove_artist(self, name):
@@ -150,16 +147,20 @@ class PygameVisualizationEngine(IVisualizationEngine):
         pressed_keys = pygame.key.get_pressed()
         scroll_speed = self._render_manager.camera_size / 2
         if pressed_keys[pygame.K_a] or pressed_keys[pygame.K_LEFT]:
-            self._render_manager.camera_x -= scroll_speed * self._clock.get_time() / 1000
+            self._render_manager.camera_x -= int(scroll_speed * self._clock.get_time() / 1000)
+            self._redraw_graph_artists()
 
         if pressed_keys[pygame.K_d] or pressed_keys[pygame.K_RIGHT]:
-            self._render_manager.camera_x += scroll_speed * self._clock.get_time() / 1000
+            self._render_manager.camera_x += int(scroll_speed * self._clock.get_time() / 1000)
+            self._redraw_graph_artists()
 
         if pressed_keys[pygame.K_w] or pressed_keys[pygame.K_UP]:
-            self._render_manager.camera_y += scroll_speed * self._clock.get_time() / 1000
+            self._render_manager.camera_y += int(scroll_speed * self._clock.get_time() / 1000)
+            self._redraw_graph_artists()
 
         if pressed_keys[pygame.K_s] or pressed_keys[pygame.K_DOWN]:
-            self._render_manager.camera_y -= scroll_speed * self._clock.get_time() / 1000
+            self._render_manager.camera_y -= int(scroll_speed * self._clock.get_time() / 1000)
+            self._redraw_graph_artists()
         
         for event in pygame.event.get():
             if event.type == pygame.MOUSEWHEEL:
@@ -168,8 +169,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
                         self._render_manager.camera_size /= 1.05
                 else:
                     self._render_manager.camera_size *= 1.05
+                    
+                self._redraw_graph_artists()
 
-                self._scaled_surface_cache.clear()
             if event.type == pygame.QUIT:
                 self._will_quit = True
                 self._input_option_result = -1
@@ -252,6 +254,11 @@ class PygameVisualizationEngine(IVisualizationEngine):
         else:
             raise ValueError("Invalid coord_space value. Must be one of the values in the Space enum.")
         
+    def _redraw_graph_artists(self):
+        for graph_artist in self._graph_artists.values():
+            self.clear_layer(graph_artist.get_layer())
+            graph_artist.draw()
+        
     def _get_target_surface(self, layer: int):
         if layer >= 0:
             return self._surface_dict.get(layer, self._screen)
@@ -285,10 +292,12 @@ class PygameVisualizationEngine(IVisualizationEngine):
                       perform_culling_test: bool=True):
         if perform_culling_test and self._render_manager.check_circle_culled(x, y, radius):
             return
-
-        (x, y) = self._render_manager.world_to_screen(x, y, layer)
+        
         radius = self._render_manager.world_to_screen_scale(radius)
-
+        if radius < 1:
+            return
+        
+        (x, y) = self._render_manager.world_to_screen(x, y, layer)
         surface = self._get_target_surface(layer)
         pygame.draw.circle(surface, color, (x, y), radius)
 
@@ -329,6 +338,10 @@ class PygameVisualizationEngine(IVisualizationEngine):
         surface = self._get_target_surface(layer)
         pygame.draw.polygon(surface, color, points, width)
 
+    def clear_layer(self, layer_id: int):
+        if layer_id in self._surface_dict:
+            self._surface_dict[layer_id].fill((0, 0, 0, 0))
+
     def fill_layer(self, layer_id: int, color: tuple):
         if layer_id in self._surface_dict:
             self._surface_dict[layer_id].fill(color)
@@ -336,12 +349,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
     def render_layer(self, layer_id: int, left: float, top: float, width: float, height: float):
         if layer_id in self._surface_dict:
             surface = self._surface_dict[layer_id]
-
-            if layer_id not in self._scaled_surface_cache:
-                scaled_surface = pygame.transform.scale(surface, (width, height))
-                self._scaled_surface_cache[layer_id] = scaled_surface
-
-            self._screen.blit(self._scaled_surface_cache[layer_id], (left, top))
+            self._screen.blit(surface, (0, 0))
 
     def _draw_grid(self):
         x_min = self._render_manager.camera_x - self._render_manager.camera_size * 4
@@ -389,12 +397,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         waiting_agent_artist.set_data('_is_waiting', True)
 
         options = get_neighbours(state)
-        # options: list[int] = [edge.target for edge in edges]
-
-        # for node_id in options:
-        #     if node_id != current_agent.current_node_id:
-        #         self.ctx.visual._graph_visual.setEdgeColor(current_agent.current_node_id, node_id, (0, 255, 0))
-        #         self.ctx.visual._graph_visual.setEdgeColor(node_id, current_agent.current_node_id, (0, 255, 0))
 
         self._input_options: dict[int, int] = {}
         for i in range(min(len(options), 10)):
@@ -403,6 +405,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         for graph_artist in self._graph_artists.values():
             graph_artist.set_data('_waiting_agent_name', agent_name)
             graph_artist.set_data('_input_options', self._input_options)
+
+        self._redraw_graph_artists()
 
         while self._waiting_user_input:
             # still need to update the render
@@ -430,6 +434,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._waiting_user_input = False
         self._input_option_result = None
         self._waiting_agent_name = None
+
+        self._redraw_graph_artists()
 
     def simulate(self):
         if self.ctx.record.record():

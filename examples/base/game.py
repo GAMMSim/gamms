@@ -116,7 +116,7 @@ while not ctx.is_terminated():
             node = ctx.visual.human_input(agent.name, state)
             state['action'] = node
 
-        
+
         agent_artists[agent.name].set_visible(False)
         for sensor in agent._sensor_list.values():
             sensor_artists[sensor.sensor_id].set_visible(False)

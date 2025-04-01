@@ -10,8 +10,8 @@ class RenderManager:
         self._screen_height = screen_height
         self._aspect_ratio = self._screen_width / self._screen_height
 
-        self._camera_x = camera_x
-        self._camera_y = camera_y
+        self._camera_x = int(camera_x)
+        self._camera_y = int(camera_y)
         self._camera_size = camera_size
         self._camera_size_y = camera_size / self.aspect_ratio
 
@@ -19,7 +19,6 @@ class RenderManager:
 
         self._artists: dict[str, IArtist] = {}
         # This will call drawer on all artists in the respective layer
-        # self._update_layer: dict[str, bool] = {}
         self._layer_artists: dict[int, list[str]] = {}
         self._graph_layers = set()
 
@@ -33,9 +32,9 @@ class RenderManager:
         self._bound_bottom = self.camera_size_y + self.camera_y
 
     def set_origin(self, x: float, y: float, graph_width: float, graph_height: float):
-        self.camera_x = x
-        self.camera_y = y
-        self._default_origin = (x, y)
+        self.camera_x = int(x)
+        self.camera_y = int(y)
+        self._default_origin = (self.camera_x, self.camera_y)
         self._surface_size = max(graph_width, graph_height) + 200
  
     @property
@@ -120,21 +119,11 @@ class RenderManager:
         """
         Transforms a world coordinate to a screen coordinate.
         """
-        if layer not in self._graph_layers:
-            x -= self.camera_x
-            y -= self.camera_y
-            screen_x = (x + self.camera_size) / (2 * self.camera_size) * self.screen_width
-            screen_y = (-y + self.camera_size_y) / (2 * self.camera_size_y) * self.screen_height
-            return screen_x, screen_y
-        else:
-            x -= self._default_origin[0]
-            y -= self._default_origin[1]
-            x_scale = (self._surface_size / 2 + x) / self._surface_size
-            y_scale = (self._surface_size / 2 - y) / self._surface_size
-            surface_x = x_scale * 3000
-            surface_y = y_scale * 3000
-
-            return surface_x, surface_y
+        x -= self.camera_x
+        y -= self.camera_y
+        screen_x = (x + self.camera_size) / (2 * self.camera_size) * self.screen_width
+        screen_y = (-y + self.camera_size_y) / (2 * self.camera_size_y) * self.screen_height
+        return screen_x, screen_y
     
     def screen_to_world(self, x: float, y: float) -> tuple[float, float]:
         """
@@ -212,14 +201,9 @@ class RenderManager:
             self._layer_artists = {k: self._layer_artists[k] for k in sorted(self._layer_artists.keys())}
         else:
             self._layer_artists[artist.get_layer()].append(name)
-        #print("add_artist().self._layer_artists: ", self._layer_artists)
 
         if artist.get_artist_type() == ArtistType.GRAPH:
             self._graph_layers.add(artist.get_layer())
-        
-        # Defaults to true, custom drawers can set this to false
-        # self._update_layer[name] = True
-        # print("add_artist().self._update_layer: ", self._update_layer)
 
     def remove_artist(self, name: str):
         """

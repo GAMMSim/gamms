@@ -13,15 +13,15 @@ class NoEngine(IVisualizationEngine):
     
     def set_graph_visual(self, **kwargs) -> IArtist:
         dummy = lambda ctx, data: None
-        return Artist(ctx, dummy, layer=10)
+        return Artist(self.ctx , dummy, layer=10)
     
     def set_agent_visual(self, agent_name: str, **kwargs) -> IArtist:
         dummy = lambda ctx, data: None
-        return Artist(ctx, dummy, layer=20)
+        return Artist(self.ctx , dummy, layer=20)
     
     def set_sensor_visual(self, sensor_name: str, **kwargs) -> IArtist:
         dummy = lambda ctx, data: None
-        return Artist(ctx, dummy, layer=40)
+        return Artist(self.ctx , dummy, layer=40)
     
     def add_artist(self, name:str, artist: IArtist) -> None:
         return
