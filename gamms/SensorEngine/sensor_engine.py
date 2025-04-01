@@ -284,7 +284,7 @@ class SensorEngine(ISensorEngine):
                 sensor_id, 
                 sensor_type, 
                 self.ctx.agent, 
-                sensor_range=kwargs.get('sensor_range', 30),
+                sensor_range=float('inf'),
                 fov=kwargs.get('fov', 2 * math.pi),
                 owner=None  # Set owner when registering sensor to an agent.
             )
