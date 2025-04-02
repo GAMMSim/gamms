@@ -10,40 +10,14 @@ class ArtistType(Enum):
 
 
 class IArtist(ABC):
-    @abstractmethod
-    def set_data(self, key: str, value: Any) -> None:
-        """
-        Set a custom data for the artist.
+    """
+    Interface for the artist.
 
-        Args:
-            key: The key of the data.
-            value: The value of the data
-        """
-        pass
+    Attributes:
+        data (Dict[str, Any] | Any): The custom data associated with the artist. Default is an empty dictionary but users can set it to any type.
+    """
 
-    @abstractmethod
-    def get_data(self, key: str, default_value: Any=None) -> Any:
-        """
-        Get a custom data for the artist.
-
-        Args:
-            key: The key of the data.
-            default_value: The default value if the key does not exist.
-
-        Returns:
-            The value of the data.
-        """
-        pass
-
-    @abstractmethod
-    def get_data_dict(self) -> Dict[str, Any]:
-        """
-        Get the dictionary containing all custom data for the artist.
-
-        Returns:
-            Dict[str, Any]: The dictionary of custom data.
-        """
-        pass
+    data: Dict[str, Any] | Any
 
     @abstractmethod
     def set_layer(self, layer: int) -> None:

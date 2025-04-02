@@ -69,9 +69,9 @@ def custom_circle_drawer(ctx: IContext, artist: IArtist):
         ctx (IContext): The context you set when creating the artist.
         artist (IArtist): The artist you created.
     """
-    position = artist.get_data('position')
-    radius = artist.get_data('radius')
-    color = artist.get_data('color')
+    position = artist.data.get('position')
+    radius = artist.data.get('radius')
+    color = artist.data.get('color')
     ctx.visual.render_circle(position[0], position[1], radius, color, layer=artist.get_layer())
 
 # Special nodes
@@ -79,17 +79,17 @@ n1 = ctx.graph.graph.get_node(0)
 n2 = ctx.graph.graph.get_node(1)
 
 custom_artist1 = Artist(ctx, custom_circle_drawer)
-custom_artist1.set_data('position', (n1.x, n1.y))
-custom_artist1.set_data('radius', 10.0)
-custom_artist1.set_data('color', Color.Red)
+custom_artist1.data['position'] = (n1.x, n1.y)
+custom_artist1.data['radius'] = 10
+custom_artist1.data['color'] = Color.Red
 ctx.visual.add_artist('special_node', custom_artist1)
 
 custom_artist2 = Artist(ctx, render_rectangle)
-custom_artist2.set_data('x', n2.x)
-custom_artist2.set_data('y', n2.y)
-custom_artist2.set_data('width', 10)
-custom_artist2.set_data('height', 10)
-custom_artist2.set_data('color', Color.Cyan)
+custom_artist2.data['x'] = n2.x
+custom_artist2.data['y'] = n2.y
+custom_artist2.data['width'] = 10
+custom_artist2.data['height'] = 10
+custom_artist2.data['color'] = Color.Cyan
 ctx.visual.add_artist('special_node2', custom_artist2)
 
 turn_count = 0
@@ -134,13 +134,13 @@ while not ctx.is_terminated():
     #valid_step(ctx)
     #agent_reset(ctx)
     if turn_count % 2 == 0:
-        custom_artist1.set_data('position', (n1.x, n1.y))
-        custom_artist2.set_data('x', n2.x)
-        custom_artist2.set_data('y', n2.y)
+        custom_artist1.data['position'] = (n1.x, n1.y)
+        custom_artist2.data['x'] = n2.x
+        custom_artist2.data['y'] = n2.y
     else:
-        custom_artist1.set_data('position', (n2.x, n2.y))
-        custom_artist2.set_data('x', n1.x)
-        custom_artist2.set_data('y', n1.y)
+        custom_artist1.data['position'] = (n2.x, n2.y)
+        custom_artist2.data['x'] = n1.x
+        custom_artist2.data['y'] = n1.y
 
     ctx.visual.simulate()
 

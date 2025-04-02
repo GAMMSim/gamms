@@ -14,10 +14,11 @@ def render_circle(ctx: Context, artist: IArtist):
         ctx (Context): The current simulation context.
         artist (IArtist): The artist object containing the circle data.
     """
-    x = artist.get_data('x')
-    y = artist.get_data('y')
-    radius = artist.get_data('radius')
-    color = artist.get_data('color', Color.Cyan)
+    data = artist.data
+    x = data.get('x')
+    y = data.get('y')
+    radius = data.get('radius')
+    color = data.get('color', Color.Cyan)
     ctx.visual.render_circle(x, y, radius, color, artist.get_layer())
 
 
@@ -29,11 +30,12 @@ def render_rectangle(ctx: Context, artist: IArtist):
         ctx (Context): The current simulation context.
         artist (IArtist): The artist object containing the rectangle data.
     """
-    x = artist.get_data('x')
-    y = artist.get_data('y')
-    width = artist.get_data('width')
-    height = artist.get_data('height')
-    color = artist.get_data('color', Color.Cyan)
+    data = artist.data
+    x = data.get('x')
+    y = data.get('y')
+    width = data.get('width')
+    height = data.get('height')
+    color = data.get('color', Color.Cyan)
     ctx.visual.render_rectangle(x, y, width, height, color, artist.get_layer())
 
 def render_agent(ctx: Context, artist: IArtist):
@@ -44,10 +46,11 @@ def render_agent(ctx: Context, artist: IArtist):
         ctx (Context): The current simulation context.
         artist (IArtist): The artist object containing the agent data.
     """
-    agent_data: AgentData = artist.get_data('agent_data')
+    data = artist.data
+    agent_data: AgentData = data.get('agent_data')
     size = agent_data.size
     color = agent_data.color
-    is_waiting = artist.get_data('_is_waiting', False)
+    is_waiting = data.get('_is_waiting', False)
     if is_waiting:
         color = Color.Magenta
         size = agent_data.size * 1.5
@@ -64,7 +67,7 @@ def render_agent(ctx: Context, artist: IArtist):
             if edge.source == agent.prev_node_id and edge.target == agent.current_node_id:
                 current_edge = edge
 
-        alpha = artist.get_data('_alpha')
+        alpha = data.get('_alpha')
         if current_edge is not None:
             point = current_edge.linestring.interpolate(alpha, True)
             position = (point.x, point.y)
@@ -93,10 +96,11 @@ def render_graph(ctx: Context, artist: IArtist):
         ctx (Context): The current simulation context.
         artist (IArtist): The artist object containing the graph data.
     """
-    graph_data: GraphData = artist.get_data('graph_data')
+    data = artist.data
+    graph_data: GraphData = data.get('graph_data')
     layer = artist.get_layer()
-    waiting_agent_name = artist.get_data('_waiting_agent_name')
-    input_options = artist.get_data('_input_options', {})
+    waiting_agent_name = data.get('_waiting_agent_name')
+    input_options = data.get('_input_options', {})
     graph = ctx.graph.graph
     node_color = graph_data.node_color
     edge_color = graph_data.edge_color
@@ -163,8 +167,9 @@ def render_neighbor_sensor(ctx: Context, artist: IArtist):
         ctx (Context): The current simulation context.
         artist (IArtist): The artist object containing the sensor data.
     """
-    sensor = artist.get_data('sensor')
-    color = artist.get_data('color', Color.Cyan)
+    data = artist.data
+    sensor = data.get('sensor')
+    color = data.get('color', Color.Cyan)
     sensor_data: dict = sensor.data
     for neighbor_node_id in sensor_data:
         neighbor_node = ctx.graph.graph.get_node(neighbor_node_id)
@@ -179,8 +184,9 @@ def render_map_sensor(ctx: Context, artist: IArtist):
         ctx (Context): The current simulation context.
         artist (IArtist): The artist object containing the sensor data.
     """
-    sensor = artist.get_data('sensor')
-    node_color = artist.get_data('node_color', Color.Cyan)
+    data = artist.data
+    sensor = data.get('sensor')
+    node_color = data.get('node_color', Color.Cyan)
     sensor_data: dict = sensor.data
 
     sensed_nodes = sensor_data.get('nodes', {})
@@ -189,7 +195,7 @@ def render_map_sensor(ctx: Context, artist: IArtist):
         node = ctx.graph.graph.get_node(node_id)
         ctx.visual.render_circle(node.x, node.y, 1, node_color)
 
-    edge_color = artist.get_data('edge_color', Color.Cyan)
+    edge_color = data.get('edge_color', Color.Cyan)
     sensed_edges = sensor_data.get('edges', {})
     sensed_edges = list(sensed_edges.values())
     
@@ -210,9 +216,10 @@ def render_map_sensor(ctx: Context, artist: IArtist):
 
 
 def render_agent_sensor(ctx: Context, artist: IArtist):
-    sensor = artist.get_data('sensor')
-    color = artist.get_data('color', Color.Cyan)
-    size = artist.get_data('size', 8)
+    data = artist.data
+    sensor = data.get('sensor')
+    color = data.get('color', Color.Cyan)
+    size = data.get('size', 8)
     sensor_data: dict = sensor.data
     sensed_agents = list(sensor_data.values())
     for agent in sensed_agents:

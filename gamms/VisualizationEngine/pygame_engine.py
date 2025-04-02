@@ -67,7 +67,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
                                layer = layer_id)
 
         artist = Artist(self.ctx, render_graph, 10)
-        artist.set_data('graph_data', graph_data)
+        artist.data['graph_data'] = graph_data
         artist.set_will_draw(False)
         artist.set_artist_type(ArtistType.GRAPH)
 
@@ -83,9 +83,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
         agent_data = AgentData(name=name, color=kwargs.get('color', Color.Black), size=kwargs.get('size', 8))
 
         artist = Artist(self.ctx, render_agent, 20)
-        artist.set_data('agent_data', agent_data)
+        artist.data['agent_data'] = agent_data
         artist.set_artist_type(ArtistType.AGENT)
-        artist.set_data('_alpha', 1)
+        artist.data['_alpha'] = 1.0
 
         self.add_artist(name, artist)
 
@@ -95,20 +95,20 @@ class PygameVisualizationEngine(IVisualizationEngine):
         sensor = self.ctx.sensor.get_sensor(sensor_name)
         sensor_type = sensor.type
         artist = Artist(self.ctx, None, kwargs.get('layer', 30))
-        artist.set_data('sensor', sensor)
+        artist.data['sensor'] = sensor
 
         if sensor_type == SensorType.NEIGHBOR:
             artist.set_drawer(render_neighbor_sensor)
-            artist.set_data('color', kwargs.get('color', Color.Cyan))
-            artist.set_data('size', kwargs.get('size', 8))
+            artist.data['color'] = kwargs.get('color', Color.Cyan)
+            artist.data['size'] = kwargs.get('size', 8)
         elif sensor_type == SensorType.MAP or sensor_type == SensorType.RANGE or sensor_type == SensorType.ARC:
             artist.set_drawer(render_map_sensor)
-            artist.set_data('node_color', kwargs.get('node_color', Color.Cyan))
-            artist.set_data('edge_color', kwargs.get('edge_color', Color.Cyan))
+            artist.data['node_color'] = kwargs.get('node_color', Color.Cyan)
+            artist.data['edge_color'] = kwargs.get('edge_color', Color.Cyan)
         elif sensor_type == SensorType.AGENT or sensor_type == SensorType.AGENT_RANGE or sensor_type == SensorType.AGENT_ARC:
             artist.set_drawer(render_agent_sensor)
-            artist.set_data('color', kwargs.get('color', Color.Cyan))
-            artist.set_data('size', kwargs.get('size', 8))
+            artist.data['color'] = kwargs.get('color', Color.Cyan)
+            artist.data['size'] = kwargs.get('size', 8)
         else:
             raise ValueError(f"Invalid sensor type: {sensor_type}")
 
@@ -197,7 +197,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
                 alpha = self._simulation_time / self._sim_time_constant
                 alpha = pygame.math.clamp(alpha, 0, 1)
                 for agent_artist in self._agent_artists.values():
-                    agent_artist.set_data('_alpha', alpha)
+                    agent_artist.data['_alpha'] = alpha
 
     def handle_single_draw(self):
         self._screen.fill(Color.White)
@@ -390,11 +390,11 @@ class PygameVisualizationEngine(IVisualizationEngine):
         prev_waiting_agent_name = self._waiting_agent_name
         if prev_waiting_agent_name is not None:
             prev_waiting_agent_artist = self._agent_artists[prev_waiting_agent_name]
-            prev_waiting_agent_artist.set_data('_is_waiting', False)
+            prev_waiting_agent_artist.data['_is_waiting'] = False
 
         self._waiting_agent_name = agent_name
         waiting_agent_artist = self._agent_artists[agent_name]
-        waiting_agent_artist.set_data('_is_waiting', True)
+        waiting_agent_artist.data['_is_waiting'] = True
 
         options = get_neighbours(state)
 
@@ -403,8 +403,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
             self._input_options[i] = options[i]
 
         for graph_artist in self._graph_artists.values():
-            graph_artist.set_data('_waiting_agent_name', agent_name)
-            graph_artist.set_data('_input_options', self._input_options)
+            graph_artist.data['_waiting_agent_name'] = agent_name
+            graph_artist.data['_input_options'] = self._input_options
 
         self._redraw_graph_artists()
 
@@ -425,11 +425,11 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
     def end_handle_human_input(self):
         for agent_artist in self._agent_artists.values():
-            agent_artist.set_data('_is_waiting', False)
+            agent_artist.data['_is_waiting'] = False
 
         for graph_artist in self._graph_artists.values():
-            graph_artist.set_data('_waiting_agent_name', None)
-            graph_artist.set_data('_input_options', None)
+            graph_artist.data['_waiting_agent_name'] = None
+            graph_artist.data['_input_options'] = None
 
         self._waiting_user_input = False
         self._input_option_result = None

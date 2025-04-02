@@ -4,22 +4,14 @@ from gamms.context import Context
 
 class Artist(IArtist):
     def __init__(self, ctx: Context, drawer: callable, layer: int = 30):
+        self.data = {}
+
         self._ctx = ctx
-        self._data = {}
         self._layer = layer
         self._visible = True
         self._will_draw = True
         self._artist_type = ArtistType.GENERAL
         self._drawer = drawer
-
-    def set_data(self, key, value):
-        self._data[key] = value
-
-    def get_data(self, key, default_value=None):
-        return self._data.get(key, default_value)
-
-    def get_data_dict(self):
-        return self._data
 
     def set_layer(self, layer):
         self._layer = layer
