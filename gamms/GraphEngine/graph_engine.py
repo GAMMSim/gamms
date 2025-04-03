@@ -5,6 +5,8 @@ from gamms.osm import create_osm_graph
 import pickle
 from shapely.geometry import LineString
 
+# TODO: Remove LineString dependency
+
 class Graph(IGraph):
     def __init__(self):
         self.nodes: Dict[int, Node] = {}
@@ -33,18 +35,28 @@ class Graph(IGraph):
         if edge_data['id'] in self.edges:
             raise KeyError(f"Edge {edge_data['id']} already exists.")
         
+        linestring = edge_data.get('linestring', None)
+        if linestring is None:
+            # Create a LineString from the source and target node coordinates
+            source_node = self.get_node(edge_data['source'])
+            target_node = self.get_node(edge_data['target'])
+            linestring = LineString([(source_node.x, source_node.y), (target_node.x, target_node.y)])
+        elif not isinstance(linestring, LineString):
+            try:
+                linestring = LineString(linestring)
+            except Exception as e:
+                raise ValueError(f"Invalid linestring data: {linestring}") from e
+        if linestring.is_empty:
+            raise ValueError(f"Invalid linestring: {linestring}")
+        
         edge = OSMEdge(
             id = edge_data['id'],
             source=edge_data['source'],
             target=edge_data['target'],
             length=edge_data['length'],
-            linestring=edge_data.get('linestring', None)
+            linestring=linestring
         )
-        #print("(key, id): ",(edge.id, edge_data['id']))
-        #print("(edge.source, edge.target): ",(edge.source, edge.target))
-        #print("(edge.length): ",(edge.length))
-        
-        #FIXME: Due to double edge error, this will need to be changed. 
+
         self.edges[edge_data['id']] = edge
 
     def update_node(self, node_data: Dict[str, Any]) -> None:
@@ -92,6 +104,18 @@ class Graph(IGraph):
             
         for u, v, data in G.edges(data=True):
             linestring = data.get('linestring', None)
+            if linestring is None:
+                # Create a LineString from the source and target node coordinates
+                source_node = self.get_node(edge_data['source'])
+                target_node = self.get_node(edge_data['target'])
+                linestring = LineString([(source_node.x, source_node.y), (target_node.x, target_node.y)])
+            elif not isinstance(linestring, LineString):
+                try:
+                    linestring = LineString(linestring)
+                except Exception as e:
+                    raise ValueError(f"Invalid linestring data: {linestring}") from e
+            if linestring.is_empty:
+                raise ValueError(f"Invalid linestring: {linestring}")
             edge_data = {
                 'id': data.get('id', -1),
                 'source': u,
