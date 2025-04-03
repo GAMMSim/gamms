@@ -21,6 +21,7 @@ class RenderManager:
         # This will call drawer on all artists in the respective layer
         self._layer_artists: dict[int, list[str]] = {}
         self._graph_layers = set()
+        self._current_drawing_artist: IArtist | None = None
 
         self._default_origin = (0, 0)
         self._surface_size = 0
@@ -103,6 +104,10 @@ class RenderManager:
     def aspect_ratio(self):
         return self._aspect_ratio
 
+    @property
+    def current_drawing_artist(self):
+        return self._current_drawing_artist
+
     def world_to_screen_scale(self, world_size: float) -> float:
         """
         Transforms a world size to a screen size.
@@ -115,7 +120,7 @@ class RenderManager:
         """
         return screen_size / self.screen_width * self.camera_size
     
-    def world_to_screen(self, x: float, y: float, layer=-1) -> tuple[float, float]:
+    def world_to_screen(self, x: float, y: float) -> tuple[float, float]:
         """
         Transforms a world coordinate to a screen coordinate.
         """
@@ -234,6 +239,22 @@ class RenderManager:
 
         self._layer_artists = {k: self._layer_artists[k] for k in sorted(self._layer_artists.keys())}
 
+    def render_single_artist(self, artist_name: str):
+        artist = self._artists.get(artist_name, None)
+        if artist is None:
+            print(f"Warning: Artist {artist_name} not found.")
+            return
+
+        drawer = artist.get_drawer()
+        if drawer is None:
+            print(f"Warning: Drawer not found for artist {artist_name}.")
+            return
+
+        self._current_drawing_artist = artist
+        data = artist.data
+        drawer(self.ctx, data)
+        self._current_drawing_artist = None
+
     def handle_render(self):
         """
         Render all render nodes in the render manager. This should be called every frame from the pygame engine to update the visualization.
@@ -241,10 +262,10 @@ class RenderManager:
         Raises:
             NotImplementedError: If the shape of a render node is not implemented and a custom drawer is not provided.
         """
-        surface_screen_size = self.world_to_screen_scale(self._surface_size)
-        surface_world_left = self._default_origin[0] - self._surface_size / 2
-        surface_world_top = self._default_origin[1] + self._surface_size / 2
-        surface_screen_left, surface_screen_top = self.world_to_screen(surface_world_left, surface_world_top)
+        # surface_screen_size = self.world_to_screen_scale(self._surface_size)
+        # surface_world_left = self._default_origin[0] - self._surface_size / 2
+        # surface_world_top = self._default_origin[1] + self._surface_size / 2
+        # surface_screen_left, surface_screen_top = self.world_to_screen(surface_world_left, surface_world_top)
         rendered_layers = set()
         for layer, artist_name_list in self._layer_artists.items():
             for artist_name in artist_name_list:
@@ -254,8 +275,7 @@ class RenderManager:
 
                 if not artist.get_will_draw():
                     if artist.get_artist_type() == ArtistType.GRAPH and layer not in rendered_layers:
-                        self.ctx.visual.render_layer(layer, surface_screen_left, surface_screen_top,
-                                                     surface_screen_size,surface_screen_size)
+                        self.ctx.visual.render_layer(layer)
                         rendered_layers.add(layer)
                     continue
 
@@ -264,4 +284,7 @@ class RenderManager:
                     print(f"Warning: Drawer not found for artist {artist_name}.")
                     continue
 
-                drawer(self.ctx, artist)
+                self._current_drawing_artist = artist
+                data = artist.data
+                drawer(self.ctx, data)
+                self._current_drawing_artist = None

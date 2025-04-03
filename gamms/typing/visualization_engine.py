@@ -158,7 +158,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_circle(self, x: float, y: float, radius: float, color: tuple, layer: int, perform_culling_test: bool):
+    def render_circle(self, x: float, y: float, radius: float, color: tuple, perform_culling_test: bool):
         """
         Render a circle shape at the specified position with the given radius and color.
 
@@ -167,13 +167,12 @@ class IVisualizationEngine(ABC):
             y (float): The y-coordinate of the circle's center.
             radius (float): The radius of the circle.
             color (tuple): The color of the circle in RGB format.
-            layer (int): The layer to render the circle on.
             perform_culling_test (bool): Whether to perform culling.
         """
         pass
 
     @abstractmethod
-    def render_rectangle(self, x: float, y: float, width: float, height: float, color: tuple, layer: int, perform_culling_test: bool):
+    def render_rectangle(self, x: float, y: float, width: float, height: float, color: tuple, perform_culling_test: bool):
         """
         Render a rectangle shape at the specified position with the given dimensions and color.
 
@@ -183,13 +182,12 @@ class IVisualizationEngine(ABC):
             width (float): The width of the rectangle.
             height (float): The height of the rectangle.
             color (tuple): The color of the rectangle in RGB format.
-            layer (int): The layer to render the rectangle on.
             perform_culling_test (bool): Whether to perform culling.
         """
         pass
 
     @abstractmethod
-    def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: tuple, width: int, layer: int, is_aa: bool, perform_culling_test: bool):
+    def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: tuple, width: int, is_aa: bool, perform_culling_test: bool):
         """
         Render a line segment between two points with the specified color and width.
 
@@ -200,14 +198,13 @@ class IVisualizationEngine(ABC):
             end_y (float): The y-coordinate of the ending point.
             color (tuple): The color of the line in RGB format.
             width (int): The width of the line in pixels. Only non-antialiasing lines supports width.
-            layer (int): The layer to render the line on.
             is_aa (bool): Whether to use antialiasing for smoother rendering.
             perform_culling_test (bool): Whether to perform culling.
         """
         pass
 
     @abstractmethod
-    def render_linestring(self, points: List[Tuple[float, float]], color: tuple, width: int, layer: int, closed: bool, is_aa: bool, perform_culling_test: bool):
+    def render_linestring(self, points: List[Tuple[float, float]], color: tuple, width: int, closed: bool, is_aa: bool, perform_culling_test: bool):
         """
         Render a series of connected line segments between multiple points.
 
@@ -215,7 +212,6 @@ class IVisualizationEngine(ABC):
             points (list[tuple[float, float]]): A list of (x, y) coordinate tuples defining the line segments.
             color (tuple): The color of the lines in RGB format.
             width (int): The width of the lines in pixels. Only non-antialiasing lines supports width.
-            layer (int): The layer to render the lines on.
             closed (bool): Whether the line segments form a closed shape.
             is_aa (bool): Whether to use antialiasing for smoother rendering.
             perform_culling_test (bool): Whether to perform culling.
@@ -223,7 +219,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_polygon(self, points: List[Tuple[float, float]], color: tuple, width: int = 0, layer = -1,
+    def render_polygon(self, points: List[Tuple[float, float]], color: tuple, width: int = 0,
                        perform_culling_test: bool = True):
         """
         Render a polygon shape or outline defined by a list of vertices with the specified color and width.
@@ -232,13 +228,12 @@ class IVisualizationEngine(ABC):
             points (list[tuple[float, float]]): A list of (x, y) coordinate tuples defining the polygon vertices.
             color (tuple): The color of the polygon in RGB format.
             width (int): The width of the polygon outline in pixels. If equal to 0, the polygon is filled.
-            layer (int): The layer to render the polygon on.
             perform_culling_test (bool): Whether to perform culling.
         """
         pass
 
     @abstractmethod
-    def render_text(self, text: str, x: float, y: float, color: tuple, layer: int, perform_culling_test: bool):
+    def render_text(self, text: str, x: float, y: float, color: tuple, perform_culling_test: bool):
         """
         Render text at the specified position with the given content and color.
 
@@ -247,7 +242,6 @@ class IVisualizationEngine(ABC):
             x (float): The x-coordinate of the text's center position.
             y (float): The y-coordinate of the text's center position.
             color (tuple): The color of the text in RGB format.
-            layer (int): The layer to render the text on.
             perform_culling_test (bool): Whether to perform culling.
         """
         pass

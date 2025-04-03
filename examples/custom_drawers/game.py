@@ -60,19 +60,19 @@ for name, config in agent_vis_config.items():
 
 
 # Example of a custom drawer
-def custom_circle_drawer(ctx: IContext, artist: IArtist):
+def custom_circle_drawer(ctx: IContext, data: dict):
     """
     In the custom artist drawer, you will get the context and the artist you set.
     You can then use the artist to get the data you set in the artist, and use the context to render the artist.
 
     Args:
         ctx (IContext): The context you set when creating the artist.
-        artist (IArtist): The artist you created.
+        data (dict): The data you set in the artist.
     """
-    position = artist.data.get('position')
-    radius = artist.data.get('radius')
-    color = artist.data.get('color')
-    ctx.visual.render_circle(position[0], position[1], radius, color, layer=artist.get_layer())
+    position = data.get('position')
+    radius = data.get('radius')
+    color = data.get('color')
+    ctx.visual.render_circle(position[0], position[1], radius, color)
 
 # Special nodes
 n1 = ctx.graph.graph.get_node(0)

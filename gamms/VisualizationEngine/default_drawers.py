@@ -6,47 +6,44 @@ from gamms.context import Context
 import math
 
 
-def render_circle(ctx: Context, artist: IArtist):
+def render_circle(ctx: Context, data: dict):
     """
     Render a circle at the specified position with the specified radius and color.
 
     Args:
         ctx (Context): The current simulation context.
-        artist (IArtist): The artist object containing the circle data.
+        data (dict): The data containing the circle's position, radius, and color.
     """
-    data = artist.data
     x = data.get('x')
     y = data.get('y')
     radius = data.get('radius')
     color = data.get('color', Color.Cyan)
-    ctx.visual.render_circle(x, y, radius, color, artist.get_layer())
+    ctx.visual.render_circle(x, y, radius, color)
 
 
-def render_rectangle(ctx: Context, artist: IArtist):
+def render_rectangle(ctx: Context, data: dict):
     """
     Render a rectangle at the specified position with the specified width, height, and color.
 
     Args:
         ctx (Context): The current simulation context.
-        artist (IArtist): The artist object containing the rectangle data.
+        data (dict): The data containing the rectangle's position, width, height, and color.
     """
-    data = artist.data
     x = data.get('x')
     y = data.get('y')
     width = data.get('width')
     height = data.get('height')
     color = data.get('color', Color.Cyan)
-    ctx.visual.render_rectangle(x, y, width, height, color, artist.get_layer())
+    ctx.visual.render_rectangle(x, y, width, height, color)
 
-def render_agent(ctx: Context, artist: IArtist):
+def render_agent(ctx: Context, data: dict):
     """
     Render an agent as a triangle at its current position on the screen. This is the default rendering method for agents.
 
     Args:
         ctx (Context): The current simulation context.
-        artist (IArtist): The artist object containing the agent data.
+        data (dict): The data containing the agent's information.
     """
-    data = artist.data
     agent_data: AgentData = data.get('agent_data')
     size = agent_data.size
     color = agent_data.color
@@ -88,17 +85,15 @@ def render_agent(ctx: Context, artist: IArtist):
     ctx.visual.render_polygon([point1, point2, point3], color)
 
 
-def render_graph(ctx: Context, artist: IArtist):
+def render_graph(ctx: Context, data: dict):
     """
     Render the graph by drawing its nodes and edges on the screen. This is the default rendering method for graphs.
 
     Args:
         ctx (Context): The current simulation context.
-        artist (IArtist): The artist object containing the graph data.
+        data (dict): The data containing the graph's information.
     """
-    data = artist.data
     graph_data: GraphData = data.get('graph_data')
-    layer = artist.get_layer()
     waiting_agent_name = data.get('_waiting_agent_name')
     input_options = data.get('_input_options', {})
     graph = ctx.graph.graph
@@ -112,12 +107,12 @@ def render_graph(ctx: Context, artist: IArtist):
     # ctx.visual.fill_layer(layer, Color.Cyan)
 
     for edge in graph.get_edges().values():
-        _render_graph_edge(ctx, graph_data, graph, edge, edge_color, layer, waiting_agent_name, target_node_id_set)
+        _render_graph_edge(ctx, graph_data, graph, edge, edge_color, waiting_agent_name, target_node_id_set)
     for node in graph.get_nodes().values():
-        _render_graph_node(ctx, node, node_color, draw_id, layer, input_options)
+        _render_graph_node(ctx, node, node_color, draw_id, input_options)
 
 
-def _render_graph_edge(ctx: Context, graph_data, graph, edge, edge_color, layer, waiting_agent_name, target_node_id_set):
+def _render_graph_edge(ctx: Context, graph_data, graph, edge, edge_color, waiting_agent_name, target_node_id_set):
     """Draw an edge as a curve or straight line based on the linestring."""
     source = graph.get_node(edge.source)
     target = graph.get_node(edge.target)
@@ -140,12 +135,12 @@ def _render_graph_edge(ctx: Context, graph_data, graph, edge, edge_color, layer,
             edge_line_points[edge.id] = linestring
 
         line_points = edge_line_points[edge.id]
-        ctx.visual.render_linestring(line_points, color, layer=layer, is_aa=True, perform_culling_test=False)
+        ctx.visual.render_linestring(line_points, color, is_aa=True, perform_culling_test=False)
     else:
-        ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2, layer=layer, perform_culling_test=False)
+        ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2, perform_culling_test=False)
 
 
-def _render_graph_node(ctx: Context, node, node_color, draw_id, layer, input_options):
+def _render_graph_node(ctx: Context, node, node_color, draw_id, input_options):
     if ctx.visual.is_waiting_input() and node.id in input_options.values():
         color = (0, 255, 0)
         radius = 4
@@ -153,21 +148,20 @@ def _render_graph_node(ctx: Context, node, node_color, draw_id, layer, input_opt
         color = node_color
         radius = 2
 
-    ctx.visual.render_circle(node.x, node.y, radius, color, layer=layer)
+    ctx.visual.render_circle(node.x, node.y, radius, color)
 
     if draw_id:
-        ctx.visual.render_text(str(node.id), node.x, node.y + 10, (0, 0, 0), layer=layer)
+        ctx.visual.render_text(str(node.id), node.x, node.y + 10, (0, 0, 0))
 
 
-def render_neighbor_sensor(ctx: Context, artist: IArtist):
+def render_neighbor_sensor(ctx: Context, data: dict):
     """
     Render a neighbor sensor.
 
     Args:
         ctx (Context): The current simulation context.
-        artist (IArtist): The artist object containing the sensor data.
+        data (dict): The data containing the sensor's information.
     """
-    data = artist.data
     sensor = data.get('sensor')
     color = data.get('color', Color.Cyan)
     sensor_data: dict = sensor.data
@@ -176,15 +170,14 @@ def render_neighbor_sensor(ctx: Context, artist: IArtist):
         ctx.visual.render_circle(neighbor_node.x, neighbor_node.y, 2, color)
 
 
-def render_map_sensor(ctx: Context, artist: IArtist):
+def render_map_sensor(ctx: Context, data: dict):
     """
     Render a map sensor.
 
     Args:
         ctx (Context): The current simulation context.
-        artist (IArtist): The artist object containing the sensor data.
+        data (dict): The data containing the sensor's information.
     """
-    data = artist.data
     sensor = data.get('sensor')
     node_color = data.get('node_color', Color.Cyan)
     sensor_data: dict = sensor.data
@@ -215,8 +208,14 @@ def render_map_sensor(ctx: Context, artist: IArtist):
                 ctx.visual.render_line(source.x, source.y, target.x, target.y, edge_color, 4, perform_culling_test=False)
 
 
-def render_agent_sensor(ctx: Context, artist: IArtist):
-    data = artist.data
+def render_agent_sensor(ctx: Context, data: dict):
+    """
+    Render an agent sensor.
+
+    Args:
+        ctx (Context): The current simulation context.
+        data (dict): The data containing the sensor's information.
+    """
     sensor = data.get('sensor')
     color = data.get('color', Color.Cyan)
     size = data.get('size', 8)

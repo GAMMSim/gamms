@@ -74,8 +74,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         #Add data for node ID and Color
         self.add_artist('graph', artist)
 
-        render_graph(self.ctx, artist)
-
         return artist
     
     def set_agent_visual(self, name, **kwargs):
@@ -255,9 +253,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
             raise ValueError("Invalid coord_space value. Must be one of the values in the Space enum.")
         
     def _redraw_graph_artists(self):
-        for graph_artist in self._graph_artists.values():
+        for artist_name, graph_artist in self._graph_artists.items():
             self.clear_layer(graph_artist.get_layer())
-            graph_artist.draw()
+            self._render_manager.render_single_artist(artist_name)
         
     def _get_target_surface(self, layer: int):
         if layer >= 0:
@@ -265,30 +263,32 @@ class PygameVisualizationEngine(IVisualizationEngine):
         else:
             return self._screen
 
-    def render_text(self, text: str, x: float, y: float, color: tuple = Color.Black, layer = -1, perform_culling_test: bool=True):
+    def render_text(self, text: str, x: float, y: float, color: tuple = Color.Black, perform_culling_test: bool=True):
         text_size = self._default_font.size(text)
         if perform_culling_test and self._render_manager.check_rectangle_culled(x, y, text_size[0], text_size[1]):
             return
 
-        (x, y) = self._render_manager.world_to_screen(x, y, layer)
+        (x, y) = self._render_manager.world_to_screen(x, y)
         text_surface = self._default_font.render(text, True, color)
         text_rect = text_surface.get_rect(center=(x, y))
         text_rect.move_ip(text_size[0] / 2, text_size[1] / 2)
 
+        layer = self._render_manager.current_drawing_artist.get_layer()
         surface = self._get_target_surface(layer)
         surface.blit(text_surface, text_rect)
 
-    def render_rectangle(self, x: float, y: float, width: float, height: float, color: tuple=Color.Black, layer = -1,
+    def render_rectangle(self, x: float, y: float, width: float, height: float, color: tuple=Color.Black,
                          perform_culling_test: bool=True):
         if perform_culling_test and self._render_manager.check_rectangle_culled(x, y, width, height):
             return
 
-        (x, y) = self._render_manager.world_to_screen(x, y, layer)
+        (x, y) = self._render_manager.world_to_screen(x, y)
 
+        layer = self._render_manager.current_drawing_artist.get_layer()
         surface = self._get_target_surface(layer)
         pygame.draw.rect(surface, color, pygame.Rect(x, y, width, height))
 
-    def render_circle(self, x: float, y: float, radius: float, color: tuple=Color.Black, layer = -1,
+    def render_circle(self, x: float, y: float, radius: float, color: tuple=Color.Black,
                       perform_culling_test: bool=True):
         if perform_culling_test and self._render_manager.check_circle_culled(x, y, radius):
             return
@@ -297,44 +297,48 @@ class PygameVisualizationEngine(IVisualizationEngine):
         if radius < 1:
             return
         
-        (x, y) = self._render_manager.world_to_screen(x, y, layer)
+        (x, y) = self._render_manager.world_to_screen(x, y)
+        layer = self._render_manager.current_drawing_artist.get_layer()
         surface = self._get_target_surface(layer)
         pygame.draw.circle(surface, color, (x, y), radius)
 
     def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: tuple=Color.Black,
-                    width: int=1, layer = -1, is_aa: bool=False, perform_culling_test: bool=True, force_no_aa: bool = False):
+                    width: int=1, is_aa: bool=False, perform_culling_test: bool=True, force_no_aa: bool = False):
         if perform_culling_test and self._render_manager.check_line_culled(start_x, start_y, end_x, end_y):
             return
 
-        (start_x, start_y) = self._render_manager.world_to_screen(start_x, start_y, layer)
-        (end_x, end_y) = self._render_manager.world_to_screen(end_x, end_y, layer)
+        (start_x, start_y) = self._render_manager.world_to_screen(start_x, start_y)
+        (end_x, end_y) = self._render_manager.world_to_screen(end_x, end_y)
 
+        layer = self._render_manager.current_drawing_artist.get_layer()
         surface = self._get_target_surface(layer)
         if is_aa:
             pygame.draw.aaline(surface, color, (start_x, start_y), (end_x, end_y))
         else:
             pygame.draw.line(surface, color, (start_x, start_y), (end_x, end_y), width)
 
-    def render_linestring(self, points: List[Tuple[float, float]], color: tuple=Color.Black, width: int=1, layer = -1, closed=False,
+    def render_linestring(self, points: List[Tuple[float, float]], color: tuple=Color.Black, width: int=1, closed=False,
                      is_aa: bool=False, perform_culling_test: bool=True):
         if perform_culling_test and self._render_manager.check_lines_culled(points):
             return
 
-        points = [self._render_manager.world_to_screen(point[0], point[1], layer) for point in points]
+        points = [self._render_manager.world_to_screen(point[0], point[1]) for point in points]
 
+        layer = self._render_manager.current_drawing_artist.get_layer()
         surface = self._get_target_surface(layer)
         if is_aa:
             pygame.draw.aalines(surface, color, closed, points)
         else:
             pygame.draw.lines(surface, color, closed, points, width)
 
-    def render_polygon(self, points: List[Tuple[float, float]], color: tuple=Color.Black, width: int=0, layer = -1,
+    def render_polygon(self, points: List[Tuple[float, float]], color: tuple=Color.Black, width: int=0,
                        perform_culling_test: bool=True):
         if perform_culling_test and self._render_manager.check_polygon_culled(points):
             return
 
-        points = [self._render_manager.world_to_screen(point[0], point[1], layer) for point in points]
+        points = [self._render_manager.world_to_screen(point[0], point[1]) for point in points]
 
+        layer = self._render_manager.current_drawing_artist.get_layer()
         surface = self._get_target_surface(layer)
         pygame.draw.polygon(surface, color, points, width)
 
@@ -346,7 +350,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         if layer_id in self._surface_dict:
             self._surface_dict[layer_id].fill(color)
 
-    def render_layer(self, layer_id: int, left: float, top: float, width: float, height: float):
+    def render_layer(self, layer_id: int):
         if layer_id in self._surface_dict:
             surface = self._surface_dict[layer_id]
             self._screen.blit(surface, (0, 0))
