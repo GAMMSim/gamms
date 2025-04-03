@@ -57,6 +57,7 @@ def create_context(
         logger_config["level"] = loglevel
     
     logging.basicConfig(**logger_config)
+    ctx.logger.setLevel(logger_config["level"])
     ctx.logger.info(f"Setting log level to {ctx.logger.level}")
     ctx.set_alive()
     return ctx
