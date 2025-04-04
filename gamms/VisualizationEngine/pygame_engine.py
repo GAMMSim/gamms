@@ -114,20 +114,28 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         return artist
     
-    def add_artist(self, name: str, artist: IArtist) -> None:
-        if artist.get_drawer() is None:
+    def add_artist(self, name: str, artist: IArtist | dict) -> None:
+        if isinstance(artist, IArtist):
+            artist_to_add = artist
+        else:
+            drawer = artist.get('drawer', None)
+            layer = artist.get('layer', 30)
+            artist_to_add = Artist(self.ctx, drawer, layer)
+            artist_to_add.data = artist
+
+        if artist_to_add.get_drawer() is None:
             raise ValueError("Drawer must be set in the artist object.")
 
-        layer = artist.get_layer()
-        if artist.get_artist_type() == ArtistType.GRAPH and layer not in self._surface_dict:
+        layer = artist_to_add.get_layer()
+        if artist_to_add.get_artist_type() == ArtistType.GRAPH and layer not in self._surface_dict:
             self.create_layer(layer, 3000, 3000)
 
-        if artist.get_artist_type() == ArtistType.AGENT:
-            self._agent_artists[name] = artist
-        elif artist.get_artist_type() == ArtistType.GRAPH:
-            self._graph_artists[name] = artist
+        if artist_to_add.get_artist_type() == ArtistType.AGENT:
+            self._agent_artists[name] = artist_to_add
+        elif artist_to_add.get_artist_type() == ArtistType.GRAPH:
+            self._graph_artists[name] = artist_to_add
             
-        self._render_manager.add_artist(name, artist)
+        self._render_manager.add_artist(name, artist_to_add)
 
     def remove_artist(self, name):
         self._render_manager.remove_artist(name)
