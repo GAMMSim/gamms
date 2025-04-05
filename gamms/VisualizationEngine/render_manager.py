@@ -1,5 +1,6 @@
 from gamms.context import Context
 from gamms.typing.artist import IArtist, ArtistType
+from gamms.VisualizationEngine.artist import Artist
 
 
 class RenderManager:
@@ -17,11 +18,11 @@ class RenderManager:
 
         self._update_bounds()
 
-        self._artists: dict[str, IArtist] = {}
+        self._artists: dict[str, Artist] = {}
         # This will call drawer on all artists in the respective layer
         self._layer_artists: dict[int, list[str]] = {}
         self._graph_layers = set()
-        self._current_drawing_artist: IArtist | None = None
+        self._current_drawing_artist: Artist | None = None
 
         self._default_origin = (0, 0)
         self._surface_size = 0
@@ -190,7 +191,7 @@ class RenderManager:
 
         return True
 
-    def add_artist(self, name: str, artist: IArtist) -> None:
+    def add_artist(self, name: str, artist: Artist) -> None:
         """
         Add an artist to the render manager. An artist can draw one or more shapes on the screen and may have a customized drawer.
 
@@ -225,7 +226,7 @@ class RenderManager:
         else:
             print(f"Warning: Artist {name} not found.")
 
-    def on_artist_change_layer(self):
+    def rebuild_artist_layer(self):
         self._layer_artists.clear()
         self._graph_layers.clear()
         for name, artist in self._artists.items():
@@ -262,10 +263,11 @@ class RenderManager:
         Raises:
             NotImplementedError: If the shape of a render node is not implemented and a custom drawer is not provided.
         """
-        # surface_screen_size = self.world_to_screen_scale(self._surface_size)
-        # surface_world_left = self._default_origin[0] - self._surface_size / 2
-        # surface_world_top = self._default_origin[1] + self._surface_size / 2
-        # surface_screen_left, surface_screen_top = self.world_to_screen(surface_world_left, surface_world_top)
+        if any(artist.layer_dirty for artist in self._artists.values()):
+            self.rebuild_artist_layer()
+            for artist in self._artists.values():
+                artist._layer_dirty = False
+
         rendered_layers = set()
         for layer, artist_name_list in self._layer_artists.items():
             for artist_name in artist_name_list:

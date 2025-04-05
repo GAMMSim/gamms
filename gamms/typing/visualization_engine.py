@@ -70,7 +70,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def add_artist(self, name: str, artist: IArtist) -> None:
+    def add_artist(self, name: str, artist: IArtist | dict) -> IArtist | None:
         """
         Add a custom artist or object to the visualization.
 
@@ -243,36 +243,5 @@ class IVisualizationEngine(ABC):
             y (float): The y-coordinate of the text's center position.
             color (tuple): The color of the text in RGB format.
             perform_culling_test (bool): Whether to perform culling.
-        """
-        pass
-
-
-    @abstractmethod
-    def is_waiting_simulation(self) -> bool:
-        """
-        Check if the visualization engine is waiting for simulation to complete.
-
-        Returns:
-            bool: A boolean indicating whether the engine is waiting for simulation.
-        """
-        pass
-
-    @abstractmethod
-    def is_waiting_input(self) -> bool:
-        """
-        Check if the visualization engine is waiting for user input.
-
-        Returns:
-            bool: A boolean indicating whether the engine is waiting for user input.
-        """
-        pass
-
-    @abstractmethod
-    def on_artist_change_layer(self) -> None:
-        """
-        Notify the visualization engine that one or more artists has changed its layer.
-
-        This method should be called whenever an artist changes its layer to
-        ensure that the visualization engine updates the rendering accordingly.
         """
         pass

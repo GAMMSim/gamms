@@ -115,7 +115,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         return artist
     
-    def add_artist(self, name: str, artist: IArtist | dict) -> None:
+    def add_artist(self, name: str, artist: IArtist | dict) -> IArtist | None:
         if isinstance(artist, IArtist):
             artist_to_add = artist
         else:
@@ -124,7 +124,10 @@ class PygameVisualizationEngine(IVisualizationEngine):
             layer = artist.get('layer', 30)
             if shape is None and drawer is None:
                 self.ctx.logger.error(f"Both shape and drawer are empty for artist {name}. Ignoring this artist.")
-                return
+                return None
+
+            if shape is not None and drawer is not None:
+                self.ctx.logger.warning(f"Both shape and drawer are set for artist {name}, will use drawer.")
             
             if drawer is None:
                 if shape == Shape.Circle:
@@ -133,7 +136,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
                     drawer = render_rectangle
                 else:
                     self.ctx.logger.error(f"Invalid shape {shape} for artist {name}. Ignoring this artist.")
-                    return
+                    return None
                 
             artist_to_add = Artist(self.ctx, drawer, layer)
             artist_to_add.data = artist
@@ -152,17 +155,10 @@ class PygameVisualizationEngine(IVisualizationEngine):
             
         self._render_manager.add_artist(name, artist_to_add)
 
+        return artist_to_add
+
     def remove_artist(self, name):
         self._render_manager.remove_artist(name)
-
-    def on_artist_change_layer(self):
-        self._render_manager.on_artist_change_layer()
-
-    def is_waiting_simulation(self):
-        return self._waiting_simulation
-
-    def is_waiting_input(self):
-        return self._waiting_user_input
 
     def handle_input(self):
         pressed_keys = pygame.key.get_pressed()
@@ -211,7 +207,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._clock.tick()
         if self._waiting_simulation:
             if self._simulation_time > self._sim_time_constant:
-                self._waiting_simulation = False
+                self._toggle_waiting_simulation(False)
                 self._simulation_time = 0
             else:
                 self._simulation_time += self._clock.get_time() / 1000
@@ -279,6 +275,16 @@ class PygameVisualizationEngine(IVisualizationEngine):
         for artist_name, graph_artist in self._graph_artists.items():
             self.clear_layer(graph_artist.get_layer())
             self._render_manager.render_single_artist(artist_name)
+
+    def _toggle_waiting_simulation(self, waiting_simulation: bool):
+        self._waiting_simulation = waiting_simulation
+        for agent_artist in self._agent_artists.values():
+            agent_artist.data['_waiting_simulation'] = waiting_simulation
+
+    def _toggle_waiting_user_input(self, waiting_user_input: bool):
+        self._waiting_user_input = waiting_user_input
+        for graph_artist in self._graph_artists.values():
+            graph_artist.data['_waiting_user_input'] = waiting_user_input
         
     def _get_target_surface(self, layer: int):
         if layer >= 0:
@@ -407,7 +413,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         if self.ctx.is_terminated():
             return state["curr_pos"]
         
-        self._waiting_user_input = True
+        self._toggle_waiting_user_input(True)
 
         def get_neighbours(state):
             for (type, data) in state["sensor"].values():
@@ -458,7 +464,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
             graph_artist.data['_waiting_agent_name'] = None
             graph_artist.data['_input_options'] = None
 
-        self._waiting_user_input = False
+        self._toggle_waiting_user_input(False)
         self._input_option_result = None
         self._waiting_agent_name = None
 
@@ -467,7 +473,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
     def simulate(self):
         if self.ctx.record.record():
             self.ctx.record.write(opCode=OpCodes.SIMULATE, data={})
-        self._waiting_simulation = True
+        self._toggle_waiting_simulation(True)
         self._simulation_time = 0
 
         while self._waiting_simulation and not self._will_quit:

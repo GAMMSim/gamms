@@ -54,7 +54,8 @@ def render_agent(ctx: Context, data: dict):
 
     agent = ctx.agent.get_agent(agent_data.name)
     target_node = ctx.graph.graph.get_node(agent.current_node_id)
-    if ctx.visual.is_waiting_simulation():
+    waiting_simulation = data.get('_waiting_simulation', False)
+    if waiting_simulation:
         prev_node = ctx.graph.graph.get_node(agent.prev_node_id)
         prev_position = (prev_node.x, prev_node.y)
         target_position = (target_node.x, target_node.y)
@@ -96,6 +97,7 @@ def render_graph(ctx: Context, data: dict):
     graph_data: GraphData = data.get('graph_data')
     waiting_agent_name = data.get('_waiting_agent_name')
     input_options = data.get('_input_options', {})
+    waiting_user_input = data.get('_waiting_user_input', False)
     graph = ctx.graph.graph
     node_color = graph_data.node_color
     edge_color = graph_data.edge_color
@@ -109,7 +111,7 @@ def render_graph(ctx: Context, data: dict):
     for edge in graph.get_edges().values():
         _render_graph_edge(ctx, graph_data, graph, edge, edge_color, waiting_agent_name, target_node_id_set)
     for node in graph.get_nodes().values():
-        _render_graph_node(ctx, node, node_color, draw_id, input_options)
+        _render_graph_node(ctx, node, node_color, draw_id, input_options, waiting_user_input)
 
 
 def _render_graph_edge(ctx: Context, graph_data, graph, edge, edge_color, waiting_agent_name, target_node_id_set):
@@ -140,8 +142,8 @@ def _render_graph_edge(ctx: Context, graph_data, graph, edge, edge_color, waitin
         ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2, perform_culling_test=False)
 
 
-def _render_graph_node(ctx: Context, node, node_color, draw_id, input_options):
-    if ctx.visual.is_waiting_input() and node.id in input_options.values():
+def _render_graph_node(ctx: Context, node, node_color, draw_id, input_options, waiting_user_input):
+    if waiting_user_input and node.id in input_options.values():
         color = (0, 255, 0)
         radius = 4
     else:

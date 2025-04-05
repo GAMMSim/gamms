@@ -8,14 +8,22 @@ class Artist(IArtist):
 
         self._ctx = ctx
         self._layer = layer
+        self._layer_dirty = False
         self._visible = True
         self._will_draw = True
         self._artist_type = ArtistType.GENERAL
         self._drawer = drawer
 
+    @property
+    def layer_dirty(self):
+        return self._layer_dirty
+
     def set_layer(self, layer):
+        if self._layer == layer:
+            return
+
         self._layer = layer
-        self._ctx.visual.on_artist_change_layer()
+        self._layer_dirty = True
 
     def get_layer(self):
         return self._layer
