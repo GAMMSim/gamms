@@ -1,9 +1,10 @@
 from gamms.typing import IVisualizationEngine
-from gamms.VisualizationEngine import Color, Space
+from gamms.VisualizationEngine import Color, Space, Shape
 from gamms.VisualizationEngine.render_manager import RenderManager
 from gamms.VisualizationEngine.artist import Artist
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
-from gamms.VisualizationEngine.default_drawers import render_agent, render_graph, render_neighbor_sensor, render_map_sensor, render_agent_sensor
+from gamms.VisualizationEngine.default_drawers import render_circle, render_rectangle, \
+    render_agent, render_graph, render_neighbor_sensor, render_map_sensor, render_agent_sensor
 from gamms.context import Context
 from gamms.typing.artist import IArtist, ArtistType
 from gamms.typing.sensor_engine import SensorType
@@ -118,8 +119,22 @@ class PygameVisualizationEngine(IVisualizationEngine):
         if isinstance(artist, IArtist):
             artist_to_add = artist
         else:
+            shape = artist.get('shape', None)
             drawer = artist.get('drawer', None)
             layer = artist.get('layer', 30)
+            if shape is None and drawer is None:
+                self.ctx.logger.error(f"Both shape and drawer are empty for artist {name}. Ignoring this artist.")
+                return
+            
+            if drawer is None:
+                if shape == Shape.Circle:
+                    drawer = render_circle
+                elif shape == Shape.Rectangle:
+                    drawer = render_rectangle
+                else:
+                    self.ctx.logger.error(f"Invalid shape {shape} for artist {name}. Ignoring this artist.")
+                    return
+                
             artist_to_add = Artist(self.ctx, drawer, layer)
             artist_to_add.data = artist
 
