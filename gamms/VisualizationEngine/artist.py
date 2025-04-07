@@ -1,29 +1,39 @@
 from gamms.typing.artist import IArtist, ArtistType
+from gamms.VisualizationEngine.default_drawers import render_circle, render_rectangle
+from gamms.VisualizationEngine import Shape
 from gamms.context import Context
-
+from typing import Callable
 
 class Artist(IArtist):
-    def __init__(self, ctx: Context, drawer: callable, layer: int = 30):
+    def __init__(self, ctx: Context, drawer: Callable | Shape, layer: int = 30):
+        self.data = {}
+
         self._ctx = ctx
-        self._data = {}
         self._layer = layer
+        self._layer_dirty = False
         self._visible = True
         self._will_draw = True
         self._artist_type = ArtistType.GENERAL
-        self._drawer = drawer
+        if isinstance(drawer, Shape):
+            if drawer == Shape.Circle:
+                self._drawer = render_circle
+            elif drawer == Shape.Rectangle:
+                self._drawer = render_rectangle
+            else:
+                raise ValueError("Unsupported shape type")
+        else:
+            self._drawer = drawer
 
-    def set_data(self, key, value):
-        self._data[key] = value
-
-    def get_data(self, key, default_value=None):
-        return self._data.get(key, default_value)
-
-    def get_data_dict(self):
-        return self._data
+    @property
+    def layer_dirty(self):
+        return self._layer_dirty
 
     def set_layer(self, layer):
+        if self._layer == layer:
+            return
+
         self._layer = layer
-        self._ctx.visual.on_artist_change_layer()
+        self._layer_dirty = True
 
     def get_layer(self):
         return self._layer

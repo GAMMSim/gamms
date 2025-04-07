@@ -62,16 +62,3 @@ class NoEngine(IVisualizationEngine):
 
     def render_text(self, text: str, x: float, y: float, color: tuple = Color.Black, layer = -1, perform_culling_test: bool=True):
         return
-
-
-    # METHODS TO BE DELETED
-    # ONLY FOR BETA v0.2
-
-    def is_waiting_simulation(self) -> bool:
-        return False
-    
-    def is_waiting_input(self) -> bool:
-        return False
-    
-    def on_artist_change_layer(self) -> None:
-        return
