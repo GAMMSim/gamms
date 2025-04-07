@@ -233,9 +233,8 @@ def render_agent_sensor(ctx: Context, data: dict):
     color = data.get('color', Color.Cyan)
     size = data.get('size', 8)
     sensor_data: dict = sensor.data
-    sensed_agents = list(sensor_data.values())
-    for agent in sensed_agents:
-        target_node = ctx.graph.graph.get_node(agent.current_node_id)
+    for node_id in sensor_data.values():
+        target_node = ctx.graph.graph.get_node(node_id)
         position = (target_node.x, target_node.y)
 
         angle = math.radians(45)
