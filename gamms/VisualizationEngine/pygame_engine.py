@@ -211,6 +211,10 @@ class PygameVisualizationEngine(IVisualizationEngine):
                 self._render_manager.screen_width = event.w
                 self._render_manager.screen_height = event.h
                 self._screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+                for layer_id in self._surface_dict.keys():
+                    self._surface_dict[layer_id] = pygame.Surface((event.w, event.h), pygame.SRCALPHA)
+
+                self._redraw_graph_artists()
 
             if self._waiting_user_input and event.type == pygame.KEYDOWN:
                 if pygame.K_0 <= event.key <= pygame.K_9:
