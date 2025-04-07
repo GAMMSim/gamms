@@ -52,8 +52,9 @@ class MapSensor(ISensor):
         self.nodes = self.ctx.graph.graph.nodes
         self.range = sensor_range
         self.fov = fov  
-        self.orientation = orientation / math.sqrt(orientation[0]**2 + orientation[1]**2)
-        self._data = {} 
+        norm = math.sqrt(orientation[0]**2 + orientation[1]**2)
+        self.orientation = (orientation[0] / norm, orientation[1] / norm)
+        self._data = {}
         # Cache static node IDs and positions.
         self.node_ids = list(self.nodes.keys())
         self._positions = np.array([[self.nodes[nid].x, self.nodes[nid].y] for nid in self.node_ids])
@@ -101,10 +102,10 @@ class MapSensor(ISensor):
 
         sensed_nodes = {}
         if in_range_indices.size:
-            if self.fov == 2 * math.pi or used_orientation == (0.0, 0.0):
+            if self.fov == 2 * math.pi or orientation_used == (0.0, 0.0):
                 valid_indices = in_range_indices
             else:
-                used_orientation = np.atan2(orientation_used[1], orientation_used[0]) % (2 * math.pi)
+                orientation_used = np.atan2(orientation_used[1], orientation_used[0]) % (2 * math.pi)
                 diff_in_range = diff[in_range_indices]
                 angles = np.arctan2(diff_in_range[:, 1], diff_in_range[:, 0]) % (2 * math.pi)
                 angle_diff = np.abs((angles - orientation_used + math.pi) % (2 * math.pi) - math.pi)
