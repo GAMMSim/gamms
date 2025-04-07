@@ -206,22 +206,19 @@ def render_map_sensor(ctx: Context, data: dict):
 
     edge_color = data.get('edge_color', Color.Cyan)
     sensed_edges = sensor_data.get('edges', {})
-    sensed_edges = list(sensed_edges.values())
     
-    for edge_list in sensed_edges:
-        
-        for edge in edge_list:
-            source = ctx.graph.graph.get_node(edge.source)
-            target = ctx.graph.graph.get_node(edge.target)
+    for edge in sensed_edges.values():
+        source = ctx.graph.graph.get_node(edge.source)
+        target = ctx.graph.graph.get_node(edge.target)
 
-            if edge.linestring:
-                # linestring[1:-1]
-                line_points = ([(source.x, source.y)] + [(x, y) for (x, y) in edge.linestring.coords] +
-                                [(target.x, target.y)])
+        if edge.linestring:
+            # linestring[1:-1]
+            line_points = ([(source.x, source.y)] + [(x, y) for (x, y) in edge.linestring.coords] +
+                            [(target.x, target.y)])
 
-                ctx.visual.render_linestring(line_points, edge_color, 4, is_aa=False, perform_culling_test=False)
-            else:
-                ctx.visual.render_line(source.x, source.y, target.x, target.y, edge_color, 4, perform_culling_test=False)
+            ctx.visual.render_linestring(line_points, edge_color, 4, is_aa=False, perform_culling_test=False)
+        else:
+            ctx.visual.render_line(source.x, source.y, target.x, target.y, edge_color, 4, perform_culling_test=False)
 
 
 def render_agent_sensor(ctx: Context, data: dict):
