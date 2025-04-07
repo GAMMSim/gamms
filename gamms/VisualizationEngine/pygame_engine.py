@@ -298,6 +298,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
     def _toggle_waiting_simulation(self, waiting_simulation: bool):
         self._waiting_simulation = waiting_simulation
         for agent_artist in self._agent_artists.values():
+            agent_artist.data['_alpha'] = 0.0
             agent_artist.data['_waiting_simulation'] = waiting_simulation
 
     def _toggle_waiting_user_input(self, waiting_user_input: bool):
