@@ -99,13 +99,12 @@ def render_graph(ctx: Context, data: dict):
     node_color = graph_data.node_color
     edge_color = graph_data.edge_color
     draw_id = graph_data.draw_id
-    # ctx.visual.fill_layer(layer, Color.Cyan)
 
-    #for edge in graph.get_edges().values():
-    #     _render_graph_edge(ctx, graph_data, graph, edge, edge_color)
-    #for node in graph.get_nodes().values():
-    #    _render_graph_node(ctx, node, node_color, draw_id, 2)
-
+    for edge in graph.get_edges().values():
+        _render_graph_edge(ctx, graph_data, graph, edge, edge_color)
+        
+    for node in graph.get_nodes().values():
+        _render_graph_node(ctx, node, node_color, 2, draw_id)
 
 def render_input_overlay(ctx: Context, data: dict):
     """
@@ -125,21 +124,29 @@ def render_input_overlay(ctx: Context, data: dict):
         return
     
     graph = ctx.graph.graph
-    color = graph_data.node_color
+    node_color = graph_data.node_color
+    edge_color = graph_data.edge_color
     draw_id = graph_data.draw_id
     target_node_id_set = set(input_options.values())
 
     for node in target_node_id_set:
-        _render_graph_node(ctx, graph.get_node(node), color, draw_id, 10)
-    
+        _render_graph_node(ctx, graph.get_node(node), node_color, 4, draw_id)
 
+    active_edges = []
+    for edge in graph.get_edges().values():
+        current_waiting_agent = ctx.agent.get_agent(waiting_agent_name)
+        if (current_waiting_agent is not None and edge.source == current_waiting_agent.current_node_id and
+                edge.target in target_node_id_set):
+            active_edges.append(edge)
 
-def _render_graph_edge(ctx: Context, graph_data, graph, edge, edge_color):
+    for edge in active_edges:
+        _render_graph_edge(ctx, graph_data, graph, edge, edge_color)
+
+def _render_graph_edge(ctx: Context, graph_data, graph, edge, color):
     """Draw an edge as a curve or straight line based on the linestring."""
     source = graph.get_node(edge.source)
     target = graph.get_node(edge.target)
 
-    color = edge_color
     if edge.linestring:
         edge_line_points = graph_data.edge_line_points
         if edge.id not in edge_line_points:
@@ -156,9 +163,7 @@ def _render_graph_edge(ctx: Context, graph_data, graph, edge, edge_color):
         ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2, perform_culling_test=False)
 
 
-def _render_graph_node(ctx: Context, node, node_color, draw_id, radius):
-    color = node_color
-    #    print("[Node: Color, Size] : [", node, ": ", color, ", ", radius, "]")
+def _render_graph_node(ctx: Context, node, color, radius, draw_id):
     ctx.visual.render_circle(node.x, node.y, radius, color)
 
     if draw_id:

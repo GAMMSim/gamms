@@ -32,9 +32,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._surface_dict : dict[int, pygame.Surface ] = {}
         self._agent_artists: dict[str, IArtist] = {}
         self._graph_artists: dict[str, IArtist] = {}
-
-        # Fill Data Func
-        self._input_overlay_artist = self.set_input_overlay()
+        self._input_overlay_artist = self._set_input_overlay_artist()
     
     def create_layer(self, layer_id: int, width : int, height : int) -> int:
         if layer_id is None:
@@ -70,8 +68,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         
         graph_data = GraphData(node_color=kwargs.get('node_color', Color.DarkGray),
                                edge_color=kwargs.get('edge_color', Color.LightGray), 
-                               draw_id=kwargs.get('draw_id', False),
-                               layer = layer_id)
+                               draw_id=kwargs.get('draw_id', False))
 
         artist = Artist(self.ctx, render_graph, 10)
         artist.data['graph_data'] = graph_data
@@ -83,23 +80,17 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         return artist
 
-    def set_input_overlay(self):
-        width = self._render_manager.screen_width
-        height = self._render_manager.screen_height
-        layer_id = self.create_layer(50, width, height)
-
+    def _set_input_overlay_artist(self):
         graph_data = GraphData(node_color = Color.Green,
                                edge_color = Color.Green, 
-                               draw_id = False,
-                               layer = layer_id)
+                               draw_id = False)
 
         artist = Artist(self.ctx, render_input_overlay, 50)
         artist.data['_input_options'] = {}
         artist.data['_waiting_agent_name'] = None
         artist.data['_waiting_user_input'] = False
         artist.data['graph_data'] = graph_data
-        artist.set_artist_type(ArtistType.GRAPH)
-        artist.set_will_draw(True)
+        artist.set_visible(False)
 
         self.add_artist('input_overlay', artist)        
         
@@ -173,9 +164,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
             raise ValueError("Drawer must be set in the artist object.")
 
         layer = artist_to_add.get_layer()
-        if artist_to_add.get_artist_type() == ArtistType.GRAPH and layer not in self._surface_dict:
-            self.create_layer(layer, 3000, 3000)
-
         if artist_to_add.get_artist_type() == ArtistType.AGENT:
             self._agent_artists[name] = artist_to_add
         elif artist_to_add.get_artist_type() == ArtistType.GRAPH:
@@ -300,7 +288,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         
     def _redraw_graph_artists(self):
         for artist_name, graph_artist in self._graph_artists.items():
-            print("_redraw_graph_artists(): ", artist_name)
             self.clear_layer(graph_artist.get_layer())
             self._render_manager.render_single_artist(artist_name)
 
@@ -311,8 +298,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
     def _toggle_waiting_user_input(self, waiting_user_input: bool):
         self._waiting_user_input = waiting_user_input
-        for graph_artist in self._graph_artists.values():
-            graph_artist.data['_waiting_user_input'] = waiting_user_input
+        self._input_overlay_artist.data['_waiting_user_input'] = waiting_user_input
         
     def _get_target_surface(self, layer: int):
         if layer >= 0:
@@ -459,10 +445,11 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._input_options: dict[int, int] = {}
         for i in range(min(len(options), 10)):
             self._input_options[i] = options[i]
-        
+
         self._input_overlay_artist.data['_waiting_agent_name'] = agent_name
         self._input_overlay_artist.data['_input_options'] = self._input_options
 
+        self._input_overlay_artist.set_visible(True)
         self._redraw_graph_artists()
 
         while self._waiting_user_input:
@@ -487,6 +474,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._input_overlay_artist.data['_waiting_agent_name'] = None
         self._input_overlay_artist.data['_input_options'] = None
 
+        self._input_overlay_artist.set_visible(False)
         self._toggle_waiting_user_input(False)
         self._input_option_result = None
         self._waiting_agent_name = None
