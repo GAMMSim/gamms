@@ -9,12 +9,10 @@ _T = TypeVar('_T')
 
 
 class NeighborSensor(ISensor):
-    def __init__(self, ctx, sensor_id, sensor_type, nodes, edges):
+    def __init__(self, ctx, sensor_id, sensor_type):
         self.sensor_id = sensor_id
         self.ctx = ctx
         self._type = sensor_type
-        self.nodes = nodes
-        self.edges = edges
         self._data = []
         self._owner = None
     
@@ -31,7 +29,7 @@ class NeighborSensor(ISensor):
 
     def sense(self, node_id: int) -> None:
         nearest_neighbors = {node_id,}
-        for edge in self.edges.values():
+        for edge in self.ctx.graph.graph.edges.values():
             if edge.source == node_id:
                 nearest_neighbors.add(edge.target)
                         
@@ -41,18 +39,17 @@ class NeighborSensor(ISensor):
         pass
 
 class MapSensor(ISensor):
-    def __init__(self, ctx, sensor_id, sensor_type, nodes, sensor_range: float, fov: float, orientation: float):
+    def __init__(self, ctx, sensor_id, sensor_type, sensor_range: float, fov: float, orientation: float):
         """
         Acts as a map sensor (if sensor_range == inf),
         a range sensor (if fov == 2*pi),
         or a unidirectional sensor (if fov < 2*pi).
         Assumes fov and orientation are provided in radians.
-        :param nodes: Dictionary of nodes; each node has attributes x and y.
         """
         self.ctx = ctx
         self.sensor_id = sensor_id
         self._type = sensor_type
-        self.nodes = nodes
+        self.nodes = self.ctx.graph.graph.nodes
         self.range = sensor_range
         self.fov = fov  
         self.orientation = orientation  
@@ -79,8 +76,8 @@ class MapSensor(ISensor):
         
         The result is now stored in self._data as a dictionary with two keys:
           - 'nodes': {node_id: node, ...} for nodes that pass the sensing filter.
-          - 'edges': {node_id: [edge, ...], ...} where each key is a sensed node and the value
-                     is a list of edges connecting the sensing node to that node.
+          - 'edges': {node_id: edge, ...} where each key is a sensed node and the value
+                     is the edge connecting the sensing node to the sensed node.
         """
         current_node = self.nodes[node_id]
         current_position = np.array([current_node.x, current_node.y]).reshape(1, 2)
@@ -113,13 +110,10 @@ class MapSensor(ISensor):
         # Now, compute the connecting edges from the sensing node to each sensed node.
         sensed_edges = {}
         # Retrieve edges from the graph via the context's graph engine.
-        graph_edges = self.ctx.graph_engine.graph.edges
-        for candidate_id in sensed_nodes.keys():
-            candidate_edges = []
-            for edge in graph_edges.values():
-                if edge.source == node_id and edge.target == candidate_id:
-                    candidate_edges.append(edge)
-            sensed_edges[candidate_id] = candidate_edges
+        graph_edges = self.ctx.graph.graph.edges
+        for edge in graph_edges.values():
+            if edge.source == node_id and edge.target in sensed_nodes:
+                sensed_edges[edge.target] = edge
 
         self._data = {'nodes': sensed_nodes, 'edges': sensed_edges}
 
@@ -243,15 +237,12 @@ class SensorEngine(ISensorEngine):
         if sensor_type == SensorType.NEIGHBOR:
             sensor = NeighborSensor(
                 self.ctx, sensor_id, sensor_type, 
-                self.ctx.graph_engine.graph.nodes, 
-                self.ctx.graph_engine.graph.edges
             )
         elif sensor_type == SensorType.MAP:
             sensor = MapSensor(
                 self.ctx, 
                 sensor_id, 
                 sensor_type, 
-                self.ctx.graph_engine.graph.nodes, 
                 sensor_range=float('inf'),
                 fov=2 * math.pi,
                 orientation=0
@@ -261,7 +252,6 @@ class SensorEngine(ISensorEngine):
                 self.ctx, 
                 sensor_id, 
                 sensor_type, 
-                self.ctx.graph_engine.graph.nodes, 
                 sensor_range=kwargs.get('sensor_range', 30),
                 fov=(2 * math.pi),
                 orientation=0
@@ -271,7 +261,6 @@ class SensorEngine(ISensorEngine):
                 self.ctx, 
                 sensor_id, 
                 sensor_type, 
-                self.ctx.graph_engine.graph.nodes, 
                 sensor_range=kwargs.get('sensor_range', 30),
                 fov=kwargs.get('fov', 2 * math.pi),
                 orientation=0
