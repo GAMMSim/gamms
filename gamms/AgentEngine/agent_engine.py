@@ -1,7 +1,7 @@
 from gamms.typing import IContext
 from gamms.typing.agent_engine import IAgent, IAgentEngine
 from gamms.typing.opcodes import OpCodes
-from typing import Callable, Dict, Any, Optional
+from typing import Callable, Dict, Any, Optional, Tuple
 import math
 
 class NoOpAgent(IAgent):
@@ -174,20 +174,21 @@ class Agent(IAgent):
         self.current_node_id = self._state['action']
     
     @property
-    def orientation(self) -> float:
+    def orientation(self) -> Tuple[float, float]:
         """
-        Calculate orientation as the angle (in degrees) from the previous node to the current node.
-        If the agent hasn't moved, it returns a default orientation (e.g., 0°).
+        Calculate the orientation as sin and cos of the angle.
+        The angle is calculated using the difference between the current and previous node positions.
+        If the distance is zero, return (0.0, 0.0).
         """
         prev_node = self._graph.graph.get_node(self.prev_node_id)
         curr_node = self._graph.graph.get_node(self.current_node_id)
         delta_x = curr_node.x - prev_node.x
         delta_y = curr_node.y - prev_node.y
-        # If there is no movement, return default 0
-        if delta_x == 0 and delta_y == 0:
-            return 0.0
-        angle_rad = math.atan2(delta_y, delta_x)
-        return math.degrees(angle_rad) % 360
+        distance = math.sqrt(delta_x**2 + delta_y**2)
+        if distance == 0:
+            return (0.0, 0.0)
+        else:
+            return (delta_x / distance, delta_y / distance)
 
 class AgentEngine(IAgentEngine):
     def __init__(self, ctx: IContext):

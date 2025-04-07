@@ -1,7 +1,7 @@
 from gamms.typing.sensor_engine import SensorType, ISensor, ISensorEngine
 from gamms.typing.context import IContext
 from gamms.typing.opcodes import OpCodes
-from typing import Any, Dict, Optional, Type, TypeVar, Callable
+from typing import Any, Dict, Optional, Type, TypeVar, Callable, Tuple
 import math
 import numpy as np
 
@@ -39,7 +39,7 @@ class NeighborSensor(ISensor):
         pass
 
 class MapSensor(ISensor):
-    def __init__(self, ctx, sensor_id, sensor_type, sensor_range: float, fov: float, orientation: float):
+    def __init__(self, ctx, sensor_id, sensor_type, sensor_range: float, fov: float, orientation: Tuple[float, float] = (1.0, 0.0)):
         """
         Acts as a map sensor (if sensor_range == inf),
         a range sensor (if fov == 2*pi),
@@ -52,7 +52,7 @@ class MapSensor(ISensor):
         self.nodes = self.ctx.graph.graph.nodes
         self.range = sensor_range
         self.fov = fov  
-        self.orientation = orientation  
+        self.orientation = orientation / math.sqrt(orientation[0]**2 + orientation[1]**2)
         self._data = {} 
         # Cache static node IDs and positions.
         self.node_ids = list(self.nodes.keys())
@@ -83,8 +83,13 @@ class MapSensor(ISensor):
         if self._owner is not None:
             # Fetch the owner's orientation from the agent engine.
             orientation_used = self.ctx.agent.get_agent(self._owner).orientation
+            # Complex multiplication to rotate the orientation vector.
+            orientation_used = (
+                self.orientation[0]*orientation_used[0] - self.orientation[1]*orientation_used[1], 
+                self.orientation[0]*orientation_used[1] + self.orientation[1]*orientation_used[0]
+            )
         else:
-            orientation_used = self.orientation % (2 * math.pi)
+            orientation_used = self.orientation
 
         diff = self._positions - current_position
         distances_sq = np.sum(diff**2, axis=1)
@@ -96,9 +101,10 @@ class MapSensor(ISensor):
 
         sensed_nodes = {}
         if in_range_indices.size:
-            if self.fov == 2 * math.pi:
+            if self.fov == 2 * math.pi or used_orientation == (0.0, 0.0):
                 valid_indices = in_range_indices
             else:
+                used_orientation = np.atan2(orientation_used[1], orientation_used[0]) % (2 * math.pi)
                 diff_in_range = diff[in_range_indices]
                 angles = np.arctan2(diff_in_range[:, 1], diff_in_range[:, 0]) % (2 * math.pi)
                 angle_diff = np.abs((angles - orientation_used + math.pi) % (2 * math.pi) - math.pi)
@@ -130,7 +136,7 @@ class AgentSensor(ISensor):
         sensor_type, 
         sensor_range: float, 
         fov: float = 2 * math.pi, 
-        orientation: float = 0, 
+        orientation: float = (1.0, 0.0), 
         owner: Optional[str] = None
     ):
         """
@@ -201,13 +207,21 @@ class AgentSensor(ISensor):
             in_range_mask = distances_agents_sq <= self.range**2
             in_range_indices = np.nonzero(in_range_mask)[0]
 
-            if self.fov == 2 * math.pi:
+            if self._owner is not None:
+                # Fetch the owner's orientation from the agent engine.
+                orientation_used = self.ctx.agent.get_agent(self._owner).orientation
+                # Complex multiplication to rotate the orientation vector.
+                orientation_used = (
+                    self.orientation[0]*orientation_used[0] - self.orientation[1]*orientation_used[1], 
+                    self.orientation[0]*orientation_used[1] + self.orientation[1]*orientation_used[0]
+                )
+            else:
+                orientation_used = self.orientation
+
+            if self.fov == 2 * math.pi or orientation_used == (0.0, 0.0):
                 valid_indices = in_range_indices
             else:
-                if self._owner is not None:
-                    orientation_used = self.ctx.agent.get_agent(self._owner).orientation % (2 * math.pi)
-                else:
-                    orientation_used = self.orientation % (2 * math.pi)
+                orientation_used = np.arctan2(orientation_used[1], orientation_used[0]) % (2 * math.pi)
                 diff_in_range = diff_agents[in_range_indices]
                 angles = np.arctan2(diff_in_range[:, 1], diff_in_range[:, 0]) % (2 * math.pi)
                 angle_diff = np.abs((angles - orientation_used + math.pi) % (2 * math.pi) - math.pi)
@@ -246,7 +260,6 @@ class SensorEngine(ISensorEngine):
                 sensor_type, 
                 sensor_range=float('inf'),
                 fov=2 * math.pi,
-                orientation=0
             )
         elif sensor_type == SensorType.RANGE:
             sensor = MapSensor(
@@ -255,7 +268,6 @@ class SensorEngine(ISensorEngine):
                 sensor_type, 
                 sensor_range=kwargs.get('sensor_range', 30),
                 fov=(2 * math.pi),
-                orientation=0
             )
         elif sensor_type == SensorType.ARC:
             sensor = MapSensor(
@@ -264,7 +276,6 @@ class SensorEngine(ISensorEngine):
                 sensor_type, 
                 sensor_range=kwargs.get('sensor_range', 30),
                 fov=kwargs.get('fov', 2 * math.pi),
-                orientation=0
             )
         elif sensor_type == SensorType.AGENT:
             sensor = AgentSensor(
@@ -273,7 +284,6 @@ class SensorEngine(ISensorEngine):
                 sensor_type, 
                 sensor_range=float('inf'),
                 fov=kwargs.get('fov', 2 * math.pi),
-                owner=None  # Set owner when registering sensor to an agent.
             )
         elif sensor_type == SensorType.AGENT_ARC:
             sensor = AgentSensor(
@@ -282,7 +292,6 @@ class SensorEngine(ISensorEngine):
                 sensor_type, 
                 sensor_range=kwargs.get('sensor_range', 30),
                 fov=kwargs.get('fov', math.radians(90)), 
-                owner=None  # Set owner when registering sensor to an agent.
             )
         elif sensor_type == SensorType.AGENT_RANGE:
             sensor = AgentSensor(
@@ -291,7 +300,6 @@ class SensorEngine(ISensorEngine):
                 sensor_type, 
                 sensor_range=kwargs.get('sensor_range', 30),
                 fov=2 * math.pi,
-                owner=None  # Set owner when registering sensor to an agent.
             )
         else:
             raise ValueError("Invalid sensor type")
