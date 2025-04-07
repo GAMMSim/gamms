@@ -191,9 +191,9 @@ class AgentSensor(ISensor):
 
         # Collect positions and ids for all agents except the owner.
         for agent in agents:
-            if self._owner is not None and agent._name == self._owner:
+            if self._owner is not None and agent.name == self._owner:
                 continue
-            agent_ids.append(agent._name)
+            agent_ids.append(agent.name)
             if hasattr(agent, 'position'):
                 pos = np.array(agent.position)
             else:
@@ -223,10 +223,10 @@ class AgentSensor(ISensor):
 
             in_range_agent_ids = {agent_ids[i] for i in valid_indices}
             for agent in agents:
-                if self._owner is not None and agent._name == self._owner:
+                if self._owner is not None and agent.name == self._owner:
                     continue
-                if agent._name in in_range_agent_ids:
-                    sensed_agents[agent._name] = agent
+                if agent.name in in_range_agent_ids:
+                    sensed_agents[agent.name] = agent.current_node_id
 
         self._data = sensed_agents
 
