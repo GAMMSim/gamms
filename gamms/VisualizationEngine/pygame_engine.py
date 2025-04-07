@@ -4,7 +4,7 @@ from gamms.VisualizationEngine.render_manager import RenderManager
 from gamms.VisualizationEngine.artist import Artist
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
 from gamms.VisualizationEngine.default_drawers import render_circle, render_rectangle, \
-    render_agent, render_graph, render_neighbor_sensor, render_map_sensor, render_agent_sensor
+    render_agent, render_graph, render_neighbor_sensor, render_map_sensor, render_agent_sensor, render_input_overlay
 from gamms.context import Context
 from gamms.typing.artist import IArtist, ArtistType
 from gamms.typing.sensor_engine import SensorType
@@ -32,6 +32,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._surface_dict : dict[int, pygame.Surface ] = {}
         self._agent_artists: dict[str, IArtist] = {}
         self._graph_artists: dict[str, IArtist] = {}
+
+        # Fill Data Func
+        self._input_overlay_artist = self.set_input_overlay()
     
     def create_layer(self, layer_id: int, width : int, height : int) -> int:
         if layer_id is None:
@@ -48,6 +51,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
     def set_graph_visual(self, **kwargs):
         graph = self.ctx.graph.graph
+
         x_list = [node.x for node in graph.get_nodes().values()]
         y_list = [node.y for node in graph.get_nodes().values()]
         x_min = min(x_list)
@@ -56,8 +60,10 @@ class PygameVisualizationEngine(IVisualizationEngine):
         y_max = max(y_list)
         x_mean = sum(x_list) / len(x_list) if len(x_list) > 0 else 0
         y_mean = sum(y_list) / len(y_list) if len(y_list) > 0 else 0
+
         self._render_manager.set_origin(x_mean, y_mean, x_max - x_min, y_max - y_min)
         self._render_manager.camera_size = max(x_max - x_min, y_max - y_min)
+
         width = self._render_manager.screen_width
         height = self._render_manager.screen_height
         layer_id = self.create_layer(10, width, height)
@@ -75,6 +81,28 @@ class PygameVisualizationEngine(IVisualizationEngine):
         #Add data for node ID and Color
         self.add_artist('graph', artist)
 
+        return artist
+
+    def set_input_overlay(self):
+        width = self._render_manager.screen_width
+        height = self._render_manager.screen_height
+        layer_id = self.create_layer(50, width, height)
+
+        graph_data = GraphData(node_color = Color.Green,
+                               edge_color = Color.Green, 
+                               draw_id = False,
+                               layer = layer_id)
+
+        artist = Artist(self.ctx, render_input_overlay, 50)
+        artist.data['_input_options'] = {}
+        artist.data['_waiting_agent_name'] = None
+        artist.data['_waiting_user_input'] = False
+        artist.data['graph_data'] = graph_data
+        artist.set_artist_type(ArtistType.GRAPH)
+        artist.set_will_draw(True)
+
+        self.add_artist('input_overlay', artist)        
+        
         return artist
     
     def set_agent_visual(self, name, **kwargs):
@@ -154,7 +182,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
             self._graph_artists[name] = artist_to_add
             
         self._render_manager.add_artist(name, artist_to_add)
-
         return artist_to_add
 
     def remove_artist(self, name):
@@ -164,19 +191,19 @@ class PygameVisualizationEngine(IVisualizationEngine):
         pressed_keys = pygame.key.get_pressed()
         scroll_speed = self._render_manager.camera_size / 2
         if pressed_keys[pygame.K_a] or pressed_keys[pygame.K_LEFT]:
-            self._render_manager.camera_x -= int(scroll_speed * self._clock.get_time() / 1000)
+            self._render_manager.camera_x -= (scroll_speed * self._clock.get_time() / 1000)
             self._redraw_graph_artists()
 
         if pressed_keys[pygame.K_d] or pressed_keys[pygame.K_RIGHT]:
-            self._render_manager.camera_x += int(scroll_speed * self._clock.get_time() / 1000)
+            self._render_manager.camera_x += (scroll_speed * self._clock.get_time() / 1000)
             self._redraw_graph_artists()
 
         if pressed_keys[pygame.K_w] or pressed_keys[pygame.K_UP]:
-            self._render_manager.camera_y += int(scroll_speed * self._clock.get_time() / 1000)
+            self._render_manager.camera_y += (scroll_speed * self._clock.get_time() / 1000)
             self._redraw_graph_artists()
 
         if pressed_keys[pygame.K_s] or pressed_keys[pygame.K_DOWN]:
-            self._render_manager.camera_y -= int(scroll_speed * self._clock.get_time() / 1000)
+            self._render_manager.camera_y -= (scroll_speed * self._clock.get_time() / 1000)
             self._redraw_graph_artists()
         
         for event in pygame.event.get():
@@ -273,6 +300,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         
     def _redraw_graph_artists(self):
         for artist_name, graph_artist in self._graph_artists.items():
+            print("_redraw_graph_artists(): ", artist_name)
             self.clear_layer(graph_artist.get_layer())
             self._render_manager.render_single_artist(artist_name)
 
@@ -325,7 +353,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         radius = self._render_manager.world_to_screen_scale(radius)
         if radius < 1:
             return
-        
         (x, y) = self._render_manager.world_to_screen(x, y)
         layer = self._render_manager.current_drawing_artist.get_layer()
         surface = self._get_target_surface(layer)
@@ -412,9 +439,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
     def human_input(self, agent_name, state: Dict[str, Any]) -> int:
         if self.ctx.is_terminated():
             return state["curr_pos"]
-        
         self._toggle_waiting_user_input(True)
-
         def get_neighbours(state):
             for (type, data) in state["sensor"].values():
                 if type == SensorType.NEIGHBOR:
@@ -434,10 +459,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._input_options: dict[int, int] = {}
         for i in range(min(len(options), 10)):
             self._input_options[i] = options[i]
-
-        for graph_artist in self._graph_artists.values():
-            graph_artist.data['_waiting_agent_name'] = agent_name
-            graph_artist.data['_input_options'] = self._input_options
+        
+        self._input_overlay_artist.data['_waiting_agent_name'] = agent_name
+        self._input_overlay_artist.data['_input_options'] = self._input_options
 
         self._redraw_graph_artists()
 
@@ -460,14 +484,12 @@ class PygameVisualizationEngine(IVisualizationEngine):
         for agent_artist in self._agent_artists.values():
             agent_artist.data['_is_waiting'] = False
 
-        for graph_artist in self._graph_artists.values():
-            graph_artist.data['_waiting_agent_name'] = None
-            graph_artist.data['_input_options'] = None
+        self._input_overlay_artist.data['_waiting_agent_name'] = None
+        self._input_overlay_artist.data['_input_options'] = None
 
         self._toggle_waiting_user_input(False)
         self._input_option_result = None
         self._waiting_agent_name = None
-
         self._redraw_graph_artists()
 
     def simulate(self):
