@@ -205,9 +205,9 @@ def render_map_sensor(ctx: Context, data: dict):
         ctx.visual.render_circle(node.x, node.y, 1, node_color)
 
     edge_color = data.get('edge_color', Color.Cyan)
-    sensed_edges = sensor_data.get('edges', {})
+    sensed_edges = sensor_data.get('edges', [])
     
-    for edge in sensed_edges.values():
+    for edge in sensed_edges:
         source = ctx.graph.graph.get_node(edge.source)
         target = ctx.graph.graph.get_node(edge.target)
 
