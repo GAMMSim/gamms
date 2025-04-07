@@ -133,7 +133,6 @@ class AgentSensor(ISensor):
         ctx, 
         sensor_id, 
         sensor_type, 
-        agent_engine, 
         sensor_range: float, 
         fov: float = 2 * math.pi, 
         orientation: float = 0, 
@@ -151,7 +150,6 @@ class AgentSensor(ISensor):
         self.sensor_id = sensor_id
         self.ctx = ctx
         self._type = sensor_type
-        self.agent = agent_engine
         self.range = sensor_range
         self.fov = fov              
         self.orientation = orientation  
@@ -184,16 +182,16 @@ class AgentSensor(ISensor):
         current_node = self.ctx.graph.graph.get_node(node_id)
         current_position = np.array([current_node.x, current_node.y]).reshape(1, 2)
 
-        agents = list(self.agent.create_iter())
+        agents = list(self.ctx.agent.create_iter())
         sensed_agents = {}
         agent_ids = []
         agent_positions = []
 
         # Collect positions and ids for all agents except the owner.
         for agent in agents:
-            if self._owner is not None and agent._name == self._owner:
+            if self._owner is not None and agent.name == self._owner:
                 continue
-            agent_ids.append(agent._name)
+            agent_ids.append(agent.name)
             if hasattr(agent, 'position'):
                 pos = np.array(agent.position)
             else:
@@ -223,10 +221,10 @@ class AgentSensor(ISensor):
 
             in_range_agent_ids = {agent_ids[i] for i in valid_indices}
             for agent in agents:
-                if self._owner is not None and agent._name == self._owner:
+                if self._owner is not None and agent.name == self._owner:
                     continue
-                if agent._name in in_range_agent_ids:
-                    sensed_agents[agent._name] = agent
+                if agent.name in in_range_agent_ids:
+                    sensed_agents[agent.name] = agent.current_node_id
 
         self._data = sensed_agents
 
@@ -283,7 +281,6 @@ class SensorEngine(ISensorEngine):
                 self.ctx, 
                 sensor_id, 
                 sensor_type, 
-                self.ctx.agent, 
                 sensor_range=float('inf'),
                 fov=kwargs.get('fov', 2 * math.pi),
                 owner=None  # Set owner when registering sensor to an agent.
@@ -293,7 +290,6 @@ class SensorEngine(ISensorEngine):
                 self.ctx, 
                 sensor_id, 
                 sensor_type, 
-                self.ctx.agent, 
                 sensor_range=kwargs.get('sensor_range', 30),
                 fov=kwargs.get('fov', math.radians(90)), 
                 owner=None  # Set owner when registering sensor to an agent.
@@ -303,7 +299,6 @@ class SensorEngine(ISensorEngine):
                 self.ctx, 
                 sensor_id, 
                 sensor_type, 
-                self.ctx.agent, 
                 sensor_range=kwargs.get('sensor_range', 30),
                 fov=2 * math.pi,
                 owner=None  # Set owner when registering sensor to an agent.
