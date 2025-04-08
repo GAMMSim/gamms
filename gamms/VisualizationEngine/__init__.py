@@ -45,3 +45,5 @@ def lazy(fullname):
     # Make module with proper locking and get it inserted into sys.modules.
     loader.exec_module(module)
     return module
+
+from .artist import Artist
