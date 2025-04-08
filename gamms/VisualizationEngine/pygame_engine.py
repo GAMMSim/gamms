@@ -32,7 +32,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._surface_dict : dict[int, pygame.Surface ] = {}
         self._agent_artists: dict[str, IArtist] = {}
         self._graph_artists: dict[str, IArtist] = {}
-        self._input_overlay_artist = self._set_input_overlay_artist()
+
+        input_overlay_args = kwargs.get('input_overlay', {})
+        self._input_overlay_artist = self._set_input_overlay_artist(input_overlay_args)
     
     def create_layer(self, layer_id: int, width : int, height : int) -> int:
         if layer_id is None:
@@ -81,10 +83,10 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         return artist
 
-    def _set_input_overlay_artist(self):
-        graph_data = GraphData(node_color = Color.Green,
-                               node_size = 4,
-                               edge_color = Color.Green, 
+    def _set_input_overlay_artist(self, args: dict):
+        graph_data = GraphData(node_color = args.get('node_color', Color.Green),
+                               node_size = args.get('node_size', 4),
+                               edge_color = args.get('edge_color', Color.Green),
                                draw_id = False)
 
         artist = Artist(self.ctx, render_input_overlay, 50)
