@@ -91,6 +91,24 @@ class ISensor(ABC):
         """
         pass
 
+    @abstractmethod
+    def set_owner(self, owner: str) -> None:
+        """
+        Set the owner of the sensor. Owner is a string that identifies the entity responsible for the sensor.
+        Used for setting the owning agent.
+
+        This method assigns a specific owner to the sensor, which can be used for identification
+        or management purposes.
+
+        Args:
+            owner (str): The name of the owner to assign to the sensor.
+
+        Raises:
+            TypeError: If the provided owner is not a string.
+            ValueError: If the provided owner is invalid or empty.
+        """
+        pass
+
 
 class ISensorEngine(ABC):
     """
