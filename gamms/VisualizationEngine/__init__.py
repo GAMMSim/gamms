@@ -47,3 +47,5 @@ def lazy(fullname):
     return module
 
 from .artist import Artist
+from .no_engine import NoEngine
+from .pygame_engine import PygameVisualizationEngine
