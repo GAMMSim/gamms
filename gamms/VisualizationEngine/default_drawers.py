@@ -97,6 +97,7 @@ def render_graph(ctx: Context, data: dict):
     graph_data: GraphData = data.get('graph_data')
     graph = ctx.graph.graph
     node_color = graph_data.node_color
+    node_size = graph_data.node_size
     edge_color = graph_data.edge_color
     draw_id = graph_data.draw_id
 
@@ -104,7 +105,7 @@ def render_graph(ctx: Context, data: dict):
         _render_graph_edge(ctx, graph_data, graph, edge, edge_color)
         
     for node in graph.get_nodes().values():
-        _render_graph_node(ctx, node, node_color, 2, draw_id)
+        _render_graph_node(ctx, node, node_color, node_size, draw_id)
 
 def render_input_overlay(ctx: Context, data: dict):
     """
@@ -125,12 +126,13 @@ def render_input_overlay(ctx: Context, data: dict):
     
     graph = ctx.graph.graph
     node_color = graph_data.node_color
+    node_size = graph_data.node_size
     edge_color = graph_data.edge_color
     draw_id = graph_data.draw_id
     target_node_id_set = set(input_options.values())
 
     for node in target_node_id_set:
-        _render_graph_node(ctx, graph.get_node(node), node_color, 4, draw_id)
+        _render_graph_node(ctx, graph.get_node(node), node_color, node_size, draw_id)
 
     active_edges = []
     for edge in graph.get_edges().values():

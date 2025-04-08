@@ -67,6 +67,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         layer_id = self.create_layer(10, width, height)
         
         graph_data = GraphData(node_color=kwargs.get('node_color', Color.DarkGray),
+                               node_size=kwargs.get('node_size', 2),
                                edge_color=kwargs.get('edge_color', Color.LightGray), 
                                draw_id=kwargs.get('draw_id', False))
 
@@ -82,6 +83,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
     def _set_input_overlay_artist(self):
         graph_data = GraphData(node_color = Color.Green,
+                               node_size = 4,
                                edge_color = Color.Green, 
                                draw_id = False)
 

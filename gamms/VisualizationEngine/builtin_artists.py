@@ -63,6 +63,7 @@ class GraphData:
         draw_id (bool): Whether to draw the node IDs.
     """
     node_color: tuple
+    node_size: float
     edge_color: tuple
     draw_id: bool
     edge_line_points: dict[int, list[tuple[float, float]]] = field(default_factory=dict)
