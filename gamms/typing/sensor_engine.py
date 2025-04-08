@@ -57,16 +57,6 @@ class ISensor(ABC):
         pass
 
     @abstractmethod
-    def data(self) -> Dict[str, Any]:
-        """
-        Get the current data maintained by the sensor.
-
-        Returns:
-            Dict[str, Any]: The data maintained by the sensor.
-        """
-        return self.data
-
-    @abstractmethod
     def sense(self, node_id: int) -> Dict[str, Any]:
         """
         Perform sensing operations for a given node.
