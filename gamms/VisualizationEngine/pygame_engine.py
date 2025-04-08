@@ -1,27 +1,29 @@
 from gamms.typing import IVisualizationEngine
-from gamms.VisualizationEngine import Color, Space, Shape
+from gamms.VisualizationEngine import Color, Space, Shape, Artist, lazy
 from gamms.VisualizationEngine.render_manager import RenderManager
-from gamms.VisualizationEngine.artist import Artist
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
 from gamms.VisualizationEngine.default_drawers import render_circle, render_rectangle, \
     render_agent, render_graph, render_neighbor_sensor, render_map_sensor, render_agent_sensor, render_input_overlay
-from gamms.context import Context
-from gamms.typing.artist import IArtist, ArtistType
-from gamms.typing.sensor_engine import SensorType
-from gamms.typing.opcodes import OpCodes
+from gamms.typing import (
+    IArtist,
+    ArtistType,
+    IContext,
+    SensorType, 
+    OpCodes
+)
 from typing import Dict, Any, List, Tuple
-
-import pygame
-
 
 class PygameVisualizationEngine(IVisualizationEngine):
     def __init__(self, ctx, width=1280, height=720, simulation_time_constant=2.0, **kwargs):
-        pygame.init()
-        self.ctx: Context = ctx
+        pygame = lazy('pygame')
+        repr(pygame)
+        self._pygame = pygame.pygame
+        self._pygame.init()
+        self.ctx: IContext = ctx
         self._sim_time_constant = simulation_time_constant
-        self._screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
-        self._clock = pygame.time.Clock()
-        self._default_font = pygame.font.Font(None, 36)
+        self._screen = self._pygame.display.set_mode((width, height), self._pygame.RESIZABLE)
+        self._clock = self._pygame.time.Clock()
+        self._default_font = self._pygame.font.Font(None, 36)
         self._waiting_user_input = False
         self._input_option_result = None
         self._waiting_agent_name = None
@@ -29,7 +31,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._simulation_time = 0
         self._will_quit = False
         self._render_manager = RenderManager(ctx, 0, 0, 15, width, height)
-        self._surface_dict : dict[int, pygame.Surface ] = {}
+        self._surface_dict : dict[int, self._pygame.Surface ] = {}
         self._agent_artists: dict[str, IArtist] = {}
         self._graph_artists: dict[str, IArtist] = {}
         self._input_overlay_artist = self._set_input_overlay_artist()
@@ -39,7 +41,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
             layer_id = 0
 
         if layer_id not in self._surface_dict:
-            surface = pygame.Surface((width, height), pygame.SRCALPHA)
+            surface = self._pygame.Surface((width, height), self._pygame.SRCALPHA)
             self._surface_dict[layer_id] = surface
 
         # Order layers by ascending order
@@ -176,26 +178,26 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._render_manager.remove_artist(name)
 
     def handle_input(self):
-        pressed_keys = pygame.key.get_pressed()
+        pressed_keys = self._pygame.key.get_pressed()
         scroll_speed = self._render_manager.camera_size / 2
-        if pressed_keys[pygame.K_a] or pressed_keys[pygame.K_LEFT]:
+        if pressed_keys[self._pygame.K_a] or pressed_keys[self._pygame.K_LEFT]:
             self._render_manager.camera_x -= (scroll_speed * self._clock.get_time() / 1000)
             self._redraw_graph_artists()
 
-        if pressed_keys[pygame.K_d] or pressed_keys[pygame.K_RIGHT]:
+        if pressed_keys[self._pygame.K_d] or pressed_keys[self._pygame.K_RIGHT]:
             self._render_manager.camera_x += (scroll_speed * self._clock.get_time() / 1000)
             self._redraw_graph_artists()
 
-        if pressed_keys[pygame.K_w] or pressed_keys[pygame.K_UP]:
+        if pressed_keys[self._pygame.K_w] or pressed_keys[self._pygame.K_UP]:
             self._render_manager.camera_y += (scroll_speed * self._clock.get_time() / 1000)
             self._redraw_graph_artists()
 
-        if pressed_keys[pygame.K_s] or pressed_keys[pygame.K_DOWN]:
+        if pressed_keys[self._pygame.K_s] or pressed_keys[self._pygame.K_DOWN]:
             self._render_manager.camera_y -= (scroll_speed * self._clock.get_time() / 1000)
             self._redraw_graph_artists()
         
-        for event in pygame.event.get():
-            if event.type == pygame.MOUSEWHEEL:
+        for event in self._pygame.event.get():
+            if event.type == self._pygame.MOUSEWHEEL:
                 if event.y > 0:
                     if self._render_manager.camera_size > 2:
                         self._render_manager.camera_size /= 1.05
@@ -204,21 +206,21 @@ class PygameVisualizationEngine(IVisualizationEngine):
                     
                 self._redraw_graph_artists()
 
-            if event.type == pygame.QUIT:
+            if event.type == self._pygame.QUIT:
                 self._will_quit = True
                 self._input_option_result = -1
-            if event.type == pygame.VIDEORESIZE:
+            if event.type == self._pygame.VIDEORESIZE:
                 self._render_manager.screen_width = event.w
                 self._render_manager.screen_height = event.h
-                self._screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+                self._screen = self._pygame.display.set_mode((event.w, event.h), self._pygame.RESIZABLE)
                 for layer_id in self._surface_dict.keys():
-                    self._surface_dict[layer_id] = pygame.Surface((event.w, event.h), pygame.SRCALPHA)
+                    self._surface_dict[layer_id] = self._pygame.Surface((event.w, event.h), self._pygame.SRCALPHA)
 
                 self._redraw_graph_artists()
 
-            if self._waiting_user_input and event.type == pygame.KEYDOWN:
-                if pygame.K_0 <= event.key <= pygame.K_9:
-                    number_pressed = event.key - pygame.K_0
+            if self._waiting_user_input and event.type == self._pygame.KEYDOWN:
+                if self._pygame.K_0 <= event.key <= self._pygame.K_9:
+                    number_pressed = event.key - self._pygame.K_0
                     if number_pressed in self._input_options:
                         self._input_option_result = self._input_options[number_pressed]
 
@@ -231,7 +233,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
             else:
                 self._simulation_time += self._clock.get_time() / 1000
                 alpha = self._simulation_time / self._sim_time_constant
-                alpha = pygame.math.clamp(alpha, 0, 1)
+                alpha = self._pygame.math.clamp(alpha, 0, 1)
                 for agent_artist in self._agent_artists.values():
                     agent_artist.data['_alpha'] = alpha
 
@@ -334,7 +336,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         layer = self._render_manager.current_drawing_artist.get_layer()
         surface = self._get_target_surface(layer)
-        pygame.draw.rect(surface, color, pygame.Rect(x, y, width, height))
+        self._pygame.draw.rect(surface, color, self._pygame.Rect(x, y, width, height))
 
     def render_circle(self, x: float, y: float, radius: float, color: tuple=Color.Black,
                       perform_culling_test: bool=True):
@@ -347,7 +349,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         (x, y) = self._render_manager.world_to_screen(x, y)
         layer = self._render_manager.current_drawing_artist.get_layer()
         surface = self._get_target_surface(layer)
-        pygame.draw.circle(surface, color, (x, y), radius)
+        self._pygame.draw.circle(surface, color, (x, y), radius)
 
     def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: tuple=Color.Black,
                     width: int=1, is_aa: bool=False, perform_culling_test: bool=True, force_no_aa: bool = False):
@@ -360,9 +362,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
         layer = self._render_manager.current_drawing_artist.get_layer()
         surface = self._get_target_surface(layer)
         if is_aa:
-            pygame.draw.aaline(surface, color, (start_x, start_y), (end_x, end_y))
+            self._pygame.draw.aaline(surface, color, (start_x, start_y), (end_x, end_y))
         else:
-            pygame.draw.line(surface, color, (start_x, start_y), (end_x, end_y), width)
+            self._pygame.draw.line(surface, color, (start_x, start_y), (end_x, end_y), width)
 
     def render_linestring(self, points: List[Tuple[float, float]], color: tuple=Color.Black, width: int=1, closed=False,
                      is_aa: bool=False, perform_culling_test: bool=True):
@@ -374,9 +376,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
         layer = self._render_manager.current_drawing_artist.get_layer()
         surface = self._get_target_surface(layer)
         if is_aa:
-            pygame.draw.aalines(surface, color, closed, points)
+            self._pygame.draw.aalines(surface, color, closed, points)
         else:
-            pygame.draw.lines(surface, color, closed, points, width)
+            self._pygame.draw.lines(surface, color, closed, points, width)
 
     def render_polygon(self, points: List[Tuple[float, float]], color: tuple=Color.Black, width: int=0,
                        perform_culling_test: bool=True):
@@ -387,7 +389,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         layer = self._render_manager.current_drawing_artist.get_layer()
         surface = self._get_target_surface(layer)
-        pygame.draw.polygon(surface, color, points, width)
+        self._pygame.draw.polygon(surface, color, points, width)
 
     def clear_layer(self, layer_id: int):
         if layer_id in self._surface_dict:
@@ -425,7 +427,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self.handle_input()
         self.handle_single_draw()
         self.handle_tick()
-        pygame.display.flip()
+        self._pygame.display.flip()
 
     def human_input(self, agent_name, state: Dict[str, Any]) -> int:
         if self.ctx.is_terminated():
@@ -495,4 +497,4 @@ class PygameVisualizationEngine(IVisualizationEngine):
             self.update()
 
     def terminate(self):
-        pygame.quit()
+        self._pygame.quit()
