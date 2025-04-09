@@ -54,6 +54,8 @@ theme:
 
 # Customization
 extra:
+  version:
+    provider: mike
   social:
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/mkdocs-material/
