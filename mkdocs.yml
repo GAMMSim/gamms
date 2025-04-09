@@ -17,10 +17,11 @@ theme:
     - content.code.copy
     - content.tooltips
     - navigation.footer
-    - navigation.indexes
-    - navigation.sections
-    - navigation.tabs
-    - navigation.top
+    - navigation.expand
+    # - navigation.indexes
+    # - navigation.sections
+    # - navigation.tabs
+    # - navigation.top
     - navigation.tracking
     - search.highlight
     - search.share
@@ -36,15 +37,15 @@ theme:
         name: Switch to light mode
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: indigo
-      accent: indigo
+      primary: blue grey
+      accent: grey
       toggle:
         icon: material/toggle-switch
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: black
-      accent: indigo
+      primary: blue grey
+      accent: light green
       toggle:
         icon: material/toggle-switch-off
         name: Switch to system preference
@@ -103,13 +104,11 @@ markdown_extensions:
 
 # Page tree
 nav:
-  - Home: index.md
+  - index.md
   - Getting Started: start.md
-  - First Game : first_game.md
-  - Advanced Concepts:
-    - Agent Strategy: strategy.md
-    - Adding Extra Information To Agent State: agent_state_addition.md
-    - Artists: artists.md
+  - User Tutorials:
+    - tutorials/first_simulation.md
+    - tutorials/realistic_scenario.md
   - API Reference:
     - Context: context.md
     - Agent: agent.md
