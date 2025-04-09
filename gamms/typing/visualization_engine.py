@@ -219,7 +219,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_polygon(self, points: List[Tuple[float, float]], color: tuple, width: int = 0,
+    def render_polygon(self, points: List[Tuple[float, float]], color: tuple, width: int,
                        perform_culling_test: bool = True):
         """
         Render a polygon shape or outline defined by a list of vertices with the specified color and width.
