@@ -1,60 +1,41 @@
 # GAMMS v0.2
 
+GAMMS (Graph based Adversarial Multiagent Modelling Simulator) is a Python library designed for simulating large scale multi-agent scenarios on environments represented as graphs. The library is a framework which focuses on providing a flexible and extensible architecture to facilitate implementing interactions between agents and the environment as well as controlling the information flow between them. The library is geared towards easing development of high level scenario dynamics and testing agent behaviours rather than low level details like the actual physics of real world interactions. GAMMS tries to solve the following problems:
+
+1. Run large simulations involving multiple agents on an everyday laptop.
+2. Provide a simple interface to the user to define the agents and the environment.
+3. Allow the user to work with the agents and the environment without worrying about the underlying packages.
+4. Create a simulater that is easy to use on any operating system (Windows, Mac, Linux) and is easy to install.
+
+The uniqueness of GAMMS comes from *what it is not* trying to be. It is *not* a physics engine, game engine, deep learning library, or a reinforcement learning library. The goal of GAMMS is to provide a framework where the user can use any of these libraries to implement their own agents and environments. Other libraries like [Unity](https://unity.com), [PyBullet](https://pybullet.org/wordpress/), and [OpenAI Gym](https://gymnasium.farama.org/) are great for simulating environments but they are not designed to be used as a framework for multi-agent simulations on graphs. GAMMS is trying to address the niche use for researchers and developers who want to do a quick iterations on their ideas and test them in simulated environments that have limited interactions. GAMMS want to be a tool to create a standardized way for simulating multi-agent systems, making it easier to share and reproduce results.
+
 ## Requirements
 
-Python 3.7+ installed with pip.
+Python 3.9+ installed with pip.
+
+Package dependecies:
+- pygame
+- shapely
+- networkx
+- py-ubjson
+- aenum
 
 ## Installation
 
-Clone or download the github repository.
-
-Go to the cloned directory and run
+Installation support is directly from the source code. The package is not available on PyPi yet. If you have git installed,
 
 ```bash
-pip install .
+pip install "git+https://github.com/GAMMSim/gamms.git@dev"
 ```
 
-to install gamms.
-
-For debug mode,
+Another option is to download the source code locally and run the following command in the root directory of the project:
 
 ```bash
-pip install -e .
+python setup.py install
 ```
 
-## Understanding the example
+Detailed installation and setup instructions are available in the [Installation Guide](https://gammsim.github.io/gamms/dev/start/#installation-and-setup).
 
-There are three main components to the game setup:
-1. Config file (`config.py`)
-2. Graph Creation (`create_graph.py`)
-3. Game File (`game.py`)
+# Documentation
 
-### Config File
-
-The config file contains all the parameters for the game. It defines the sensors, agents and how individual agents are rendered.
-
-As the config file itself is a python file, it is possible to create multiple layers of config files as well as separate them into separate parts as required. It only needs to be imported in other python files.
-
-In the example, the config file first defines that it wants to use PYGAME for visualization. Code completion itself can be used to see other types. Right now, the only option is PYGAME and NO_VIS (no visualization).
-
-Following that, the file defines the various sensors that need to be created. It is a simple dictionary structure, right now only requiring the type of the sensor. The three types used are NEIGHBOR, AGENT, MAP -- provides the neighboring nodes, information about all agent positions, complete map information. Type hints directly can be used to see the various types.
-
-The agent configuration contains the team id as meta data, the sensors attached to the individual agents, and the start node id for them.
-
-Remaning part is only for defining the window size and agent rendering information for the visualization engine.
-
-### Graph Creation
-
-This file is there for completeness. It is a vanialla example of how to convert a real world location into a networkx graph and dump it.
-
-### Game File
-
-Any game starts with first creating a gamms context. The example file shows how to attach a networkx graph to the context (internally its no longer a networkx graph). Next step is to iterate over the sensor and agent config, and load them in the context.
-
-Do a similar run over the visual setup.
-
-Game rules can now be defined as simple python function that take the context as its argument and checks for something in the game.
-
-Last step is the actual loop where you run the game until the context is terminated (termination condition defined by rules).
-
-Anything that needs to be logged can be directly logged in the loop and saved at any point.
+The documentation is available at [GAMMS Documentation](https://gammsim.github.io/gamms/dev/). The documentation is generated using [mkdocs-materials](https://squidfunk.github.io/mkdocs-material/) with mike for versioning. You can do a local build by cloning the repository and serving the documentation using mkdocs. For new users, [Tutorials](https://gammsim.github.io/gamms/dev/tutorials) is a good place to start.
