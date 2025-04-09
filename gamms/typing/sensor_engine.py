@@ -171,6 +171,22 @@ class ISensorEngine(ABC):
         pass
 
     @abstractmethod
+    def add_sensor(self, sensor: ISensor) -> None:
+        """
+        Add a sensor to the sensor engine.
+
+        This method registers an existing sensor instance within the sensor engine for management.
+
+        Args:
+            sensor (ISensor): The sensor instance to add.
+
+        Raises:
+            TypeError: If the provided sensor is not an instance of ISensor.
+            ValueError: If the sensor is already registered.
+        """
+        pass
+
+    @abstractmethod
     def terminate(self) -> None:
         """
         Terminate the sensor engine and perform necessary cleanup operations.

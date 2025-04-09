@@ -324,6 +324,12 @@ class SensorEngine(ISensorEngine):
             raise ValueError("Invalid sensor type")
         self.sensors[sensor_id] = sensor
         return sensor
+    
+    def add_sensor(self, sensor: ISensor) -> None:
+        sensor_id = sensor.sensor_id
+        if sensor_id in self.sensors:
+            raise ValueError(f"Sensor {sensor_id} already exists.")
+        self.sensors[sensor_id] = sensor
 
     def get_sensor(self, sensor_id):
         try:
