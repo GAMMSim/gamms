@@ -9,6 +9,7 @@ setup(
         'pygame',
         'shapely',
         'networkx',
-        'py-ubjson'
+        'py-ubjson',
+        'aenum'
     ],
 )        
