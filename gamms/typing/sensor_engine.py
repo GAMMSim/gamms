@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict
-from enum import Enum
+from aenum import Enum
 
 
 class SensorType(Enum):
@@ -15,6 +15,7 @@ class SensorType(Enum):
         AGENT (Enum): Sensor type for agent locations.
             Data Representation (`Dict[str, int]`): Dictionary mapping agent names to node identifiers.
     """
+    CUSTOM = 0
     NEIGHBOR = 1
     MAP = 2
     AGENT = 3
@@ -35,6 +36,16 @@ class ISensor(ABC):
         type (SensorType): The type of the sensor.
         data (Dict[str, Any]): The data collected or maintained by the sensor.
     """
+
+    @abstractmethod
+    def sensor_id(self) -> str:
+        """
+        Get the unique identifier of the sensor.
+
+        Returns:
+            str: The unique identifier of the sensor.
+        """
+        pass
 
     @abstractmethod
     def type(self) -> SensorType:
