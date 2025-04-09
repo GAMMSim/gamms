@@ -10,7 +10,8 @@ def create_grid(graph, n):
     edge_count = 0 # initialize the edge count to 0
     for i in range(n):
         for j in range(n):
-            graph.add_node({'id': i * n + j, 'x': i * 100.0, 'y': j * 100.0}) # add a node to the graph with id i * n + j and coordinates (i, j)
+            # add a node to the graph with id i * n + j and coordinates (i, j)
+            graph.add_node({'id': i * n + j, 'x': i * 100.0, 'y': j * 100.0})
             if i > 0:
                 # add an edge to the graph from node (i - 1) * n + j to node i * n + j
                 graph.add_edge({'id': edge_count, 'source': (i - 1) * n + j, 'target': i * n + j, 'length': 1.0})

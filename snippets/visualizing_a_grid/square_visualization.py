@@ -1,7 +1,8 @@
 import time
 import gamms
 
-ctx = gamms.create_context(vis_engine=gamms.visual.Engine.PYGAME) # create a context with PYGAME as the visual engine
+# create a context with PYGAME as the visual engine
+ctx = gamms.create_context(vis_engine=gamms.visual.Engine.PYGAME)
 
 graph = ctx.graph.graph # get the graph object from the context
 
