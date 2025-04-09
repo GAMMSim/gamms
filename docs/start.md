@@ -15,18 +15,20 @@ Once pip is set up, use the appropriate commands below for your operating system
 ### Installing Git
 
 === "Mac"
-   - [Git via Homebrew](https://brew.sh/)
-   - [Wget via Homebrew](https://brew.sh/)
+    - [Git via Homebrew](https://brew.sh/)
+    - [Wget via Homebrew](https://brew.sh/)
+
 === "Linux"
-   - `sudo apt-get install git wget` (Debian/Ubuntu)
-   - `sudo dnf install git wget` (Fedora)
-   - `sudo pacman -S git wget` (Arch)
+    - `sudo apt-get install git wget` (Debian/Ubuntu)
+    - `sudo dnf install git wget` (Fedora)
+    - `sudo pacman -S git wget` (Arch)
+
 === "Windows"
-   - [Git for Windows](https://git-scm.com/download/win)
-   - [Wget for Windows](https://gnuwin32.sourceforge.net/packages/wget.htm)
+    - [Git for Windows](https://git-scm.com/download/win)
+    - [Wget for Windows](https://gnuwin32.sourceforge.net/packages/wget.htm)
 
+### Local Setup
 
-### Creating a Project Folder and Virtual Environment
 
 **Create a new folder** in the directory where you want your project to live. We'll name it `gamms`:
 ```sh
@@ -43,14 +45,14 @@ This command will create a subfolder named `venv` that contains your virtual env
 **Activate the virtual environment**:
 
 === "Mac/Linux"
-   ```sh
-   source venv/bin/activate
-   ```
+    ```sh
+    source venv/bin/activate
+    ```
 
 === "Windows"
-   ```cmd
-   venv\Scripts\activate
-   ```
+    ```cmd
+    venv\Scripts\activate
+    ```
 
 **Install Gamms** within the virtual environment:
 ```sh
@@ -64,48 +66,3 @@ python -m pip install git+https://github.com/GAMMSim/gamms.git
 ```
 
 Once these steps are completed, you will have **Gamms** installed in a clean virtual environment. Remember to activate the virtual environment (step 3) whenever you want to work on your project.
-
-
-## Running Examples
-
-Clone or download the `examples` directory from [GAMMSim/gamms](https://github.com/GAMMSim/gamms/tree/main/examples).
-
-=== "Git"
-   ```sh
-   git clone https://github.com/GAMMSim/gamms.git
-   mv gamms/examples examples
-   rm -rf gamms
-   ```
-
-=== "Wget"
-   ```sh
-   wget https://github.com/GAMMSim/gamms/archive/refs/heads/main.zip
-   unzip main.zip
-   mv gamms-main/examples examples
-   rm -rf gamms-main main.zip
-   ```
-
-Execute the script:
-```sh
-python create_graph.py
-```
-Verify that a `.pkl` file is successfully created. This indicates that the graph has been created properly.
-
-**Creating Strategy and Configuration Files**
-
-**Step 1**: Create a folder named `games` (in the root of your project directory):
-   ```sh
-   mkdir games
-   ```
-**Step 2**: Inside the `games` folder, create three Python files:
-
-   - **`blue_strategy.py`**  
-   - **`red_strategy.py`**  
-   - **`config.py`**
-
-**Step 3:** Implement the logic for each file according to your specific needs. For example:
-
-   - `blue_strategy.py` might define functions or classes related to the Blue team's strategy.
-   - `red_strategy.py` might define functions or classes related to the Red team's strategy.
-   - `config.py` might define shared constants, environment variables, or other settings.
-
