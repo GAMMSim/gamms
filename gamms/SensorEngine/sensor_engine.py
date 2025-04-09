@@ -1,7 +1,14 @@
-from gamms.typing.sensor_engine import SensorType, ISensor, ISensorEngine
-from gamms.typing.context import IContext
-from gamms.typing.opcodes import OpCodes
+import gamms.typing
+from gamms.typing import(
+    IContext,
+    ISensor,
+    ISensorEngine,
+    SensorType,
+    OpCodes,
+)
+
 from typing import Any, Dict, Optional, Type, TypeVar, Callable, Tuple
+from aenum import extend_enum
 import math
 import numpy as np
 
@@ -10,11 +17,15 @@ _T = TypeVar('_T')
 
 class NeighborSensor(ISensor):
     def __init__(self, ctx, sensor_id, sensor_type):
-        self.sensor_id = sensor_id
+        self._sensor_id = sensor_id
         self.ctx = ctx
         self._type = sensor_type
         self._data = []
         self._owner = None
+    
+    @property
+    def sensor_id(self) -> str:
+        return self._sensor_id
     
     @property
     def type(self) -> SensorType:
@@ -47,7 +58,7 @@ class MapSensor(ISensor):
         Assumes fov and orientation are provided in radians.
         """
         self.ctx = ctx
-        self.sensor_id = sensor_id
+        self._sensor_id = sensor_id
         self._type = sensor_type
         self.nodes = self.ctx.graph.graph.nodes
         self.range = sensor_range
@@ -59,6 +70,10 @@ class MapSensor(ISensor):
         self.node_ids = list(self.nodes.keys())
         self._positions = np.array([[self.nodes[nid].x, self.nodes[nid].y] for nid in self.node_ids])
         self._owner = None
+    
+    @property
+    def sensor_id(self) -> str:
+        return self._sensor_id
     
     @property
     def type(self) -> SensorType:
@@ -149,14 +164,19 @@ class AgentSensor(ISensor):
         :param owner: (Optional) The name of the agent owning this sensor.
                       This agent will be skipped during sensing.
         """
-        self.sensor_id = sensor_id
+        self._sensor_id = sensor_id
         self.ctx = ctx
         self._type = sensor_type
         self.range = sensor_range
         self.fov = fov              
         self.orientation = orientation  
         self._owner = owner
-        self._data = {}  
+        self._data = {}
+    
+
+    @property
+    def sensor_id(self) -> str:
+        return self._sensor_id
     
     @property
     def type(self) -> SensorType:
@@ -246,8 +266,6 @@ class SensorEngine(ISensorEngine):
     def __init__(self, ctx: IContext):
         self.ctx = ctx  
         self.sensors = {}
-        self.custom_sensors: Dict[str, Type[Any]] = {}
-        self.custom_sensor_counter: int = 0
 
     def create_sensor(self, sensor_id, sensor_type: SensorType, **kwargs):
         if sensor_type == SensorType.NEIGHBOR:
@@ -313,20 +331,13 @@ class SensorEngine(ISensorEngine):
         except KeyError:
             raise KeyError(f"Sensor {sensor_id} not found.")
 
-    def custom(self) -> Callable[[Type[_T]], Type[_T]]:
-        engine = self
+    def custom(self, name: str) -> Callable[[Type[_T]], Type[_T]]:
+        if hasattr(SensorType, name):
+            raise ValueError(f"SensorType {name} already exists.")
+        extend_enum(SensorType, name, len(SensorType))
+        val = getattr(SensorType, name)
         def decorator(cls_type: Type[_T]) -> Type[_T]:
-            original_init = cls_type.__init__
-            def new_init(instance, name: str, *args, **kwargs):
-                sensor_enum_name = name.upper()
-                if not hasattr(SensorType, sensor_enum_name):
-                    engine.custom_sensor_counter -= 1
-                    custom_value = engine.custom_sensor_counter
-                    setattr(SensorType, sensor_enum_name, custom_value)
-                instance.custom_data = {'name': name}
-                original_init(instance, *args, **kwargs)
-            cls_type.__init__ = new_init
-            engine.custom_sensors[cls_type.__name__] = cls_type
+            cls_type.type = property(lambda obj: val)
             return cls_type
         return decorator
 
