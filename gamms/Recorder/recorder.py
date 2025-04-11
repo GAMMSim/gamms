@@ -25,6 +25,27 @@ def _record_switch_case(ctx: IContext, opCode: OpCodes, data: JsonType) -> None:
         ctx.agent.get_agent(data["agent_name"]).current_node_id = data["node_id"]
     elif opCode == OpCodes.AGENT_PREV_NODE:
         ctx.agent.get_agent(data["agent_name"]).prev_node_id = data["node_id"]
+    elif opCode == OpCodes.AGENT_SENSOR_REGISTER:
+        ctx.logger.info(f"Registering sensor {data['sensor_id']} for agent {data['agent_name']} under {data['name']}")
+        try:
+            sensor = ctx.sensor.get_sensor(data["sensor_id"])
+        except KeyError:
+            ctx.logger.error(f"Sensor {data['sensor_id']} not found.")
+            return
+        try:
+            agent = ctx.agent.get_agent(data["agent_name"])
+        except KeyError:
+            ctx.logger.error(f"Agent {data['agent_name']} not found.")
+            return
+        agent.register_sensor(data["name"], sensor)
+    elif opCode == OpCodes.AGENT_SENSOR_DEREGISTER:
+        ctx.logger.info(f"Deregistering sensor {data['sensor_id']} for agent {data['agent_name']} under {data['name']}")
+        try:
+            agent = ctx.agent.get_agent(data["agent_name"])
+        except KeyError:
+            ctx.logger.error(f"Agent {data['agent_name']} not found.")
+            return
+        agent.deregister_sensor(data["name"])
     elif opCode == OpCodes.COMPONENT_REGISTER:
         cls_key = tuple(data["key"])
         if ctx.record.is_component_registered(cls_key):
