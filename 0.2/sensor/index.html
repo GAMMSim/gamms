@@ -390,6 +390,27 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/replay_analysis/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Final Touches
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1753,6 +1774,18 @@ or management purposes.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
+            <td><code><span title="gamms.sensor.SensorType.CUSTOM">CUSTOM</span></code></td>
+            <td>
+                  <code><span title="aenum.Enum">Enum</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Dummy Sensor type when the user create a custom sensor.
+Data Representation depends on the custom sensor implementation.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
             <td><code><span title="gamms.sensor.SensorType.NEIGHBOR">NEIGHBOR</span></code></td>
             <td>
                   <code><span title="aenum.Enum">Enum</span></code>
@@ -1772,7 +1805,7 @@ Data Representation (<code>List[int]</code>): List of node identifiers represent
             <td>
               <div class="doc-md-description">
                 <p>Sensor type for map-related data.
-Data Representation (<code>Tuple[Dict[int, Node], Dict[int, OSMEdge]</code>): Tuple containing node and edge data.</p>
+Data Representation (<code>Dict[str, Dict[int, Union[Node, OSMEdge]]</code>): Keys nodes and edges give respective node and edge data.</p>
               </div>
             </td>
           </tr>
@@ -1785,6 +1818,54 @@ Data Representation (<code>Tuple[Dict[int, Node], Dict[int, OSMEdge]</code>): Tu
               <div class="doc-md-description">
                 <p>Sensor type for agent locations.
 Data Representation (<code>Dict[str, int]</code>): Dictionary mapping agent names to node identifiers.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gamms.sensor.SensorType.RANGE">RANGE</span></code></td>
+            <td>
+                  <code><span title="aenum.Enum">Enum</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Sensor type for range-based data.
+Data Representation (<code>Dict[str, Dict[int, Union[Node, OSMEdge]]</code>): Keys nodes and edges give respective node and edge data. Range only version of MAP.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gamms.sensor.SensorType.ARC">ARC</span></code></td>
+            <td>
+                  <code><span title="aenum.Enum">Enum</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Sensor type for arc-based data.
+Data Representation (<code>Dict[str, Dict[int, Union[Node, OSMEdge]]</code>): Keys nodes and edges give respective node and edge data. Range and Fov version of MAP.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gamms.sensor.SensorType.AGENT_RANGE">AGENT_RANGE</span></code></td>
+            <td>
+                  <code><span title="aenum.Enum">Enum</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Sensor type for agent range data.
+Data Representation (<code>Dict[str, int]</code>): Dictionary mapping agent names to node identifiers. Range only version of AGENT.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gamms.sensor.SensorType.AGENT_ARC">AGENT_ARC</span></code></td>
+            <td>
+                  <code><span title="aenum.Enum">Enum</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Sensor type for agent arc data.
+Data Representation (<code>Dict[str, int]</code>): Dictionary mapping agent names to node identifiers. Range and Fov version of AGENT.</p>
               </div>
             </td>
           </tr>

@@ -390,6 +390,27 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/replay_analysis/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Final Touches
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -620,6 +641,15 @@
   <a href="#gamms.typing.IAgent.strategy" class="md-nav__link">
     <span class="md-ellipsis">
       strategy
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gamms.typing.IAgent.deregister_sensor" class="md-nav__link">
+    <span class="md-ellipsis">
+      deregister_sensor
     </span>
   </a>
   
@@ -920,6 +950,29 @@ as well as facilitating interactions between them.</p>
             <td>
               <div class="doc-md-description">
                 <p>The newly created agent instance.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>ValueError</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If an agent with the same name already exists.</p>
               </div>
             </td>
           </tr>
@@ -1388,6 +1441,58 @@ that agents are gracefully shut down.</p>
 </div>
 
 
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="gamms.typing.IAgent.deregister_sensor" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">deregister_sensor</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+  </span>
+
+<a href="#gamms.typing.IAgent.deregister_sensor" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Deregister a sensor from the agent.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>name</code>
+            </td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The unique name identifier for the sensor to be deregistered.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
 
 <div class="doc doc-object doc-function">
 
