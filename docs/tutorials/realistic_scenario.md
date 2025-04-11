@@ -116,26 +116,7 @@ In the game, we are able to see the output of the sensors. But we are lacking th
 GAMMS visual system relies on `Artists` to draw everything on the screen. The artists are containers that hold the data required for drawing and a recepie to draw something using the data. Let us first try to create a custom artist which will draw rectangles of the color of the team on the capturable nodes.
 
 ```python title="game.py"
-def draw_capturable_nodes(ctx, data):
-    width = data.get('width', 10)
-    height = data.get('height', 10)
-    for node_id in data['red']:
-        node = ctx.graph.graph.get_node(node_id)
-        ctx.visual.render_rectangle(node.x, node.y, width, height, color=(255, 0, 0))
-    
-    for node_id in data['blue']:
-        node = ctx.graph.graph.get_node(node_id)
-        ctx.visual.render_rectangle(node.x, node.y, width, height, color=(0, 0, 255))
-    
-
-capturable_artist = gamms.visual.Artist(
-    ctx,
-    drawer = draw_capturable_nodes,
-    layer = 39,
-)
-apturable_artist.data['red'] = list(red_start_dict.values())
-apturable_artist.data['blue'] = list(blue_start_dict.values())
-ctx.visual.add_artist('capturable_artist', capturable_artist)
+--8<-- "snippets/understanding_artists/game.py:70:90"
 ```
 
 The `draw_capturable_nodes` function is the drawing function that will be called by the artist. The `data` parameter contains the data that is passed to the artist. The `width` and `height` parameters are the width and height of the rectangle to be drawn. We choose the layer to be 39 so that it is above most of the other drawings. By default, all artists draw at layer 30. Graph is drawn at layer 10, agents on layer 20, and the sensors default to layer 30. Every `set_*something*_visual` returns an artist object and gives full control to the user if required. The visual engine provides methods like `render_rectangle`, `render_circle`, `render_line`, etc. to draw basic shapes. As you can see, in a single artist it is possible to draw multiple shapes. The `render_rectangle` method takes the x and y coordinates of the center of the rectangle, and the width, height and color of the rectangle.
@@ -143,71 +124,19 @@ The `draw_capturable_nodes` function is the drawing function that will be called
 It is possible to turn on-off any of the artists by using the `artist.set_visible` method. What we will try to do is alternately turn the artists on and off for individual teams. Every 10 turns, we will switch which team is visible. The easiest way to do this is to populate the artists in two groups and then use the `set_visible` method to turn them on and off. In our implementation until now, we have ignored the outputs from the `set_*something*_visual` methods. The artists are created and added to the context but we do not keep a reference to them. Let's look at the various changes one by one.
 
 ```python title="game.py"
-# artist groups
-red_artist_list = []
-blue_artist_list = []
-
-# Create all the sensors
-for name, sensor in config.sensor_config.items():
-    ctx.sensor.create_sensor(name, sensor['type'], **sensor)
-
-# Create all the sensors visualization
-for name, sensor_config in config.sensor_vis_config.items():
-    artist = ctx.visual.set_sensor_visual(name, **sensor_config)
-    if int(name.split('_')[1]) < config.RED_TEAM_AGENTS:
-        red_artist_list.append(artist)
-    else:
-        blue_artist_list.append(artist)
-
+--8<-- "snippets/understanding_artists/game.py:16:30"
 ```
 
 We create two lists `red_artist_list` and `blue_artist_list` to hold the artists for each team. When setting up the sensor visual, we are taking the artist object returned by the `set_sensor_visual` method and adding it to the respective list. We do the same for the agent visualizations.
 
 ```python title="game.py"
-# Create all agents visualization
-for name, vis_config in config.agent_vis_config.items():
-    artist = ctx.visual.set_agent_visual(name, **vis_config)
-    if int(name.split('_')[1]) < config.RED_TEAM_AGENTS:
-        red_artist_list.append(artist)
-    else:
-        blue_artist_list.append(artist)
+--8<-- "snippets/understanding_artists/game.py:98:104"
 ```
 
 Now we need to add the switch on and off logic to the main loop. We will do this by using a counter to keep track of the number of steps. Every 10 steps, we will switch the artists on and off. The code will look like this:
 
 ```python title="game.py"
-while not ctx.is_terminated(): # run the loop until the context is terminated
-    artist_bool = (step_counter // 10) % 2 == 0 # check if the step counter is even
-
-    if artist_bool:
-        on_group = red_artist_list
-        off_group = blue_artist_list
-    else:
-        on_group = blue_artist_list
-        off_group = red_artist_list
-    
-    for artist in on_group:
-        artist.set_visible(True)
-    for artist in off_group:
-        artist.set_visible(False)
-
-    step_counter += 1 # increment the step counter by 1
-    state_dict = {}
-    for agent in ctx.agent.create_iter():
-        # Get the current state of the agent
-        state = agent.get_state() # get the state of the agent
-        state_dict[agent.name] = state
-    
-    for agent in ctx.agent.create_iter():
-        agent.strategy(state_dict[agent.name]) # call the strategy function of the agent
-    
-    for agent in ctx.agent.create_iter():
-        agent.set_state() # set the state of the agent    
-
-    ctx.visual.simulate() # Draw loop for the visual engine
-    capture_rule(ctx) # check capture rule
-    tag_rule(ctx) # check tag rule
-    termination_rule(ctx) # check termination rule
+--8<-- "snippets/understanding_artists/game.py:212:243"
 ```
 
 The `artist_bool` variable is used to check if the step counter is even or odd. If it is even, we turn on the red artists and turn off the blue artists. If it is odd, we turn on the blue artists and turn off the red artists.
