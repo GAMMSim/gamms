@@ -97,6 +97,16 @@ class IAgent(ABC):
         pass
 
     @abstractmethod
+    def deregister_sensor(self, name):
+        """
+        Deregister a sensor from the agent.
+
+        Args:
+            name (str): The unique name identifier for the sensor to be deregistered.
+        """
+        pass
+
+    @abstractmethod
     def register_strategy(self, strategy):
         """
         Register a strategy with the agent.
@@ -138,6 +148,9 @@ class IAgentEngine(ABC):
 
         Returns:
             IAgent: The newly created agent instance.
+        
+        Raises:
+            ValueError: If an agent with the same name already exists.
         """
         pass
 
