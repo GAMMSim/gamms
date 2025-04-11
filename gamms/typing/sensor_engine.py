@@ -8,12 +8,23 @@ class SensorType(Enum):
     Enumeration of different sensor types.
 
     Attributes:
+        CUSTOM (Enum): Dummy Sensor type when the user create a custom sensor.
+            Data Representation depends on the custom sensor implementation.
         NEIGHBOR (Enum): Sensor type for detecting neighboring entities.
             Data Representation (`List[int]`): List of node identifiers representing neighbors.
         MAP (Enum): Sensor type for map-related data.
-            Data Representation (`Tuple[Dict[int, Node], Dict[int, OSMEdge]`): Tuple containing node and edge data.
+            Data Representation (`Dict[str, Dict[int, Union[Node, OSMEdge]]`): Keys nodes and edges give respective node and edge data.
         AGENT (Enum): Sensor type for agent locations.
             Data Representation (`Dict[str, int]`): Dictionary mapping agent names to node identifiers.
+        RANGE (Enum): Sensor type for range-based data.
+            Data Representation (`Dict[str, Dict[int, Union[Node, OSMEdge]]`): Keys nodes and edges give respective node and edge data. Range only version of MAP.
+        ARC (Enum): Sensor type for arc-based data.
+            Data Representation (`Dict[str, Dict[int, Union[Node, OSMEdge]]`): Keys nodes and edges give respective node and edge data. Range and Fov version of MAP.
+        AGENT_RANGE (Enum): Sensor type for agent range data.
+            Data Representation (`Dict[str, int]`): Dictionary mapping agent names to node identifiers. Range only version of AGENT.
+        AGENT_ARC (Enum): Sensor type for agent arc data.
+            Data Representation (`Dict[str, int]`): Dictionary mapping agent names to node identifiers. Range and Fov version of AGENT.
+
     """
     CUSTOM = 0
     NEIGHBOR = 1
