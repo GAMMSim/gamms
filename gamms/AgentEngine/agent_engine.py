@@ -145,9 +145,34 @@ class Agent(IAgent):
         self._strategy = strategy
     
     def register_sensor(self, name, sensor):
+        if self._ctx.record.record():
+            self._ctx.record.write(
+                opCode=OpCodes.AGENT_SENSOR_REGISTER,
+                data={
+                    "agent_name": self.name,
+                    "name": name,
+                    "sensor_id": sensor.sensor_id,
+                }
+            )
         sensor.set_owner(self._name)
         self._sensor_list[name] = sensor
-        
+    
+    def deregister_sensor(self, name):
+        if name in self._sensor_list:
+            sensor = self._sensor_list[name]
+            if self._ctx.record.record():
+                self._ctx.record.write(
+                    opCode=OpCodes.AGENT_SENSOR_DEREGISTER,
+                    data={
+                        "agent_name": self.name,
+                        "name": name,
+                        "sensor_id": sensor.sensor_id,
+                    }
+                )
+            sensor.set_owner(None)
+            del self._sensor_list[name]
+        else:
+            self._ctx.logger.warning(f"Sensor {name} not found in agent {self._name}.")
     
     def register_strategy(self, strategy):
         self.strategy = strategy
@@ -219,7 +244,7 @@ class AgentEngine(IAgentEngine):
         if name in self.agents:
             return self.agents[name]
         else:
-            raise ValueError(f"Agent {name} not found.")
+            raise KeyError(f"Agent {name} not found.")
 
     def delete_agent(self, name) -> None:
         if self.ctx.record.record():
