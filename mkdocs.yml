@@ -109,6 +109,7 @@ nav:
   - User Tutorials:
     - tutorials/first_simulation.md
     - tutorials/realistic_scenario.md
+    - tutorials/replay_analysis.md
   - API Reference:
     - Context: context.md
     - Agent: agent.md
