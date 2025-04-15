@@ -62,4 +62,7 @@ class Artist(IArtist):
         self._artist_type = artist_type
 
     def draw(self):
-        self._drawer(self._ctx, self.data)
+        try:
+            self._drawer(self._ctx, self.data)
+        except Exception as e:
+            self._ctx.logger.error(f"Error drawing artist: {e}")

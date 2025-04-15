@@ -243,17 +243,11 @@ class RenderManager:
     def render_single_artist(self, artist_name: str):
         artist = self._artists.get(artist_name, None)
         if artist is None:
-            print(f"Warning: Artist {artist_name} not found.")
-            return
-
-        drawer = artist.get_drawer()
-        if drawer is None:
-            print(f"Warning: Drawer not found for artist {artist_name}.")
+            self.ctx.logger.warning(f"Artist {artist_name} not found.")
             return
 
         self._current_drawing_artist = artist
-        data = artist.data
-        drawer(self.ctx, data)
+        artist.draw()
         self._current_drawing_artist = None
 
     def handle_render(self):
@@ -281,12 +275,6 @@ class RenderManager:
                         rendered_layers.add(layer)
                     continue
 
-                drawer = artist.get_drawer()
-                if drawer is None:
-                    print(f"Warning: Drawer not found for artist {artist_name}.")
-                    continue
-
                 self._current_drawing_artist = artist
-                data = artist.data
-                drawer(self.ctx, data)
+                artist.draw()
                 self._current_drawing_artist = None
