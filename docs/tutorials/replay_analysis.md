@@ -65,9 +65,49 @@ We make similar changes to the `red_strategy.py` file where the only difference 
 
 ## Recording System
 
-Until now, we have relied on the visual engine to show us the output of the simulation. But there is quite an overhead in visualizing everything . When we have human input, it makes sense to visualize things but when we have autonomous agents, we can run the simulation without any visualization and then replay the simulation. Furthermore, we need a way to record a simulation to replay it and do analysis on it. GAMMS provides a `Recorder` which allows you to record a simulation and then replay it.
+Until now, we have relied on the visual engine to show us the output of the simulation. But there is quite an overhead in visualizing everything . When we have human input, it makes sense to visualize things but when we have autonomous agents, we can run the simulation without any visualization and then replay the simulation. Furthermore, we need a way to record a simulation to replay it and do analysis on it. GAMMS provides a `Recorder` which allows you to record a simulation and then replay it. To record a game, we only need to *start* the recording and there is no need to change anything in the game file. To record a game, we will add the following lines to the `game.py` file:
 
-!!! warning "Under Construction"
+```python title="game.py"
+--8<-- "snippets/recording_system/game.py:16:17"
+```
+
+The `start` method takes a `path` parameter which is the path where the recording will be saved. The recording will be saved to `recording.ggr` as a binary file. The recorded files differentailly stores the data for each step. In the current version, the following events are recorded by default:
+
+1. Agent creation and deletion
+2. Agent position changes
+3. When a sensor is registered or deregistered from an agent
+4. Every time the control is given to the visual engine (Calls to `ctx.visual.simulate()`)
+5. When the game is terminated
+
+!!! info "The recording will only start after the call to `ctx.record.start()` and will stop when the game is terminated. Anything before will not be recorded. There are also play, pasue and stop methods to control the recording process. The mmethod `ctx.record.record()` returns a True/False based on whether recording is in progress or not."
+
+To speed up the simulation, we can also turn off the visual engine. To do this, we will switch the visual engine to `NO_VIS`.
+
+```python title="config.py"
+VIS_ENGINE = gamms.visual.Engine.NO_VIS # visual engine to use
+```
+
+The game will run but as we are not visualizing anything, it is okay to remove all the artists related setups from the `game.py` file. It will not make any difference in the game speed but it will make the code cleaner and easier to read. Now we can create a file called replay.py which will contain the code to replay the simulation.
+
+```python title="replay.py"
+--8<-- "snippets/recording_system/replay.py"
+```
+
+We are setting up the visualizations for the graph and the agents and then playing the recording. The `ctx.record.replay` method takes the path to the recording file and returns a generator which yields the events in the recording. We are not doing anything for now but internally the event is yeilded after executing the event. We will look into details of the replay system in the next section. We pass the `simulation_time_constant` parameter to the visual engine to control the speed of the simulation. Here, we are speeding it up to 0.3 seconds instead of the deafult 2 seconds. The logger *level* sets the level of logging to *WARNING*. The recorder will log all events on the deafult *INFO* level.
+
+!!! info "Warnings will appear that the sensors are being ignored. This is because no sensors are defined. If the sensors are defined, the data will be populated during replay. Similarly, if a visualization for populated sensor data is defined, it will be drawn during replay."
+
+In the scenario we have created, it will be good if we can keep a track of the team scores and access them while replaying. To do this, we need to create a recorded component.
+
+```python title="game.py"
+--8<-- "snippets/recording_system/game.py:19:39"
+```
+
+The `ReportCard` class is a recorded component which will be used to keep track of the scores. The `struct` parameter is a dictionary which defines the structure of the component. The `step` and `max_steps` parameters are used to keep track of the current step and the maximum number of steps. We have split the scores into `tag_score` and `capture_score` for both teams. The `ctx.record.component` decorator registers the component type with the context. The `name` parameter is directly added by the decorator and it is required to be passed when creating the component. The `name` needs to be unique for each component.
+
+!!! warning "The keyword `name` is reserved and should not be used as a variable in the component. Other *internal* parameters can be created as a normal object but only the ones mentioned in the `struct` will be recorded. The type of all the parameters in the `struct` should be json serializable -- *Type definition: `JsonType = Union[None, int, str, bool, List["JsonType"], Dict[str, "JsonType"]]`*"
+
+We can replace all the different score variables with a reference to the `report_card` object and update the scores in the `capture_rule` and `tag_rule` functions. We also need to update the counter updates and in the main loop. The `step_counter` variable is now replaced with `report_card.step` and the `max_steps` variable is replaced with `report_card.max_steps`.
 
 ## Replay Analysis
 
