@@ -17,7 +17,10 @@ class PygameVisualizationEngine(IVisualizationEngine):
     def __init__(self, ctx, width=1280, height=720, simulation_time_constant=2.0, **kwargs):
         pygame = lazy('pygame')
         repr(pygame)
-        self._pygame = pygame.pygame
+        try:
+            self._pygame = pygame.pygame
+        except AttributeError:
+            self._pygame = pygame
         self._pygame.init()
         self.ctx: IContext = ctx
         self._sim_time_constant = simulation_time_constant
