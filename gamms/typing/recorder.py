@@ -9,19 +9,35 @@ class IRecorder(ABC):
     def record(self) -> bool:
         """
         Boolean to inform whether game is being recorded or not and ctx is alive
+
+        Returns:
+            bool: True if recording, False otherwise
         """
         pass
 
     @abstractmethod
-    def start(self, path: str) -> None:
+    def start(self, path: Union[str, BinaryIO]) -> None:
         """
         Start recording to the path. Raise error if file already exists
+        Adds ".ggr" extension if not present.
+
+        If path is a file object, it will be used as the file handler.
+
+        Args:
+            path (Union[str, BinaryIO]): Path to record the game.
+        
+        Raises:
+            FileExistsError: If the file already exists.
+            TypeError: If the path is not a string or file object.
         """
         pass
     @abstractmethod
-    def stop(self, path: str) -> None:
+    def stop(self) -> None:
         """
         Stop recording to the path and close the file handler.
+
+        Raises:
+            RuntimeError: If recording has not started.
         """
         pass
     @abstractmethod
@@ -31,7 +47,7 @@ class IRecorder(ABC):
         """
         pass
     @abstractmethod
-    def play(self, path: Union[str, BinaryIO]) -> None:
+    def play(self) -> None:
         """
         Resume recording if paused. If not started or stopped, give warning.
         """
@@ -40,18 +56,35 @@ class IRecorder(ABC):
     def replay(self, path: Union[str, BinaryIO]) -> Iterator:
         """
         Checks validity of the file and output an iterator.
+
+        Args:
+            path (Union[str, BinaryIO]): Path to the recording file.
+        
+        Returns:
+            Iterator: Iterator to replay the recording.
+        
+        Raises:
+            RuntimeError: If replay is already in progress.
+            FileNotFoundError: If the file does not exist.
+            TypeError: If the path is not a string or file object.
+            ValueError: If the file is not a valid recording file or if recording terminated unexpectedly.
         """
         pass
     @abstractmethod
     def time(self) -> int:
         """
-        Return record time if replaying. Else return the local time `(time.time())`
+        Return record time if replaying. Else return the local time `(time.time())` in nano seconds.
+
+        Returns:
+            int: Time in nanoseconds.
         """
         pass
     @abstractmethod
     def write(self, opCode, data) -> None:
         """
         Write to record buffer if recording. If not recording raise error as it should not happen.
+
+        WARNING: This function should not be required to be called by the user in most cases.
         """
         pass
 
@@ -59,6 +92,13 @@ class IRecorder(ABC):
     def component(self, struct: Dict[str, Type[_T]]) -> Callable[[Type[_T]], Type[_T]]:
         """
         Decorator to add a component to the recorder.
+
+        Args:
+            struct (Dict[str, Type[_T]]): Dictionary with component name and type.
+
+        Returns:
+            Callable[[Type[_T]], Type[_T]]: Decorator function.
+        
         """
         pass
 
@@ -66,7 +106,15 @@ class IRecorder(ABC):
     def get_component(self, name: str) -> Type[_T]:
         """
         Get the component from the name.
-        Raise key error if not found.
+
+        Args:
+            name (str): Name of the component.
+        
+        Returns:
+            Type[_T]: Component object.
+        
+        Raises:
+            KeyError: If the component is not found.
         """
         pass
 
@@ -74,7 +122,13 @@ class IRecorder(ABC):
     def delete_component(self, name: str) -> None:
         """
         Delete the component from the name.
-        Raise key error if not found.
+
+        Args:
+            name (str): Name of the component.
+        
+        Raises:
+            KeyError: If the component is not found.
+        
         """
         pass
 
@@ -89,7 +143,13 @@ class IRecorder(ABC):
     def add_component(self, name: str, obj: Type[_T]) -> None:
         """
         Add a component to the recorder.
-        Raise value error if already exists.
+
+        Args:
+            name (str): Name of the component.
+            obj (Type[_T]): Component object.
+        
+        Raises:
+            ValueError: If the component already exists.
         """
         pass
 
@@ -98,6 +158,12 @@ class IRecorder(ABC):
         """
         Check if the component is registered.
         Key is (module_name, qualname)
+
+        Args:
+            key (Tuple[str, str]): Key to check.
+        
+        Returns:
+            bool: True if registered, False otherwise.
         """
         pass
 
@@ -106,5 +172,11 @@ class IRecorder(ABC):
         """
         Unregister the component.
         Key is (module_name, qualname)
+
+        Args:
+            key (Tuple[str, str]): Key to unregister.
+        
+        Raises:
+            KeyError: If the component is not found.
         """
         pass
