@@ -613,6 +613,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../record/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Recorder
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../visual/" class="md-nav__link">
         
   
@@ -776,7 +797,10 @@
 </span><span id="__span-2-31"><a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a>    <span class="n">artist</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 </span><span id="__span-2-32"><a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a>    <span class="n">ctx</span><span class="o">.</span><span class="n">visual</span><span class="o">.</span><span class="n">add_artist</span><span class="p">(</span><span class="n">sensor_id</span><span class="p">,</span> <span class="n">artist</span><span class="p">)</span>
 </span></code></pre></div>
-<p>We are creating the sensors with a range of 160 meters and defining the opposite team as the capturable nodes. The <code>draw_capturable_nodes</code> function will be called by the artist to draw the capturable nodes. The <code>color</code> parameter is set to the color of the opposite team so that the red team will see blue rectangles and the blue team will see red rectangles. Let's remove the artist grouping logic and the turn on/off logic as well. We are calling the <code>ctx.sensor.add_sensor</code> method to keep a reference to the sensor object in the context. The <code>ctx.sensor.get_sensor</code> method used in the <code>draw_capturable_nodes</code> function will fail if the sensor is not registered in the context. The <code>ctx.agent.get_agent(name).register_sensor(sensor_id, sensor)</code> method registers the sensor to the agent.</p>
+<p>We are creating the sensors with a range of 160 meters and defining the opposite team as the capturable nodes. The <code>draw_capturable_nodes</code> function will be called by the artist to draw the capturable nodes. The <code>color</code> parameter is set to the color of the opposite team so that the red team will see blue rectangles and the blue team will see red rectangles. Let's remove the artist grouping logic and the turn on/off logic as well. We are calling the <code>ctx.sensor.add_sensor</code> method to keep a reference to the sensor object in the context. The <code>ctx.agent.get_agent(name).register_sensor(sensor_id, sensor)</code> method registers the sensor to the agent.</p>
+<div class="admonition warning">
+<p class="admonition-title">The <code>ctx.sensor.get_sensor</code> method used in the <code>draw_capturable_nodes</code> function will fail if the sensor is not registered in the context.</p>
+</div>
 <p>Let us now add the territory sensor which will return the territory of both teams in the range of the sensor.</p>
 <div class="language-python highlight"><span class="filename">game.py</span><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nd">@ctx</span><span class="o">.</span><span class="n">sensor</span><span class="o">.</span><span class="n">custom</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;TERRITORY&quot;</span><span class="p">)</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">class</span> <span class="nc">TerritorySensor</span><span class="p">(</span><span class="n">gamms</span><span class="o">.</span><span class="n">typing</span><span class="o">.</span><span class="n">ISensor</span><span class="p">):</span>
@@ -888,10 +912,93 @@
 </span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    <span class="k">return</span> <span class="n">ret</span>
 </span></code></pre></div>
 <p>We make similar changes to the <code>red_strategy.py</code> file where the only difference is that the <code>self_territory</code> and <code>opposite_territory</code> variables are swapped. We also remove the arguments passed to <code>mapper</code> in <code>game.py</code>.</p>
+<div class="admonition info">
+<p class="admonition-title">Final changed files at <a href="https://github.com/GAMMSim/gamms/tree/dev/snippets/custom_sensors">snippets/custom_sensors</a></p>
+</div>
 <h2 id="recording-system">Recording System<a class="headerlink" href="#recording-system" title="Permanent link">&para;</a></h2>
-<p>Until now, we have relied on the visual engine to show us the output of the simulation. But there is quite an overhead in visualizing everything . When we have human input, it makes sense to visualize things but when we have autonomous agents, we can run the simulation without any visualization and then replay the simulation. Furthermore, we need a way to record a simulation to replay it and do analysis on it. GAMMS provides a <code>Recorder</code> which allows you to record a simulation and then replay it.</p>
+<p>Until now, we have relied on the visual engine to show us the output of the simulation. But there is quite an overhead in visualizing everything . When we have human input, it makes sense to visualize things but when we have autonomous agents, we can run the simulation without any visualization and then replay the simulation. Furthermore, we need a way to record a simulation to replay it and do analysis on it. GAMMS provides a <code>Recorder</code> which allows you to record a simulation and then replay it. To record a game, we only need to <em>start</em> the recording and there is no need to change anything in the game file. To record a game, we will add the following lines to the <code>game.py</code> file:</p>
+<div class="language-python highlight"><span class="filename">game.py</span><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Record</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">ctx</span><span class="o">.</span><span class="n">record</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s2">&quot;recording&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<p>The <code>start</code> method takes a <code>path</code> parameter which is the path where the recording will be saved. The recording will be saved to <code>recording.ggr</code> as a binary file. The recorded files differentailly stores the data for each step. In the current version, the following events are recorded by default:</p>
+<ol>
+<li>Agent creation and deletion</li>
+<li>Agent position changes</li>
+<li>When a sensor is registered or deregistered from an agent</li>
+<li>Every time the control is given to the visual engine (Calls to <code>ctx.visual.simulate()</code>)</li>
+<li>When the game is terminated</li>
+</ol>
+<div class="admonition info">
+<p class="admonition-title">The recording will only start after the call to <code>ctx.record.start()</code> and will stop when the game is terminated. Anything before will not be recorded. There are also play, pasue and stop methods to control the recording process. The mmethod <code>ctx.record.record()</code> returns a True/False based on whether recording is in progress or not.</p>
+</div>
+<p>To speed up the simulation, we can also turn off the visual engine. To do this, we will switch the visual engine to <code>NO_VIS</code>.</p>
+<div class="language-python highlight"><span class="filename">config.py</span><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">VIS_ENGINE</span> <span class="o">=</span> <span class="n">gamms</span><span class="o">.</span><span class="n">visual</span><span class="o">.</span><span class="n">Engine</span><span class="o">.</span><span class="n">NO_VIS</span> <span class="c1"># visual engine to use</span>
+</span></code></pre></div>
+<p>The game will run but as we are not visualizing anything, it is okay to remove all the artists related setups from the <code>game.py</code> file. It will not make any difference in the game speed but it will make the code cleaner and easier to read. Now we can create a file called replay.py which will contain the code to replay the simulation.</p>
+<div class="language-python highlight"><span class="filename">replay.py</span><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">import</span> <span class="nn">gamms</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="kn">import</span> <span class="nn">config</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">ctx</span> <span class="o">=</span> <span class="n">gamms</span><span class="o">.</span><span class="n">create_context</span><span class="p">(</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">vis_engine</span><span class="o">=</span><span class="n">gamms</span><span class="o">.</span><span class="n">visual</span><span class="o">.</span><span class="n">Engine</span><span class="o">.</span><span class="n">PYGAME</span><span class="p">,</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    <span class="n">vis_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;simulation_time_constant&#39;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">},</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>    <span class="n">logger_config</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;level&#39;</span><span class="p">:</span> <span class="s1">&#39;WARNING&#39;</span><span class="p">},</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="p">)</span> <span class="c1"># create a context with PYGAME as the visual engine</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="n">G</span> <span class="o">=</span> <span class="n">gamms</span><span class="o">.</span><span class="n">osm</span><span class="o">.</span><span class="n">graph_from_xml</span><span class="p">(</span>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>    <span class="n">config</span><span class="o">.</span><span class="n">XML_FILE</span><span class="p">,</span>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>    <span class="n">resolution</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">RESOLUTION</span><span class="p">,</span>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>    <span class="n">tolerance</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">TOLERANCE</span><span class="p">,</span>
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>    <span class="n">bidirectional</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">BIDIRECTIONAL</span>
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a><span class="p">)</span>
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="n">ctx</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">attach_networkx_graph</span><span class="p">(</span><span class="n">G</span><span class="p">)</span> <span class="c1"># attach the graph to the context</span>
+</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a>
+</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a><span class="c1"># Create the graph visualization</span>
+</span><span id="__span-10-19"><a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a>
+</span><span id="__span-10-20"><a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a><span class="n">graph_artist</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">visual</span><span class="o">.</span><span class="n">set_graph_visual</span><span class="p">(</span><span class="o">**</span><span class="n">config</span><span class="o">.</span><span class="n">graph_vis_config</span><span class="p">)</span> <span class="c1"># set the graph visualization with width 1980 and height 1080</span>
+</span><span id="__span-10-21"><a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a>
+</span><span id="__span-10-22"><a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a><span class="c1"># Create all agents visualization</span>
+</span><span id="__span-10-23"><a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a><span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">vis_config</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">agent_vis_config</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span id="__span-10-24"><a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a>    <span class="n">artist</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">visual</span><span class="o">.</span><span class="n">set_agent_visual</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">vis_config</span><span class="p">)</span>
+</span><span id="__span-10-25"><a id="__codelineno-10-25" name="__codelineno-10-25" href="#__codelineno-10-25"></a>
+</span><span id="__span-10-26"><a id="__codelineno-10-26" name="__codelineno-10-26" href="#__codelineno-10-26"></a><span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">ctx</span><span class="o">.</span><span class="n">record</span><span class="o">.</span><span class="n">replay</span><span class="p">(</span><span class="s2">&quot;recording&quot;</span><span class="p">):</span>
+</span><span id="__span-10-27"><a id="__codelineno-10-27" name="__codelineno-10-27" href="#__codelineno-10-27"></a>    <span class="k">continue</span>
+</span><span id="__span-10-28"><a id="__codelineno-10-28" name="__codelineno-10-28" href="#__codelineno-10-28"></a>
+</span><span id="__span-10-29"><a id="__codelineno-10-29" name="__codelineno-10-29" href="#__codelineno-10-29"></a><span class="n">ctx</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span> <span class="c1"># terminate the context</span>
+</span></code></pre></div>
+<p>We are setting up the visualizations for the graph and the agents and then playing the recording. The <code>ctx.record.replay</code> method takes the path to the recording file and returns a generator which yields the events in the recording. We are not doing anything for now but internally the event is yeilded after executing the event. We will look into details of the replay system in the next section. We pass the <code>simulation_time_constant</code> parameter to the visual engine to control the speed of the simulation. Here, we are speeding it up to 0.3 seconds instead of the deafult 2 seconds. The logger <em>level</em> sets the level of logging to <em>WARNING</em>. The recorder will log all events on the deafult <em>INFO</em> level.</p>
+<div class="admonition info">
+<p class="admonition-title">Warnings will appear that the sensors are being ignored. This is because no sensors are defined. If the sensors are defined, the data will be populated during replay. Similarly, if a visualization for populated sensor data is defined, it will be drawn during replay.</p>
+</div>
+<p>In the scenario we have created, it will be good if we can keep a track of the team scores and access them while replaying. To do this, we need to create a recorded component.</p>
+<div class="language-python highlight"><span class="filename">game.py</span><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># Create recorded component</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="nd">@ctx</span><span class="o">.</span><span class="n">record</span><span class="o">.</span><span class="n">component</span><span class="p">(</span><span class="n">struct</span><span class="o">=</span><span class="p">{</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>    <span class="s1">&#39;step&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>    <span class="s1">&#39;max_steps&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>    <span class="s1">&#39;red_tag_score&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>    <span class="s1">&#39;blue_tag_score&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>    <span class="s1">&#39;red_capture_score&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>    <span class="s1">&#39;blue_capture_score&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>    <span class="p">}</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="p">)</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="k">class</span> <span class="nc">ReportCard</span><span class="p">:</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">step</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">MIN_SIM_STEPS</span>
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">red_tag_score</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">blue_tag_score</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">red_capture_score</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span id="__span-11-18"><a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">blue_capture_score</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span id="__span-11-19"><a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a>
+</span><span id="__span-11-20"><a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a>
+</span><span id="__span-11-21"><a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a><span class="n">report_card</span> <span class="o">=</span> <span class="n">ReportCard</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;report_card&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<p>The <code>ReportCard</code> class is a recorded component which will be used to keep track of the scores. The <code>struct</code> parameter is a dictionary which defines the structure of the component. The <code>step</code> and <code>max_steps</code> parameters are used to keep track of the current step and the maximum number of steps. We have split the scores into <code>tag_score</code> and <code>capture_score</code> for both teams. The <code>ctx.record.component</code> decorator registers the component type with the context. The <code>name</code> parameter is directly added by the decorator and it is required to be passed when creating the component. The <code>name</code> needs to be unique for each component.</p>
 <div class="admonition warning">
-<p class="admonition-title">Under Construction</p>
+<p class="admonition-title">The keyword <code>name</code> is reserved and should not be used as a variable in the component. Other <em>internal</em> parameters can be created as a normal object but only the ones mentioned in the <code>struct</code> will be recorded. The type of all the parameters in the <code>struct</code> should be json serializable -- <em>Type definition: <code>JsonType = Union[None, int, str, bool, List["JsonType"], Dict[str, "JsonType"]]</code></em></p>
+</div>
+<p>We can replace all the different score variables with a reference to the <code>report_card</code> object and update the scores in the <code>capture_rule</code> and <code>tag_rule</code> functions. We also need to update the counter updates and in the main loop. The <code>step_counter</code> variable is now replaced with <code>report_card.step</code> and the <code>max_steps</code> variable is replaced with <code>report_card.max_steps</code>.</p>
+<div class="admonition info">
+<p class="admonition-title">Final changed files at <a href="https://github.com/GAMMSim/gamms/tree/dev/snippets/recording_system">snippets/recording_system</a></p>
 </div>
 <h2 id="replay-analysis">Replay Analysis<a class="headerlink" href="#replay-analysis" title="Permanent link">&para;</a></h2>
 <div class="admonition warning">
