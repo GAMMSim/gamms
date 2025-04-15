@@ -29,7 +29,9 @@ The `draw_capturable_nodes` function now takes an additional parameter `sensor` 
 --8<-- "snippets/custom_sensors/game.py:172:203"
 ```
 
-We are creating the sensors with a range of 160 meters and defining the opposite team as the capturable nodes. The `draw_capturable_nodes` function will be called by the artist to draw the capturable nodes. The `color` parameter is set to the color of the opposite team so that the red team will see blue rectangles and the blue team will see red rectangles. Let's remove the artist grouping logic and the turn on/off logic as well. We are calling the `ctx.sensor.add_sensor` method to keep a reference to the sensor object in the context. The `ctx.sensor.get_sensor` method used in the `draw_capturable_nodes` function will fail if the sensor is not registered in the context. The `ctx.agent.get_agent(name).register_sensor(sensor_id, sensor)` method registers the sensor to the agent.
+We are creating the sensors with a range of 160 meters and defining the opposite team as the capturable nodes. The `draw_capturable_nodes` function will be called by the artist to draw the capturable nodes. The `color` parameter is set to the color of the opposite team so that the red team will see blue rectangles and the blue team will see red rectangles. Let's remove the artist grouping logic and the turn on/off logic as well. We are calling the `ctx.sensor.add_sensor` method to keep a reference to the sensor object in the context. The `ctx.agent.get_agent(name).register_sensor(sensor_id, sensor)` method registers the sensor to the agent.
+
+!!! warning "The `ctx.sensor.get_sensor` method used in the `draw_capturable_nodes` function will fail if the sensor is not registered in the context."
 
 Let us now add the territory sensor which will return the territory of both teams in the range of the sensor.
 
@@ -62,6 +64,8 @@ The `capture_sensor_data` and `territory_sensor_data` variables are the data col
 ```
 
 We make similar changes to the `red_strategy.py` file where the only difference is that the `self_territory` and `opposite_territory` variables are swapped. We also remove the arguments passed to `mapper` in `game.py`.
+
+!!! info "Final changed files at [snippets/custom_sensors](https://github.com/GAMMSim/gamms/tree/dev/snippets/custom_sensors)"
 
 ## Recording System
 
@@ -108,6 +112,8 @@ The `ReportCard` class is a recorded component which will be used to keep track 
 !!! warning "The keyword `name` is reserved and should not be used as a variable in the component. Other *internal* parameters can be created as a normal object but only the ones mentioned in the `struct` will be recorded. The type of all the parameters in the `struct` should be json serializable -- *Type definition: `JsonType = Union[None, int, str, bool, List["JsonType"], Dict[str, "JsonType"]]`*"
 
 We can replace all the different score variables with a reference to the `report_card` object and update the scores in the `capture_rule` and `tag_rule` functions. We also need to update the counter updates and in the main loop. The `step_counter` variable is now replaced with `report_card.step` and the `max_steps` variable is replaced with `report_card.max_steps`.
+
+!!! info "Final changed files at [snippets/recording_system](https://github.com/GAMMSim/gamms/tree/dev/snippets/recording_system)"
 
 ## Replay Analysis
 

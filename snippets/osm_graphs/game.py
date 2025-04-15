@@ -61,19 +61,6 @@ for name, agent in config.agent_config.items():
 for name, vis_config in config.agent_vis_config.items():
     ctx.visual.set_agent_visual(name, **vis_config)
 
-
-for node_id in nodes:
-    for red_agent in red_team:
-        start = config.agent_config[red_agent]['start_node_id']
-        if (nodes[start].x - nodes[node_id].x)**2 + (nodes[start].y - nodes[node_id].y)**2 < config.TERRITORY_RADIUS**2:
-            red_territory.add(node_id)
-            break
-    for blue_agent in blue_team:
-        start = config.agent_config[blue_agent]['start_node_id']
-        if (nodes[start].x - nodes[node_id].x)**2 + (nodes[start].y - nodes[node_id].y)**2 < config.TERRITORY_RADIUS**2:
-            blue_territory.add(node_id)
-            break
-
 red_team_score = 0
 blue_team_score = 0
 max_steps = config.MIN_SIM_STEPS

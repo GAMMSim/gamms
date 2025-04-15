@@ -31,14 +31,26 @@ We have added a new parameter `TERRITORY_RADIUS` which defines the radius of the
 --8<-- "snippets/osm_graphs/config.py:31:43"
 ```
 
-The territory will be a circle around the starting position of the agent with the radius defined by the `TERRITORY_RADIUS` parameter. The starting position of the agent is removed as we want to randomize it. Let us take a look at the final `game.py` file. The final `game.py` file will look like this:
+The territory will be a circle around the starting position of the agent with the radius defined by the `TERRITORY_RADIUS` parameter. The starting position of the agent is removed as we want to randomize it.
 
 ```python title="game.py"
---8<-- "snippets/osm_graphs/game.py"
+--8<-- "snippets/osm_graphs/game.py:1:2"
+
+# ...
+
+--8<-- "snippets/osm_graphs/game.py:18:65"
+
+# ...
+
+--8<-- "snippets/osm_graphs/game.py:132:133"
+
+    # ...
 ```
 
 We are choosing the start positions so as to avoid the case when two agents are too close to each other, especially the case when opposite team agents are too close as definition of territory will be ambiguous. We have updated the rules to reflect the new territory definition. There are no other major changes to the code.
 
+
+!!! info "Final changed files at [snippets/osm_graphs](https://github.com/GAMMSim/gamms/tree/dev/snippets/osm_graphs)"
 
 ## Autonomous Agents
 
@@ -109,6 +121,8 @@ The `sensor_vis_config` dictionary contains the visualization configuration for 
 
 When you run the code, you will see green lines highlighing the area detected by the `map` sensors. It might be hard to see, but an overlay is created on an agent when it comes in the range of `agent` sensors.
 
+!!! info "Final changed files at [snippets/autonomous_agents](https://github.com/GAMMSim/gamms/tree/dev/snippets/autonomous_agents)"
+
 ## Understanding Artists
 
 In the game, we are able to see the output of the sensors. But we are lacking the visual feedback for where the capturable nodes and territories of the teams are. Both capturable nodes and territories are specific to the scenario we are creating and hence we want to define a *custom drawing* for visualizing these details.
@@ -140,3 +154,5 @@ Now we need to add the switch on and off logic to the main loop. We will do this
 ```
 
 The `artist_bool` variable is used to check if the step counter is even or odd. If it is even, we turn on the red artists and turn off the blue artists. If it is odd, we turn on the blue artists and turn off the red artists.
+
+!!! info "Final changed files at [snippets/understanding_artists](https://github.com/GAMMSim/gamms/tree/dev/snippets/understanding_artists)"
