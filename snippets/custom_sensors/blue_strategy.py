@@ -66,8 +66,8 @@ class Agent:
                 dist = (node.x - curr_pos.x)**2 + (node.y - curr_pos.y)**2
                 if dist < 1e-6:
                     continue
-                force[0] -= (node.x - curr_pos.x) / dist
-                force[1] -= (node.y - curr_pos.y) / dist
+                force[0] -= (node.x - curr_pos.x) / dist * (random.random() + 1e-6)
+                force[1] -= (node.y - curr_pos.y) / dist * (random.random() + 1e-6)
             if pos in self_territory:
                 if pos not in nodes:
                     continue
@@ -75,8 +75,8 @@ class Agent:
                 dist = (node.x - curr_pos.x)**2 + (node.y - curr_pos.y)**2
                 if dist < 1e-6:
                     continue
-                force[0] += (node.x - curr_pos.x) / dist
-                force[1] += (node.y - curr_pos.y) / dist
+                force[0] += (node.x - curr_pos.x) / dist * (random.random() + 1e-6)
+                force[1] += (node.y - curr_pos.y) / dist * (random.random() + 1e-6)
         
         neighbors = sensor_data[f'neigh_{self._idx}'][1]
 
@@ -87,7 +87,7 @@ class Agent:
         # Calculate the force dot product
         for node in neighbor_nodes:
             dot_product = (node.x - curr_pos.x) * force[0] + (node.y - curr_pos.y) * force[1]
-            dot_products[node.id] = dot_product
+            dot_products[node.id] = dot_product + (0.5 - random.random()) * 0.1
         
         # Return the node with the maximum dot product
         max_node = max(dot_products, key=dot_products.get)
