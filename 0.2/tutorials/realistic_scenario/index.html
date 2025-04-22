@@ -468,7 +468,7 @@
         
   
   <span class="md-ellipsis">
-    Final Touches
+    Replay analysis
   </span>
   
 
@@ -715,10 +715,12 @@
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">TOLERANCE</span> <span class="o">=</span> <span class="mf">0.01</span> <span class="c1"># tolerance for the graph in meters</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">BIDIRECTIONAL</span> <span class="o">=</span> <span class="kc">False</span> <span class="c1"># whether the graph is bidirectional or not</span>
 </span></code></pre></div>
-<p><div class="language-python highlight"><span class="filename">game.py</span><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">G</span> <span class="o">=</span> <span class="n">gamms</span><span class="o">.</span><span class="n">osm</span><span class="o">.</span><span class="n">graph_from_xml</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">XML_FILE</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">RESOLUTION</span><span class="p">,</span> <span class="n">tolerance</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">TOLERANCE</span><span class="p">,</span> <span class="n">bidirectional</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">BIDIRECTIONAL</span><span class="p">)</span>
+<div class="language-python highlight"><span class="filename">game.py</span><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">G</span> <span class="o">=</span> <span class="n">gamms</span><span class="o">.</span><span class="n">osm</span><span class="o">.</span><span class="n">graph_from_xml</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">XML_FILE</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">RESOLUTION</span><span class="p">,</span> <span class="n">tolerance</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">TOLERANCE</span><span class="p">,</span> <span class="n">bidirectional</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">BIDIRECTIONAL</span><span class="p">)</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">ctx</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">attach_networkx_graph</span><span class="p">(</span><span class="n">G</span><span class="p">)</span> <span class="c1"># attach the graph to the context</span>
 </span></code></pre></div>
-The <code>graph_from_xml</code> method takes the XML file as an argument and returns a graph object. The <code>attach_networkx_graph</code> method attaches the graph to the context. The <code>resolution</code> parameter is the resolution of the graph that GAMMS will try to space the nodes in the final graph. The <code>tolerance</code> parameter defines that details smaller than this will be ignored. The <code>bidirectional</code> parameter defines whether the graph should add extra edges to make all edges bidirectional which is <code>True</code> by default.  It takes some time to process the raw OSM data and create the intermediate <code>networkx</code> graph. For repeated testing, it is better to save the created networkx graph to a file and load it directly using the <code>networkx</code> library. It is also possible to create OSM graphs directly using a GUI program like <a href="https://josm.openstreetmap.de/">JOSM</a>. The program allows to create OSM graphs and save them as XML files which can be used in GAMMS, thus allowing to create custom graphs manually without relying on the programatic interface we used in the previos tutorial.</p>
+<p><img alt="OSM Graph" src="../images/osm_graph.png" />
+<em>The La Jolla OSM graph loaded in GAMMS showing road networks as nodes and edges</em></p>
+<p>The <code>graph_from_xml</code> method takes the XML file as an argument and returns a graph object. The <code>attach_networkx_graph</code> method attaches the graph to the context. The <code>resolution</code> parameter is the resolution of the graph that GAMMS will try to space the nodes in the final graph. The <code>tolerance</code> parameter defines that details smaller than this will be ignored. The <code>bidirectional</code> parameter defines whether the graph should add extra edges to make all edges bidirectional which is <code>True</code> by default.  It takes some time to process the raw OSM data and create the intermediate <code>networkx</code> graph. For repeated testing, it is better to save the created networkx graph to a file and load it directly using the <code>networkx</code> library. It is also possible to create OSM graphs directly using a GUI program like <a href="https://josm.openstreetmap.de/">JOSM</a>. The program allows to create OSM graphs and save them as XML files which can be used in GAMMS, thus allowing to create custom graphs manually without relying on the programatic interface we used in the previos tutorial.</p>
 <p>You will observe that the agents are thrown in random locations in the graph as we are using the start position of the agents in the previous tutorial. Let us update the start positions to be randomized on the graph. In addition, let us add a few new rules to the game where there is range around any agent's start position which defines <code>team territory</code>. If the tag rule is triggered in a territory, the team in whose territory the tag rule is triggered will get a point. Furthermore, only the opposite team agent will be reset to the starting position. The <code>max_steps</code> will also increase. Let us parametrize everything in the <code>config.py</code> file.</p>
 <div class="language-python highlight"><span class="filename">config.py</span><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">MAX_SIM_STEPS</span> <span class="o">=</span> <span class="mi">10000</span> <span class="c1"># NUMBER OF STEPS IN THE SIMULATION</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">TERRITORY_RADIUS</span> <span class="o">=</span> <span class="mf">500.0</span> <span class="c1"># radius of the territory in meters</span>
@@ -802,6 +804,8 @@ The <code>graph_from_xml</code> method takes the XML file as an argument and ret
 </span><span id="__span-4-59"><a id="__codelineno-4-59" name="__codelineno-4-59" href="#__codelineno-4-59"></a>
 </span><span id="__span-4-60"><a id="__codelineno-4-60" name="__codelineno-4-60" href="#__codelineno-4-60"></a>    <span class="c1"># ...</span>
 </span></code></pre></div>
+<p><img alt="Random Agent Placement" src="../images/random_agents_territories.png" />
+<em>Agents are randomly placed on the map within the highlighted territories</em></p>
 <p>We are choosing the start positions so as to avoid the case when two agents are too close to each other, especially the case when opposite team agents are too close as definition of territory will be ambiguous. We have updated the rules to reflect the new territory definition. There are no other major changes to the code.</p>
 <div class="admonition info">
 <p class="admonition-title">Final changed files at <a href="https://github.com/GAMMSim/gamms/tree/dev/snippets/osm_graphs">snippets/osm_graphs</a></p>
@@ -850,6 +854,8 @@ The <code>graph_from_xml</code> method takes the XML file as an argument and ret
 </span><span id="__span-6-30"><a id="__codelineno-6-30" name="__codelineno-6-30" href="#__codelineno-6-30"></a>    <span class="p">}</span>
 </span></code></pre></div>
 <p>We have added the sensors under the name <code>map_{i}</code> and <code>agent_{i}</code>. The <code>map_{i}</code> sensor is an <code>ArcSensor</code> which gives the agent information about the environment in a circular area around the agent. The <code>sensor_range</code> parameter defines the range of the sensor in meters. The <code>fov</code> parameter defines the field of view of the sensor in radians. The <code>agent_{i}</code> sensor is an <code>AgentArcSensor</code> which gives the agent information about other agents in a circular area around the agent. The <code>sensor_range</code> and <code>fov</code> parameters are the same as for the <code>map_{i}</code> sensor.</p>
+<p><img alt="Agent Sensors" src="../images/agent_sensors.png" />
+<em>Agents with ArcSensor and AgentArcSensor showing the field of view and sensor range</em></p>
 <p>For the blue agents, we will make the file <code>blue_strategy.py</code> which will contain the strategy for the blue agents. Before writing out the strategy, let us first try to come up with a simple pseudo-algorithm. Let's say that:</p>
 <ol>
 <li>All the agents maintain a common shared map of the environment. This is same as same as saying complete information sharing or centralized control.</li>
@@ -1003,6 +1009,8 @@ The <code>graph_from_xml</code> method takes the XML file as an argument and ret
 </span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>    <span class="n">tag_rule</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span> <span class="c1"># check tag rule</span>
 </span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a>    <span class="n">termination_rule</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span> <span class="c1"># check termination rule</span>
 </span></code></pre></div>
+<p><img alt="Autonomous Agents" src="../images/autonomous_agents.gif" /></p>
+<p><em>Autonomous agents moving according to their strategy, showing decision-making in action</em></p>
 <p>Note how the strategy function is called one after the other. It also means that the strategy of individual agents will not receive all the data from all agents as the data has not arrived yet. The strategy is implicity sequential. One way to solve this is to do the individual calls using threads and do internal synchronization on agent side. We are not going to implement that here as there are multiple ways to do that. There are also other ways where strategy is called multiple before setting the states to ensure that all data is available. Multiple calls will recalculate the action and replace the <em>initial</em> action without ever executing it.</p>
 <p>The agent will mostly play a waiting game and will do some random movement to test the response of the opposite team. The heuristic is not very good but it is a start. The agents will be able to move around the graph and capture nodes. We can see the entire graph and the agents moving around but the agents can only see a small part of the graph. The next part is to visualize what the agents see. We can easily do this by setting up the a visual config for each sensor.</p>
 <div class="language-python highlight"><span class="filename">config.py</span><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">sensor_vis_config</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1030,6 +1038,8 @@ The <code>graph_from_xml</code> method takes the XML file as an argument and ret
 </span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">sensor_config</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">sensor_vis_config</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 </span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>    <span class="n">ctx</span><span class="o">.</span><span class="n">visual</span><span class="o">.</span><span class="n">set_sensor_visual</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">sensor_config</span><span class="p">)</span>
 </span></code></pre></div>
+<p><img alt="Sensor Visualization" src="images/sensor_visualization.png" />
+<em>Visualization of sensor data showing what each agent can see, with the visible area highlighted</em></p>
 <p>When you run the code, you will see green lines highlighing the area detected by the <code>map</code> sensors. It might be hard to see, but an overlay is created on an agent when it comes in the range of <code>agent</code> sensors.</p>
 <div class="admonition info">
 <p class="admonition-title">Final changed files at <a href="https://github.com/GAMMSim/gamms/tree/dev/snippets/autonomous_agents">snippets/autonomous_agents</a></p>
@@ -1060,6 +1070,8 @@ The <code>graph_from_xml</code> method takes the XML file as an argument and ret
 </span><span id="__span-12-21"><a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a><span class="n">ctx</span><span class="o">.</span><span class="n">visual</span><span class="o">.</span><span class="n">add_artist</span><span class="p">(</span><span class="s1">&#39;capturable_artist&#39;</span><span class="p">,</span> <span class="n">capturable_artist</span><span class="p">)</span>
 </span></code></pre></div>
 <p>The <code>draw_capturable_nodes</code> function is the drawing function that will be called by the artist. The <code>data</code> parameter contains the data that is passed to the artist. The <code>width</code> and <code>height</code> parameters are the width and height of the rectangle to be drawn. We choose the layer to be 39 so that it is above most of the other drawings. By default, all artists draw at layer 30. Graph is drawn at layer 10, agents on layer 20, and the sensors default to layer 30. Every <code>set_*something*_visual</code> returns an artist object and gives full control to the user if required. The visual engine provides methods like <code>render_rectangle</code>, <code>render_circle</code>, <code>render_line</code>, etc. to draw basic shapes. As you can see, in a single artist it is possible to draw multiple shapes. The <code>render_rectangle</code> method takes the x and y coordinates of the center of the rectangle, and the width, height and color of the rectangle.</p>
+<p><img alt="Capturable Nodes" src="../images/capturable_nodes.png" />
+<em>Custom artist visualization showing capturable nodes marked with colored rectangles</em></p>
 <p>It is possible to turn on-off any of the artists by using the <code>artist.set_visible</code> method. What we will try to do is alternately turn the artists on and off for individual teams. Every 10 turns, we will switch which team is visible. The easiest way to do this is to populate the artists in two groups and then use the <code>set_visible</code> method to turn them on and off. In our implementation until now, we have ignored the outputs from the <code>set_*something*_visual</code> methods. The artists are created and added to the context but we do not keep a reference to them. Let's look at the various changes one by one.</p>
 <div class="language-python highlight"><span class="filename">game.py</span><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># artist groups</span>
 </span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="n">red_artist_list</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1120,6 +1132,8 @@ The <code>graph_from_xml</code> method takes the XML file as an argument and ret
 </span><span id="__span-15-31"><a id="__codelineno-15-31" name="__codelineno-15-31" href="#__codelineno-15-31"></a>    <span class="n">tag_rule</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span> <span class="c1"># check tag rule</span>
 </span><span id="__span-15-32"><a id="__codelineno-15-32" name="__codelineno-15-32" href="#__codelineno-15-32"></a>    <span class="n">termination_rule</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span> <span class="c1"># check termination rule</span>
 </span></code></pre></div>
+<p><img alt="Team Visibility Toggle" src="../images/team_toggle.gif" />
+<em>Demonstration of toggling visibility between red and blue team artists every 10 steps</em></p>
 <p>The <code>artist_bool</code> variable is used to check if the step counter is even or odd. If it is even, we turn on the red artists and turn off the blue artists. If it is odd, we turn on the blue artists and turn off the red artists.</p>
 <div class="admonition info">
 <p class="admonition-title">Final changed files at <a href="https://github.com/GAMMSim/gamms/tree/dev/snippets/understanding_artists">snippets/understanding_artists</a></p>
@@ -1173,13 +1187,13 @@ The <code>graph_from_xml</code> method takes the XML file as an argument and ret
         
         
           
-          <a href="../replay_analysis/" class="md-footer__link md-footer__link--next" aria-label="Next: Final Touches">
+          <a href="../replay_analysis/" class="md-footer__link md-footer__link--next" aria-label="Next: Replay analysis">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Final Touches
+                Replay analysis
               </div>
             </div>
             <div class="md-footer__button md-icon">

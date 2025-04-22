@@ -468,7 +468,7 @@
         
   
   <span class="md-ellipsis">
-    Final Touches
+    Replay analysis
   </span>
   
 
@@ -760,6 +760,8 @@
 </span></code></pre></div>
 <p>We do this using the <code>set_graph_visual</code> method of the visual engine. We pass extra parameters to the method to set the width and height of the visualization but these are optional. The default values are 1280 and 720 respectively. The <code>set_graph_visual</code> method returns a graph artist object that is used to draw the graph. We will discuss more about artists in later tutorials. The good part is, we do not need to worry about handling the drawing of the graph or what exactly the artist is doing to get started.</p>
 <p>The last part of the code is a loop that runs for 120 seconds. The loop calls the <code>simulate</code> method of the visual engine to draw the graph. You will now see a window with the square. You can scroll the mouse to zoom in and out of the graph, and use the <code>WASD</code> keys to move around the graph. The simulation will run for 120 seconds and then exit automatically.</p>
+<p><img alt="Simple Square Grid" src="../images/simple_square_grid.png" />
+<em>A simple 2x2 square grid visualization shown in the GAMMS window</em></p>
 <p>Before moving to the next part, let's make a bigger grid and make it an <code>n x n</code> grid. We will create a function that will create a grid of size <code>n x n</code> and add it to the graph. The function will take the size of the grid as an argument and create the nodes and edges for the grid. The function will be called <code>create_grid</code> and will look like this:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">def</span> <span class="nf">create_grid</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">edge_count</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># initialize the edge count to 0</span>
@@ -835,6 +837,8 @@
 </span><span id="__span-6-38"><a id="__codelineno-6-38" name="__codelineno-6-38" href="#__codelineno-6-38"></a>
 </span><span id="__span-6-39"><a id="__codelineno-6-39" name="__codelineno-6-39" href="#__codelineno-6-39"></a><span class="n">ctx</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span> <span class="c1"># terminate the context</span>
 </span></code></pre></div>
+<p><img alt="NxN Grid" src="../images/nxn_grid.png" />
+<em>A larger n×n grid visualization with the size defined in config.py</em></p>
 <div class="admonition info">
 <p class="admonition-title">Final changes in the files can be found in <a href="https://github.com/GAMMSim/gamms/tree/dev/snippets/visualizing_a_grid">snippets/visualizing_a_grid</a></p>
 </div>
@@ -849,6 +853,9 @@
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="c1"># set the agent visualization with name &#39;agent_0&#39;, color red and size 10</span>
 </span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">ctx</span><span class="o">.</span><span class="n">visual</span><span class="o">.</span><span class="n">set_agent_visual</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;agent_0&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
 </span></code></pre></div>
+<!-- ![Single Agent](images/single_agent.png)
+*A single agent displayed on the grid at node 0* -->
+
 <p>You will notice that the agent is not doing anything in the simulation and is just sitting at the start node. The agent is not moving because we have not defined any behaviour for the agent. Let's try to first get human input to move the agent around. The visual engine provides a way to get user input while displaying possible actions on the screen. We need to edit the while loop to get user input:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">step_counter</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># initialize the step counter to 0</span>
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">while</span> <span class="ow">not</span> <span class="n">ctx</span><span class="o">.</span><span class="n">is_terminated</span><span class="p">():</span> <span class="c1"># run the loop until the context is terminated</span>
@@ -876,6 +883,8 @@
 </span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="n">ctx</span><span class="o">.</span><span class="n">agent</span><span class="o">.</span><span class="n">get_agent</span><span class="p">(</span><span class="s1">&#39;agent_0&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">register_sensor</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;neigh_0&#39;</span><span class="p">,</span> <span class="n">sensor</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">sensor</span><span class="o">.</span><span class="n">get_sensor</span><span class="p">(</span><span class="s1">&#39;neigh_0&#39;</span><span class="p">))</span>
 </span></code></pre></div>
 <p>There are two parts to this code. The first part creates the sensor and the second part registers the sensor to the agent. The <code>create_sensor</code> method of the context creates a sensor with the given id and type. The <code>register_sensor</code> method of the agent registers the sensor to the agent. When the <code>get_state</code> method of the agent is called, the sensor information is updated and added to the state of the agent. The <code>human_input</code> method of the visual engine uses this information to show the possible actions for the agent. You will see that the agent is highlighted and you can see some numbers on the nearby nodes. The correspoding number can be pressed on the keyboard to move the agent to that node. The agent will move to the node and you can see the agent moving around the grid.</p>
+<p><img alt="Agent With Sensor" src="../images/agent_with_sensor.gif" />
+<em>Agent with NeighborSensor showing numbered actions for player input</em></p>
 <div class="admonition info">
 <p class="admonition-title">The maximum number of neighbors that can be handled by human input method is 10. The restriction is only for the human input method and not the sensor itself. The sensor can handle any number of neighbors. The human input method will only show the first 10 neighbors and the rest will be ignored. The human input method will also not show the neighbors if there are more than 10 neighbors. This is a limitation of the current implementation and will be fixed in future releases.</p>
 </div>
@@ -947,6 +956,8 @@
 </span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">vis_config</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">agent_vis_config</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 </span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>    <span class="n">ctx</span><span class="o">.</span><span class="n">visual</span><span class="o">.</span><span class="n">set_agent_visual</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">vis_config</span><span class="p">)</span>
 </span></code></pre></div>
+<p><img alt="Multiple Agents" src="../images/multiple_agents.png" />
+<em>Red and blue team agents positioned on the grid according to their configurations</em></p>
 <p>We have switched the sequence of sensor definition and agent creation. The sensors are created first so that the when the <code>create_agent</code> method is called, the method tries to automatically register the sensors to the agent. But if the sensors are not created, the agent will not be able to register the sensors. So, we need to create the sensors first and then create the agents. We can always do the registration manually but it is easier to do it directly.</p>
 <div class="admonition info">
 <p class="admonition-title">Final changes in the files can be found in <a href="https://github.com/GAMMSim/gamms/tree/dev/snippets/creating_agents">snippets/creating_agents</a></p>
@@ -1020,6 +1031,8 @@
 </span><span id="__span-16-28"><a id="__codelineno-16-28" name="__codelineno-16-28" href="#__codelineno-16-28"></a>                <span class="n">agent</span><span class="o">.</span><span class="n">prev_node_id</span> <span class="o">=</span> <span class="n">blue_start_dict</span><span class="p">[</span><span class="n">blue_agent</span><span class="p">]</span>
 </span><span id="__span-16-29"><a id="__codelineno-16-29" name="__codelineno-16-29" href="#__codelineno-16-29"></a>                <span class="n">max_steps</span> <span class="o">+=</span> <span class="mi">10</span>
 </span></code></pre></div>
+<p><img alt="Gameplay" src="../images/gameplay_screenshot.gif" /></p>
+<p><em>Gameplay showing the tag and capture rules in action</em></p>
 <p>The <code>capture_rule</code> function checks if a blue agent reaches any red agents' starting position. If it does, the blue team gets a point. The same applies for red agents too. We are updating the <code>red_team_score</code> and <code>blue_team_score</code> variables to keep track of the score. The <code>max_steps</code> variable is updated to increase the maximum number of steps by 10 on every capture from either team.</p>
 <p>Let's put it all in the <code>game.py</code> file and  update the main loop to call the rules.</p>
 <div class="language-python highlight"><span class="filename">game.py</span><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kn">import</span> <span class="nn">gamms</span>
@@ -1058,6 +1071,9 @@
 </span><span id="__span-17-34"><a id="__codelineno-17-34" name="__codelineno-17-34" href="#__codelineno-17-34"></a>    <span class="n">tag_rule</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span> <span class="c1"># check tag rule</span>
 </span><span id="__span-17-35"><a id="__codelineno-17-35" name="__codelineno-17-35" href="#__codelineno-17-35"></a>    <span class="n">termination_rule</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span> <span class="c1"># check termination rule</span>
 </span></code></pre></div>
+<!-- ![Game Over Screen](images/game_over.png)
+*Game over screen showing the final scores after termination rules are applied* -->
+
 <p>The rules are called after the agent state updates. Note how the capture rule is called before the tag rule. The game rules are actually ambiguous here. Do we first resolve the tag rule and then the capture rule or vice versa? The way we have implemented it, the capture rule is called first and then the tag rule. The example also highlights that the order of rule resolution is important and writing it in this way allows to figure out ambiguities in the rules.</p>
 <div class="admonition info">
 <p class="admonition-title">Final changes in the files can be found in <a href="https://github.com/GAMMSim/gamms/tree/dev/snippets/creating_rules">snippets/creating_rules</a></p>

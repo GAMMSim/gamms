@@ -22,7 +22,7 @@
     
     
       
-        <title>Final Touches - GAMMS</title>
+        <title>Replay analysis - GAMMS</title>
       
     
     
@@ -116,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Final Touches
+              Replay analysis
             
           </span>
         </div>
@@ -410,7 +410,7 @@
           
   
   <span class="md-ellipsis">
-    Final Touches
+    Replay analysis
   </span>
   
 
@@ -421,7 +421,7 @@
         
   
   <span class="md-ellipsis">
-    Final Touches
+    Replay analysis
   </span>
   
 
@@ -706,6 +706,9 @@
   
 
 
+<p>---
+title: Final Touches</p>
+<hr />
 <h1 id="final-touches-analysis-tools">Final Touches &amp; Analysis Tools<a class="headerlink" href="#final-touches-analysis-tools" title="Permanent link">&para;</a></h1>
 <p>In the previous tutorial, we have created a complete game with autonomous agents. However, we have not addressed the issue of getting custom information in the agent state that might depend on the scenario. Furthermore, it will be good to store a simulation and replay it without having to do all the calculations again. In this tutorial, we will try to address these issues and explore many of the functionalities of GAMMS that we have not used so far.</p>
 <h2 id="custom-sensors">Custom Sensors<a class="headerlink" href="#custom-sensors" title="Permanent link">&para;</a></h2>
@@ -889,6 +892,8 @@
 </span><span id="__span-5-27"><a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>    <span class="n">artist</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">10.0</span>
 </span><span id="__span-5-28"><a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a>    <span class="n">ctx</span><span class="o">.</span><span class="n">visual</span><span class="o">.</span><span class="n">add_artist</span><span class="p">(</span><span class="n">sensor_id</span><span class="p">,</span> <span class="n">artist</span><span class="p">)</span>
 </span></code></pre></div>
+<p><img alt="Territory Sensor Visualization" src="../images/territory_sensor_visualization.png" />
+<em>Visualization of territories detected by the territory sensor, displayed as colored circles</em></p>
 <p>Now that we have the input from these sensors, we can remove the hard coded territory and capturable nodes from the agent state. The agent will now be able to figure out the information about the territory and capturable nodes from the sensors. Let's look at the changes to the <code>blue_strategy.py</code> file.</p>
 <div class="language-python highlight"><span class="filename">blue_strategy.py</span><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>        <span class="n">capture_sensor_data</span> <span class="o">=</span> <span class="n">sensor_data</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;capture_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>        <span class="c1"># Get the territory sensor data</span>
@@ -966,6 +971,9 @@
 </span><span id="__span-10-29"><a id="__codelineno-10-29" name="__codelineno-10-29" href="#__codelineno-10-29"></a><span class="n">ctx</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span> <span class="c1"># terminate the context</span>
 </span></code></pre></div>
 <p>We are setting up the visualizations for the graph and the agents and then playing the recording. The <code>ctx.record.replay</code> method takes the path to the recording file and returns a generator which yields the events in the recording. We are not doing anything for now but internally the event is yeilded after executing the event. We will look into details of the replay system in the next section. We pass the <code>simulation_time_constant</code> parameter to the visual engine to control the speed of the simulation. Here, we are speeding it up to 0.3 seconds instead of the deafult 2 seconds. The logger <em>level</em> sets the level of logging to <em>WARNING</em>. The recorder will log all events on the deafult <em>INFO</em> level.</p>
+<!-- ![Replay Visualization](images/replay_visualization.png)
+*Replaying a recorded simulation with visualization of agents and their movements* -->
+
 <div class="admonition info">
 <p class="admonition-title">Warnings will appear that the sensors are being ignored. This is because no sensors are defined. If the sensors are defined, the data will be populated during replay. Similarly, if a visualization for populated sensor data is defined, it will be drawn during replay.</p>
 </div>
@@ -993,6 +1001,9 @@
 </span><span id="__span-11-21"><a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a><span class="n">report_card</span> <span class="o">=</span> <span class="n">ReportCard</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;report_card&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <p>The <code>ReportCard</code> class is a recorded component which will be used to keep track of the scores. The <code>struct</code> parameter is a dictionary which defines the structure of the component. The <code>step</code> and <code>max_steps</code> parameters are used to keep track of the current step and the maximum number of steps. We have split the scores into <code>tag_score</code> and <code>capture_score</code> for both teams. The <code>ctx.record.component</code> decorator registers the component type with the context. The <code>name</code> parameter is directly added by the decorator and it is required to be passed when creating the component. The <code>name</code> needs to be unique for each component.</p>
+<!-- ![Report Card Component](images/report_card.png)
+*Visualization of the report card component showing team scores during replay* -->
+
 <div class="admonition warning">
 <p class="admonition-title">The keyword <code>name</code> is reserved and should not be used as a variable in the component. Other <em>internal</em> parameters can be created as a normal object but only the ones mentioned in the <code>struct</code> will be recorded. The type of all the parameters in the <code>struct</code> should be json serializable -- <em>Type definition: <code>JsonType = Union[None, int, str, bool, List["JsonType"], Dict[str, "JsonType"]]</code></em></p>
 </div>
@@ -1010,9 +1021,6 @@
 
 
 
-
-  
-  
 
 
 
