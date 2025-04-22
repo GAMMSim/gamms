@@ -86,6 +86,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         #Add data for node ID and Color
         self.add_artist('graph', artist)
 
+        self._redraw_graph_artists()
+
         return artist
 
     def _set_input_overlay_artist(self, args: dict):
