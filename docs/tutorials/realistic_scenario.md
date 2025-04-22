@@ -17,6 +17,10 @@ GAMMS provides a way to load [Open Street Map (OSM)](https://www.openstreetmap.o
 ```python title="game.py"
 --8<-- "snippets/osm_graphs/game.py:7:8"
 ```
+
+![OSM Graph](images/osm_graph.png)
+*The La Jolla OSM graph loaded in GAMMS showing road networks as nodes and edges*
+
 The `graph_from_xml` method takes the XML file as an argument and returns a graph object. The `attach_networkx_graph` method attaches the graph to the context. The `resolution` parameter is the resolution of the graph that GAMMS will try to space the nodes in the final graph. The `tolerance` parameter defines that details smaller than this will be ignored. The `bidirectional` parameter defines whether the graph should add extra edges to make all edges bidirectional which is `True` by default.  It takes some time to process the raw OSM data and create the intermediate `networkx` graph. For repeated testing, it is better to save the created networkx graph to a file and load it directly using the `networkx` library. It is also possible to create OSM graphs directly using a GUI program like [JOSM](https://josm.openstreetmap.de/). The program allows to create OSM graphs and save them as XML files which can be used in GAMMS, thus allowing to create custom graphs manually without relying on the programatic interface we used in the previos tutorial.
 
 You will observe that the agents are thrown in random locations in the graph as we are using the start position of the agents in the previous tutorial. Let us update the start positions to be randomized on the graph. In addition, let us add a few new rules to the game where there is range around any agent's start position which defines `team territory`. If the tag rule is triggered in a territory, the team in whose territory the tag rule is triggered will get a point. Furthermore, only the opposite team agent will be reset to the starting position. The `max_steps` will also increase. Let us parametrize everything in the `config.py` file.
@@ -47,6 +51,9 @@ The territory will be a circle around the starting position of the agent with th
     # ...
 ```
 
+![Random Agent Placement](images/random_agents_territories.png)
+*Agents are randomly placed on the map within the highlighted territories*
+
 We are choosing the start positions so as to avoid the case when two agents are too close to each other, especially the case when opposite team agents are too close as definition of territory will be ambiguous. We have updated the rules to reflect the new territory definition. There are no other major changes to the code.
 
 
@@ -75,6 +82,9 @@ We only have the `NeighborSensor` setup so far. We want the agent state to conta
 ```
 
 We have added the sensors under the name `map_{i}` and `agent_{i}`. The `map_{i}` sensor is an `ArcSensor` which gives the agent information about the environment in a circular area around the agent. The `sensor_range` parameter defines the range of the sensor in meters. The `fov` parameter defines the field of view of the sensor in radians. The `agent_{i}` sensor is an `AgentArcSensor` which gives the agent information about other agents in a circular area around the agent. The `sensor_range` and `fov` parameters are the same as for the `map_{i}` sensor.
+
+![Agent Sensors](images/agent_sensors.png)
+*Agents with ArcSensor and AgentArcSensor showing the field of view and sensor range*
 
 For the blue agents, we will make the file `blue_strategy.py` which will contain the strategy for the blue agents. Before writing out the strategy, let us first try to come up with a simple pseudo-algorithm. Let's say that:
 
@@ -105,6 +115,10 @@ In the main loop, we will first collect all agent states, populate the action in
 --8<-- "snippets/autonomous_agents/game.py:177:194"
 ```
 
+![Autonomous Agents](images/autonomous_agents.gif)
+
+*Autonomous agents moving according to their strategy, showing decision-making in action*
+
 Note how the strategy function is called one after the other. It also means that the strategy of individual agents will not receive all the data from all agents as the data has not arrived yet. The strategy is implicity sequential. One way to solve this is to do the individual calls using threads and do internal synchronization on agent side. We are not going to implement that here as there are multiple ways to do that. There are also other ways where strategy is called multiple before setting the states to ensure that all data is available. Multiple calls will recalculate the action and replace the *initial* action without ever executing it.
 
 The agent will mostly play a waiting game and will do some random movement to test the response of the opposite team. The heuristic is not very good but it is a start. The agents will be able to move around the graph and capture nodes. We can see the entire graph and the agents moving around but the agents can only see a small part of the graph. The next part is to visualize what the agents see. We can easily do this by setting up the a visual config for each sensor.
@@ -118,6 +132,9 @@ The `sensor_vis_config` dictionary contains the visualization configuration for 
 ```python title="game.py"
 --8<-- "snippets/autonomous_agents/game.py:20:22"
 ```
+
+![Sensor Visualization](images/sensor_visualization.png)
+*Visualization of sensor data showing what each agent can see, with the visible area highlighted*
 
 When you run the code, you will see green lines highlighing the area detected by the `map` sensors. It might be hard to see, but an overlay is created on an agent when it comes in the range of `agent` sensors.
 
@@ -134,6 +151,9 @@ GAMMS visual system relies on `Artists` to draw everything on the screen. The ar
 ```
 
 The `draw_capturable_nodes` function is the drawing function that will be called by the artist. The `data` parameter contains the data that is passed to the artist. The `width` and `height` parameters are the width and height of the rectangle to be drawn. We choose the layer to be 39 so that it is above most of the other drawings. By default, all artists draw at layer 30. Graph is drawn at layer 10, agents on layer 20, and the sensors default to layer 30. Every `set_*something*_visual` returns an artist object and gives full control to the user if required. The visual engine provides methods like `render_rectangle`, `render_circle`, `render_line`, etc. to draw basic shapes. As you can see, in a single artist it is possible to draw multiple shapes. The `render_rectangle` method takes the x and y coordinates of the center of the rectangle, and the width, height and color of the rectangle.
+
+![Capturable Nodes](images/capturable_nodes.png)
+*Custom artist visualization showing capturable nodes marked with colored rectangles*
 
 It is possible to turn on-off any of the artists by using the `artist.set_visible` method. What we will try to do is alternately turn the artists on and off for individual teams. Every 10 turns, we will switch which team is visible. The easiest way to do this is to populate the artists in two groups and then use the `set_visible` method to turn them on and off. In our implementation until now, we have ignored the outputs from the `set_*something*_visual` methods. The artists are created and added to the context but we do not keep a reference to them. Let's look at the various changes one by one.
 
@@ -152,6 +172,9 @@ Now we need to add the switch on and off logic to the main loop. We will do this
 ```python title="game.py"
 --8<-- "snippets/understanding_artists/game.py:212:243"
 ```
+
+![Team Visibility Toggle](images/team_toggle.gif)
+*Demonstration of toggling visibility between red and blue team artists every 10 steps*
 
 The `artist_bool` variable is used to check if the step counter is even or odd. If it is even, we turn on the red artists and turn off the blue artists. If it is odd, we turn on the blue artists and turn off the red artists.
 

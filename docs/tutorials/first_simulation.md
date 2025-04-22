@@ -42,6 +42,8 @@ We do this using the `set_graph_visual` method of the visual engine. We pass ext
 
 The last part of the code is a loop that runs for 120 seconds. The loop calls the `simulate` method of the visual engine to draw the graph. You will now see a window with the square. You can scroll the mouse to zoom in and out of the graph, and use the `WASD` keys to move around the graph. The simulation will run for 120 seconds and then exit automatically.
 
+![Simple Square Grid](images/simple_square_grid.png)
+*A simple 2x2 square grid visualization shown in the GAMMS window*
 
 Before moving to the next part, let's make a bigger grid and make it an `n x n` grid. We will create a function that will create a grid of size `n x n` and add it to the graph. The function will take the size of the grid as an argument and create the nodes and edges for the grid. The function will be called `create_grid` and will look like this:
 
@@ -61,6 +63,9 @@ We have not only added the grid size, but also some other constants or configura
 --8<-- "snippets/visualizing_a_grid/nxn_square_visualization.py"
 ```
 
+![NxN Grid](images/nxn_grid.png)
+*A larger n×n grid visualization with the size defined in config.py*
+
 !!! info "Final changes in the files can be found in [snippets/visualizing_a_grid](https://github.com/GAMMSim/gamms/tree/dev/snippets/visualizing_a_grid)"
 
 ## Creating Agents
@@ -78,6 +83,9 @@ The `start_node_id` parameter is the id of the node where the agent will start. 
 ```python
 --8<-- "snippets/creating_agents/single_agent.py:42:44"
 ```
+
+<!-- ![Single Agent](images/single_agent.png)
+*A single agent displayed on the grid at node 0* -->
 
 You will notice that the agent is not doing anything in the simulation and is just sitting at the start node. The agent is not moving because we have not defined any behaviour for the agent. Let's try to first get human input to move the agent around. The visual engine provides a way to get user input while displaying possible actions on the screen. We need to edit the while loop to get user input:
 
@@ -97,6 +105,9 @@ Let's now add the `NeighborSensor` to the agent. The `NeighborSensor` is a senso
 
 There are two parts to this code. The first part creates the sensor and the second part registers the sensor to the agent. The `create_sensor` method of the context creates a sensor with the given id and type. The `register_sensor` method of the agent registers the sensor to the agent. When the `get_state` method of the agent is called, the sensor information is updated and added to the state of the agent. The `human_input` method of the visual engine uses this information to show the possible actions for the agent. You will see that the agent is highlighted and you can see some numbers on the nearby nodes. The correspoding number can be pressed on the keyboard to move the agent to that node. The agent will move to the node and you can see the agent moving around the grid.
 
+![Agent With Sensor](images/agent_with_sensor.gif)
+*Agent with NeighborSensor showing numbered actions for player input*
+
 !!! info "The maximum number of neighbors that can be handled by human input method is 10. The restriction is only for the human input method and not the sensor itself. The sensor can handle any number of neighbors. The human input method will only show the first 10 neighbors and the rest will be ignored. The human input method will also not show the neighbors if there are more than 10 neighbors. This is a limitation of the current implementation and will be fixed in future releases."
 
 Now that we have a base idea of how to add a single agent, let us try to generalize to two agent teams that we can control. Let us make a Red team and a Blue team, each with 5 agents. The base idea is to do multiple calls to the `create_agent` method using a loop. To make it clean, let us shift some of the configurations to `config.py` file.
@@ -110,6 +121,9 @@ There are many things to note in the above code. First, we have made the grid si
 ```python
 --8<-- "snippets/creating_agents/multi_agent.py:33:44"
 ```
+
+![Multiple Agents](images/multiple_agents.png)
+*Red and blue team agents positioned on the grid according to their configurations*
 
 We have switched the sequence of sensor definition and agent creation. The sensors are created first so that the when the `create_agent` method is called, the method tries to automatically register the sensors to the agent. But if the sensors are not created, the agent will not be able to register the sensors. So, we need to create the sensors first and then create the agents. We can always do the registration manually but it is easier to do it directly.
 
@@ -154,6 +168,10 @@ The `capture_rule` function is similar to the `tag_rule` function. It checks if 
 --8<-- "snippets/creating_rules/game.py:65:93"
 ```
 
+![Gameplay](images/gameplay_screenshot.gif)
+
+*Gameplay showing the tag and capture rules in action*
+
 The `capture_rule` function checks if a blue agent reaches any red agents' starting position. If it does, the blue team gets a point. The same applies for red agents too. We are updating the `red_team_score` and `blue_team_score` variables to keep track of the score. The `max_steps` variable is updated to increase the maximum number of steps by 10 on every capture from either team.
 
 Let's put it all in the `game.py` file and  update the main loop to call the rules.
@@ -176,6 +194,9 @@ Let's put it all in the `game.py` file and  update the main loop to call the rul
 # ...
 --8<-- "snippets/creating_rules/game.py:101:"
 ```
+
+<!-- ![Game Over Screen](images/game_over.png)
+*Game over screen showing the final scores after termination rules are applied* -->
 
 The rules are called after the agent state updates. Note how the capture rule is called before the tag rule. The game rules are actually ambiguous here. Do we first resolve the tag rule and then the capture rule or vice versa? The way we have implemented it, the capture rule is called first and then the tag rule. The example also highlights that the order of rule resolution is important and writing it in this way allows to figure out ambiguities in the rules.
 

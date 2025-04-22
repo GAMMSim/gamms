@@ -1,4 +1,4 @@
----
+\---
 title: Final Touches
 ---
 # Final Touches & Analysis Tools
@@ -17,6 +17,7 @@ To create a custom sensor, we need to inherit `gamms.typing.ISensor` which defin
 
 There are multiple methods that are necessary to be defined for a custom sensor to work. All the 5 methods defined are *required* methods, and if not defined, GAMMS will throw an error when instantiating the sensor. In addition, we have a decorator `@ctx.sensor.custom` which registers the sensor with the context. The wrapper does somethings behind the scenes and requires a `name` parameter. As such, there is a generic type custom for custom sensors, but ideally we would like to distinguish between different custom sensors. One of the things that the decorator does for you is extend the `SensorType` to have a `SensorType.CAPTURE` and the type of the capturable sensor will be returned as `SensorType.CAPTURE`. The `sense` method is called when the data is to be collected. The `update` method is something that can be used to create `active` sensors. We will not worry about the `update` method for now as our sensor just collects environment data. The `set_owner` method gets called by the agent when the sensor is registered to it. The agent will pass its name as the argument to the `set_owner` method. The `data` property is the data that is collected by the sensor and `sensor_id` is the unique id of the sensor.
 
+
 Let us remove the `capturable_artist` that we created previously and in-place modify the `draw_capturable_nodes` function to define the visualization for the new sensor. The new function will look like this:
 
 ```python title="game.py"
@@ -30,6 +31,7 @@ The `draw_capturable_nodes` function now takes an additional parameter `sensor` 
 ```
 
 We are creating the sensors with a range of 160 meters and defining the opposite team as the capturable nodes. The `draw_capturable_nodes` function will be called by the artist to draw the capturable nodes. The `color` parameter is set to the color of the opposite team so that the red team will see blue rectangles and the blue team will see red rectangles. Let's remove the artist grouping logic and the turn on/off logic as well. We are calling the `ctx.sensor.add_sensor` method to keep a reference to the sensor object in the context. The `ctx.agent.get_agent(name).register_sensor(sensor_id, sensor)` method registers the sensor to the agent.
+
 
 !!! warning "The `ctx.sensor.get_sensor` method used in the `draw_capturable_nodes` function will fail if the sensor is not registered in the context."
 
@@ -51,6 +53,9 @@ We are drawing circles for the territory nodes. The `size` parameter is the radi
 --8<-- "snippets/custom_sensors/game.py:205:232"
 ```
 
+![Territory Sensor Visualization](images/territory_sensor_visualization.png)
+*Visualization of territories detected by the territory sensor, displayed as colored circles*
+
 Now that we have the input from these sensors, we can remove the hard coded territory and capturable nodes from the agent state. The agent will now be able to figure out the information about the territory and capturable nodes from the sensors. Let's look at the changes to the `blue_strategy.py` file.
 
 ```python title="blue_strategy.py"
@@ -64,6 +69,7 @@ The `capture_sensor_data` and `territory_sensor_data` variables are the data col
 ```
 
 We make similar changes to the `red_strategy.py` file where the only difference is that the `self_territory` and `opposite_territory` variables are swapped. We also remove the arguments passed to `mapper` in `game.py`.
+
 
 !!! info "Final changed files at [snippets/custom_sensors](https://github.com/GAMMSim/gamms/tree/dev/snippets/custom_sensors)"
 
@@ -83,6 +89,7 @@ The `start` method takes a `path` parameter which is the path where the recordin
 4. Every time the control is given to the visual engine (Calls to `ctx.visual.simulate()`)
 5. When the game is terminated
 
+
 !!! info "The recording will only start after the call to `ctx.record.start()` and will stop when the game is terminated. Anything before will not be recorded. There are also play, pasue and stop methods to control the recording process. The mmethod `ctx.record.record()` returns a True/False based on whether recording is in progress or not."
 
 To speed up the simulation, we can also turn off the visual engine. To do this, we will switch the visual engine to `NO_VIS`.
@@ -99,6 +106,9 @@ The game will run but as we are not visualizing anything, it is okay to remove a
 
 We are setting up the visualizations for the graph and the agents and then playing the recording. The `ctx.record.replay` method takes the path to the recording file and returns a generator which yields the events in the recording. We are not doing anything for now but internally the event is yeilded after executing the event. We will look into details of the replay system in the next section. We pass the `simulation_time_constant` parameter to the visual engine to control the speed of the simulation. Here, we are speeding it up to 0.3 seconds instead of the deafult 2 seconds. The logger *level* sets the level of logging to *WARNING*. The recorder will log all events on the deafult *INFO* level.
 
+<!-- ![Replay Visualization](images/replay_visualization.png)
+*Replaying a recorded simulation with visualization of agents and their movements* -->
+
 !!! info "Warnings will appear that the sensors are being ignored. This is because no sensors are defined. If the sensors are defined, the data will be populated during replay. Similarly, if a visualization for populated sensor data is defined, it will be drawn during replay."
 
 In the scenario we have created, it will be good if we can keep a track of the team scores and access them while replaying. To do this, we need to create a recorded component.
@@ -109,6 +119,9 @@ In the scenario we have created, it will be good if we can keep a track of the t
 
 The `ReportCard` class is a recorded component which will be used to keep track of the scores. The `struct` parameter is a dictionary which defines the structure of the component. The `step` and `max_steps` parameters are used to keep track of the current step and the maximum number of steps. We have split the scores into `tag_score` and `capture_score` for both teams. The `ctx.record.component` decorator registers the component type with the context. The `name` parameter is directly added by the decorator and it is required to be passed when creating the component. The `name` needs to be unique for each component.
 
+<!-- ![Report Card Component](images/report_card.png)
+*Visualization of the report card component showing team scores during replay* -->
+
 !!! warning "The keyword `name` is reserved and should not be used as a variable in the component. Other *internal* parameters can be created as a normal object but only the ones mentioned in the `struct` will be recorded. The type of all the parameters in the `struct` should be json serializable -- *Type definition: `JsonType = Union[None, int, str, bool, List["JsonType"], Dict[str, "JsonType"]]`*"
 
 We can replace all the different score variables with a reference to the `report_card` object and update the scores in the `capture_rule` and `tag_rule` functions. We also need to update the counter updates and in the main loop. The `step_counter` variable is now replaced with `report_card.step` and the `max_steps` variable is replaced with `report_card.max_steps`.
@@ -116,5 +129,6 @@ We can replace all the different score variables with a reference to the `report
 !!! info "Final changed files at [snippets/recording_system](https://github.com/GAMMSim/gamms/tree/dev/snippets/recording_system)"
 
 ## Replay Analysis
+
 
 !!! warning "Under Construction"
