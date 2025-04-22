@@ -86,6 +86,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         #Add data for node ID and Color
         self.add_artist('graph', artist)
 
+        # Trigger the redraw of the graph artists after it has been added
         self._redraw_graph_artists()
 
         return artist
