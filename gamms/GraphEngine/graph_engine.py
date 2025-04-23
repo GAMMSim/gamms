@@ -1,7 +1,6 @@
 import networkx as nx
 from typing import Dict, Any
 from gamms.typing.graph_engine import Node, OSMEdge, IGraph, IGraphEngine
-from gamms.osm import create_osm_graph
 import pickle
 from shapely.geometry import LineString
 
