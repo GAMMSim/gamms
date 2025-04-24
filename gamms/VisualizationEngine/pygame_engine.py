@@ -59,15 +59,15 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         x_list = [node.x for node in graph.get_nodes().values()]
         y_list = [node.y for node in graph.get_nodes().values()]
-        x_min = min(x_list)
-        x_max = max(x_list)
-        y_min = min(y_list)
-        y_max = max(y_list)
+        x_min = min(x_list, default=0.0)
+        x_max = max(x_list, default=0.0)
+        y_min = min(y_list, default=0.0)
+        y_max = max(y_list, default=0.0)
         x_mean = sum(x_list) / len(x_list) if len(x_list) > 0 else 0
         y_mean = sum(y_list) / len(y_list) if len(y_list) > 0 else 0
 
         self._render_manager.set_origin(x_mean, y_mean, x_max - x_min, y_max - y_min)
-        self._render_manager.camera_size = max(x_max - x_min, y_max - y_min)
+        self._render_manager.camera_size = max(x_max - x_min, y_max - y_min, 0.1)
 
         width = self._render_manager.screen_width
         height = self._render_manager.screen_height
