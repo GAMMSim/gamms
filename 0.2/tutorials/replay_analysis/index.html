@@ -22,7 +22,7 @@
     
     
       
-        <title>Replay analysis - GAMMS</title>
+        <title>Final Touches - GAMMS</title>
       
     
     
@@ -116,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Replay analysis
+              Final Touches
             
           </span>
         </div>
@@ -410,7 +410,7 @@
           
   
   <span class="md-ellipsis">
-    Replay analysis
+    Final Touches
   </span>
   
 
@@ -421,7 +421,7 @@
         
   
   <span class="md-ellipsis">
-    Replay analysis
+    Final Touches
   </span>
   
 
@@ -706,9 +706,6 @@
   
 
 
-<p>---
-title: Final Touches</p>
-<hr />
 <h1 id="final-touches-analysis-tools">Final Touches &amp; Analysis Tools<a class="headerlink" href="#final-touches-analysis-tools" title="Permanent link">&para;</a></h1>
 <p>In the previous tutorial, we have created a complete game with autonomous agents. However, we have not addressed the issue of getting custom information in the agent state that might depend on the scenario. Furthermore, it will be good to store a simulation and replay it without having to do all the calculations again. In this tutorial, we will try to address these issues and explore many of the functionalities of GAMMS that we have not used so far.</p>
 <h2 id="custom-sensors">Custom Sensors<a class="headerlink" href="#custom-sensors" title="Permanent link">&para;</a></h2>
@@ -940,7 +937,7 @@ title: Final Touches</p>
 <div class="language-python highlight"><span class="filename">config.py</span><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">VIS_ENGINE</span> <span class="o">=</span> <span class="n">gamms</span><span class="o">.</span><span class="n">visual</span><span class="o">.</span><span class="n">Engine</span><span class="o">.</span><span class="n">NO_VIS</span> <span class="c1"># visual engine to use</span>
 </span></code></pre></div>
 <p>The game will run but as we are not visualizing anything, it is okay to remove all the artists related setups from the <code>game.py</code> file. It will not make any difference in the game speed but it will make the code cleaner and easier to read. Now we can create a file called replay.py which will contain the code to replay the simulation.</p>
-<div class="language-python highlight"><span class="filename">replay.py</span><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">import</span> <span class="nn">gamms</span>
+<div class="language-python highlight"><span class="filename">replay.py</span><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">import</span> <span class="nn">gamms</span><span class="o">,</span> <span class="nn">gamms.osm</span>
 </span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="kn">import</span> <span class="nn">config</span>
 </span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
 </span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">ctx</span> <span class="o">=</span> <span class="n">gamms</span><span class="o">.</span><span class="n">create_context</span><span class="p">(</span>
@@ -1021,6 +1018,9 @@ title: Final Touches</p>
 
 
 
+
+  
+  
 
 
 

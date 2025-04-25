@@ -468,7 +468,7 @@
         
   
   <span class="md-ellipsis">
-    Replay analysis
+    Final Touches
   </span>
   
 
@@ -710,6 +710,9 @@
 <p>In the previous tutorial, we created a simple grid world with both teams controlled by the user. In this tutorial, we will see how to go to more realistic graphs that are modelled after real world road networks. Our goal will be to create an autonomous strategy for the agents to move arouund. In place of the agents being able to see the entire graph, we will add other sensors that allow the agent to get partial information about the environment, and then use that information to make decisions.</p>
 <h2 id="loading-osm-graphs">Loading OSM Graphs<a class="headerlink" href="#loading-osm-graphs" title="Permanent link">&para;</a></h2>
 <p>GAMMS provides a way to load <a href="https://www.openstreetmap.org/">Open Street Map (OSM)</a> road networks as graphs. OSM is a collaborative mapping project that provides free geographic data and mapping to anyone who wants to use it. Let us update the example we created in the previous tutorial to load an OSM graph. GAMMS provides two ways to load OSM graphs. The first way is to use the <code>gamms.osm.create_osm_graph</code> method which allows to build a graph directly by just inputting the location in the form of a string. Note that it relies on the boundary definitions created on Open Street Map. The second way is to use the <code>gamms.osm.graph_from_xml</code> method which allows to load a graph from an OSM XML file. The XML file can be downloaded from the OSM website. We will use the <a href="https://github.com/GAMMSim/gamms/raw/refs/heads/dev/snippets/La_Jolla.osm">La_Jolla.osm</a> file which is a small part of the neighborhood of La Jolla in San Diego, California near UC San Diego campus. Place it in the <code>gammstutorial</code> directory.</p>
+<div class="admonition info">
+<p class="admonition-title">To use the OSM utility, you need to install the <code>osmnx</code> library and do <code>import gamms.osm</code></p>
+</div>
 <div class="language-python highlight"><span class="filename">config.py</span><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">XML_FILE</span> <span class="o">=</span> <span class="s1">&#39;La_Jolla.osm&#39;</span> <span class="c1"># OSM XML file</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">RESOLUTION</span> <span class="o">=</span> <span class="mf">100.0</span> <span class="c1"># resolution of the graph in meters</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">TOLERANCE</span> <span class="o">=</span> <span class="mf">0.01</span> <span class="c1"># tolerance for the graph in meters</span>
@@ -743,7 +746,7 @@
 </span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>    <span class="p">}</span>
 </span></code></pre></div>
 <p>The territory will be a circle around the starting position of the agent with the radius defined by the <code>TERRITORY_RADIUS</code> parameter. The starting position of the agent is removed as we want to randomize it.</p>
-<div class="language-python highlight"><span class="filename">game.py</span><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span> <span class="nn">gamms</span>
+<div class="language-python highlight"><span class="filename">game.py</span><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span> <span class="nn">gamms</span><span class="o">,</span> <span class="nn">gamms.osm</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">import</span> <span class="nn">config</span>
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
 </span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># ...</span>
@@ -1187,13 +1190,13 @@
         
         
           
-          <a href="../replay_analysis/" class="md-footer__link md-footer__link--next" aria-label="Next: Replay analysis">
+          <a href="../replay_analysis/" class="md-footer__link md-footer__link--next" aria-label="Next: Final Touches">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Replay analysis
+                Final Touches
               </div>
             </div>
             <div class="md-footer__button md-icon">
