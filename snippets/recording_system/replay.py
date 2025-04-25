@@ -1,4 +1,4 @@
-import gamms
+import gamms, gamms.osm
 import config
 
 ctx = gamms.create_context(

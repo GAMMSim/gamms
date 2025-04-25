@@ -1,4 +1,4 @@
-import gamms
+import gamms, gamms.osm
 import config
 import random
 

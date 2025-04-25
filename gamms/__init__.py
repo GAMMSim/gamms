@@ -59,3 +59,5 @@ def create_context(
     ctx.logger.info(f"Setting log level to {ctx.logger.level}")
     ctx.set_alive()
     return ctx
+
+__version__ = "0.2.0"

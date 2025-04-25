@@ -10,6 +10,8 @@ In the previous tutorial, we created a simple grid world with both teams control
 
 GAMMS provides a way to load [Open Street Map (OSM)](https://www.openstreetmap.org/) road networks as graphs. OSM is a collaborative mapping project that provides free geographic data and mapping to anyone who wants to use it. Let us update the example we created in the previous tutorial to load an OSM graph. GAMMS provides two ways to load OSM graphs. The first way is to use the `gamms.osm.create_osm_graph` method which allows to build a graph directly by just inputting the location in the form of a string. Note that it relies on the boundary definitions created on Open Street Map. The second way is to use the `gamms.osm.graph_from_xml` method which allows to load a graph from an OSM XML file. The XML file can be downloaded from the OSM website. We will use the [La_Jolla.osm](https://github.com/GAMMSim/gamms/raw/refs/heads/dev/snippets/La_Jolla.osm) file which is a small part of the neighborhood of La Jolla in San Diego, California near UC San Diego campus. Place it in the `gammstutorial` directory.
 
+!!! info "To use the OSM utility, you need to install the `osmnx` library and do `import gamms.osm`"
+
 ```python title="config.py"
 --8<-- "snippets/osm_graphs/config.py:6:9"
 ```
