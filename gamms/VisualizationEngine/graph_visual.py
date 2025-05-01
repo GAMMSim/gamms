@@ -1,4 +1,5 @@
 import pygame
+from typing import Tuple
 
 class GraphVisual:
     def __init__(self, graph, width=1980, height=1080, draw_id=False, node_color=None, edge_color=None):
@@ -33,7 +34,7 @@ class GraphVisual:
         self.camera = camera
         camera.size = max(self.x_max - self.x_min, self.y_max - self.y_min)
 
-    def ScalePositionToScreen(self, position: tuple[float, float]) -> tuple[float, float]:
+    def ScalePositionToScreen(self, position: Tuple[float, float]) -> Tuple[float, float]:
         """Scale a coordinate value to fit within the screen."""
         graph_center = self.GraphCenter()
         map_position = ((position[0] - graph_center[0]),(position[1] - graph_center[1]))
@@ -85,16 +86,16 @@ class GraphVisual:
                 (x2, y2) = self.ScalePositionToScreen(target_position)
                 pygame.draw.line(screen, color, (int(x1), int(y1)), (int(x2), int(y2)), 2)
 
-    def MoveGraphPosition(self, direction: tuple[float, float]):
+    def MoveGraphPosition(self, direction: Tuple[float, float]):
         self.offset = (self.offset[0] + direction[0], self.offset[1] + direction[1])
         
 
     # Assumes map coordnates
-    def is_map_point_viewable(self, position: tuple[float, float]) -> bool:
+    def is_map_point_viewable(self, position: Tuple[float, float]) -> bool:
         return (position[0] >= 0 and position[0] <= self.width and position[1] >= 0 and position[1] <= self.height)
 
     # Assumes map coordnates
-    def is_map_line_viewable(self, source: tuple[float, float], target: tuple[float, float] ) -> bool:
+    def is_map_line_viewable(self, source: Tuple[float, float], target: Tuple[float, float] ) -> bool:
         # Check left side of screen
         #      |       |
         # -----A-------C-----
