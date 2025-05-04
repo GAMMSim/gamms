@@ -1,10 +1,10 @@
 from gamms.typing import IArtist, ArtistType, IContext
 from gamms.VisualizationEngine.default_drawers import render_circle, render_rectangle
 from gamms.VisualizationEngine import Shape
-from typing import Callable
+from typing import Callable, Union
 
 class Artist(IArtist):
-    def __init__(self, ctx: IContext, drawer: Callable | Shape, layer: int = 30):
+    def __init__(self, ctx: IContext, drawer: Union[Callable, Shape], layer: int = 30):
         self.data = {}
 
         self._ctx = ctx

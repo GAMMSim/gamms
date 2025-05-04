@@ -2,6 +2,10 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Tuple
 from dataclasses import dataclass
 
+from sympy import N
+
+from hashman.faiss.benchs.bench_for_interrupt import Di
+
 
 @dataclass
 class Node:
@@ -92,12 +96,12 @@ class IGraph(ABC):
         pass
 
     @abstractmethod
-    def get_edges(self) -> List[int]:
+    def get_edges(self) -> Dict[int, OSMEdge]:
         """
         Retrieve a list of all edge IDs in the graph.
 
         Returns:
-            List[int]: A list containing the IDs of all edges.
+            Dict[int, OSMEdge]: A dictionary mapping edge IDs to their corresponding OSMEdge objects.
         """
         pass
 
@@ -161,7 +165,7 @@ class IGraph(ABC):
         pass
 
     @abstractmethod
-    def get_node(self, node_id: int) -> Dict[str, Any]:
+    def get_node(self, node_id: int) -> Node:
         """
         Retrieve the attributes of a specific node.
 

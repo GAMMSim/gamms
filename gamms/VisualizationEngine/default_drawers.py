@@ -1,12 +1,13 @@
 from gamms.VisualizationEngine import Color
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
-from gamms.typing.artist import IArtist
-from gamms.context import Context
+from gamms.typing import IContext
+
+from typing import Dict, Any
 
 import math
 
 
-def render_circle(ctx: Context, data: dict):
+def render_circle(ctx: IContext, data: dict):
     """
     Render a circle at the specified position with the specified radius and color.
 
@@ -21,7 +22,7 @@ def render_circle(ctx: Context, data: dict):
     ctx.visual.render_circle(x, y, radius, color)
 
 
-def render_rectangle(ctx: Context, data: dict):
+def render_rectangle(ctx: IContext, data: Dict[str, Any]):
     """
     Render a rectangle at the specified position with the specified width, height, and color.
 
@@ -36,7 +37,7 @@ def render_rectangle(ctx: Context, data: dict):
     color = data.get('color', Color.Cyan)
     ctx.visual.render_rectangle(x, y, width, height, color)
 
-def render_agent(ctx: Context, data: dict):
+def render_agent(ctx: IContext, data: dict):
     """
     Render an agent as a triangle at its current position on the screen. This is the default rendering method for agents.
 
@@ -86,7 +87,7 @@ def render_agent(ctx: Context, data: dict):
     ctx.visual.render_polygon([point1, point2, point3], color)
 
 
-def render_graph(ctx: Context, data: dict):
+def render_graph(ctx: IContext, data: dict):
     """
     Render the graph by drawing its nodes and edges on the screen. This is the default rendering method for graphs.
 
@@ -107,7 +108,7 @@ def render_graph(ctx: Context, data: dict):
     for node in graph.get_nodes().values():
         _render_graph_node(ctx, node, node_color, node_size, draw_id)
 
-def render_input_overlay(ctx: Context, data: dict):
+def render_input_overlay(ctx: IContext, data: dict):
     """
     Render the graph by drawing its nodes and edges on the screen. This is the default rendering method for graphs.
 
@@ -144,7 +145,7 @@ def render_input_overlay(ctx: Context, data: dict):
     for edge in active_edges:
         _render_graph_edge(ctx, graph_data, graph, edge, edge_color)
 
-def _render_graph_edge(ctx: Context, graph_data, graph, edge, color):
+def _render_graph_edge(ctx: IContext, graph_data, graph, edge, color):
     """Draw an edge as a curve or straight line based on the linestring."""
     source = graph.get_node(edge.source)
     target = graph.get_node(edge.target)
@@ -165,14 +166,14 @@ def _render_graph_edge(ctx: Context, graph_data, graph, edge, color):
         ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2, perform_culling_test=False)
 
 
-def _render_graph_node(ctx: Context, node, color, radius, draw_id):
+def _render_graph_node(ctx: IContext, node, color, radius, draw_id):
     ctx.visual.render_circle(node.x, node.y, radius, color)
 
     if draw_id:
         ctx.visual.render_text(str(node.id), node.x, node.y + 10, (0, 0, 0))
 
 
-def render_neighbor_sensor(ctx: Context, data: dict):
+def render_neighbor_sensor(ctx: IContext, data: dict):
     """
     Render a neighbor sensor.
 
@@ -188,7 +189,7 @@ def render_neighbor_sensor(ctx: Context, data: dict):
         ctx.visual.render_circle(neighbor_node.x, neighbor_node.y, 2, color)
 
 
-def render_map_sensor(ctx: Context, data: dict):
+def render_map_sensor(ctx: IContext, data: dict):
     """
     Render a map sensor.
 
@@ -223,7 +224,7 @@ def render_map_sensor(ctx: Context, data: dict):
             ctx.visual.render_line(source.x, source.y, target.x, target.y, edge_color, 4, perform_culling_test=False)
 
 
-def render_agent_sensor(ctx: Context, data: dict):
+def render_agent_sensor(ctx: IContext, data: dict):
     """
     Render an agent sensor.
 

@@ -1,4 +1,4 @@
-from typing import Dict, Any, Callable
+from typing import Dict, Any, Callable, Union
 from abc import ABC, abstractmethod
 from enum import Enum, auto
 
@@ -14,10 +14,10 @@ class IArtist(ABC):
     Interface for the artist.
 
     Attributes:
-        data (Dict[str, Any] | Any): The custom data associated with the artist. Default is an empty dictionary but users can set it to any type.
+        data (Union[Dict[str, Any] , Any]): The custom data associated with the artist. Default is an empty dictionary but users can set it to any type.
     """
 
-    data: Dict[str, Any] | Any
+    data: Union[Dict[str, Any] , Any]
 
     @abstractmethod
     def set_layer(self, layer: int) -> None:
