@@ -7,6 +7,7 @@ from gamms.typing.artist import IArtist, ArtistType
 from gamms.typing.visualization_engine import IVisualizationEngine
 from gamms.typing.agent_engine import IAgentEngine, IAgent
 from gamms.typing.graph_engine import IGraphEngine, IGraph
+from gamms.typing.memory_engine import IMemoryEngine
 from gamms.typing.recorder import IRecorder
 from gamms.typing.logger import ILogger
 from gamms.typing.context import IContext

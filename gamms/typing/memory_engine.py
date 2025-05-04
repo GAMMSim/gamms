@@ -2,7 +2,16 @@ from abc import ABC, abstractmethod
 from typing import Any, List
 from enum import Enum
 
+class IStoreType(Enum):
+    """
+    Enumeration representing different types of storage backends.
 
+    This enum can be extended to include various storage mechanisms such as
+    file-based, database, or cloud storage.
+    """
+    SQLITE = 0
+    # Add more storage types as needed
+    
 class IPathLike(ABC):
     """
     Abstract base class representing a path-like object.

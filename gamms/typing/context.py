@@ -5,6 +5,7 @@ from gamms.typing import (
     IVisualizationEngine,
     IAgentEngine,
     IGraphEngine,
+    IMemoryEngine,
     IRecorder,
     ILogger,
 )
@@ -105,6 +106,24 @@ class IContext(ABC):
 
         Raises:
             RuntimeError: If the graph engine is not properly initialized.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def memory(self) -> IMemoryEngine:
+        """
+        Retrieve the memory engine.
+
+        The memory engine is responsible for managing the system's memory and data
+        storage. It provides functionalities to store, retrieve, and manipulate data
+        efficiently.
+
+        Returns:
+            IMemoryEngine: An instance of the memory engine.
+
+        Raises:
+            RuntimeError: If the memory engine is not properly initialized.
         """
         pass
 

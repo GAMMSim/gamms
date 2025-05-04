@@ -1,54 +1,55 @@
-from gamms.typing.memory_engine import IStore, StoreType, IPathLike
-import os
-from typing import Any
+from gamms.typing.memory_engine import IStore
+from typing import Any, Dict, List
+import sqlite3
 
-class PathLike(IPathLike):
-    def __init__(self, path: str):
-        if not path:
-            raise ValueError("Path cannot be empty.")
-        self.path = os.path.abspath(path)
-        
-    def exists(self) -> bool:
-        return os.path.exists(self.path)
-
-    def as_str(self) -> str:
-        return self.path
-
-class Store(IStore):
-    def __init__(self, name: str, store_type: StoreType, path: PathLike):
+class TableStore(IStore):
+    def __init__(
+        self,
+        conn: sqlite3.Connection,
+        name: str,
+        schema: Dict[str, str],
+        primary_key: str
+    ):
+        """
+        Generic SQL table-backed store.
+        schema: column_name -> SQL type
+        primary_key: name of the primary key column
+        """
+        self.conn = conn
         self.name = name
-        self.store_type = store_type
-        self.path = path
+        cols = ", ".join(f"{c} {t}" for c, t in schema.items())
+        sql = f"""
+            CREATE TABLE IF NOT EXISTS {name} (
+              {cols},
+              PRIMARY KEY ({primary_key})
+            )
+        """
+        conn.execute(sql)
+        conn.commit()
 
-    def save(self, obj: Any) -> None:
-        if self.store_type == StoreType.FILESYSTEM:
-            os.makedirs(self.path.as_str(), exist_ok=True)
-            file_path = os.path.join(self.path.as_str(), self.name)
-            with open(file_path, 'w') as file:
-                if isinstance(obj, str) and os.path.exists(obj):
-                    with open(obj, 'r') as object_file:
-                        file.write(object_file.read())
-                else:
-                    file.write(str(obj))
-        else:
-            raise NotImplementedError(f"Save operation not implemented for {self.store_type}.")
+    def save(self, obj: Dict[str, Any]) -> None:
+        """
+        Insert or update a row. obj maps column -> value.
+        """
+        cols = ", ".join(obj.keys())
+        placeholders = ", ".join("?" for _ in obj)
+        sql = f"REPLACE INTO {self.name}({cols}) VALUES({placeholders})"
+        self.conn.execute(sql, tuple(obj.values()))
+        self.conn.commit()
 
-    def load(self) -> Any:
-        if self.store_type == StoreType.FILESYSTEM:
-            file_path = os.path.join(self.path.as_str(), self.name)
-            if not os.path.exists(file_path):
-                raise FileNotFoundError(f"Store file '{file_path}' does not exist.")
-            with open(file_path, 'r') as file:
-                return file.read()
-        else:
-            raise NotImplementedError(f"Load operation not implemented for {self.store_type}.")
+    def load(self, key: Any) -> Dict[str, Any]:
+        """
+        Load a row by primary key (assumes primary key column named 'id').
+        """
+        sql = f"SELECT * FROM {self.name} WHERE id = ?"
+        cur = self.conn.execute(sql, (key,))
+        row = cur.fetchone()
+        if not row:
+            raise KeyError(f"{self.name} no row for id={key}")
+        cols = [d[0] for d in cur.description]
+        return dict(zip(cols, row))
 
-    def delete(self) -> None:
-        if self.store_type == StoreType.FILESYSTEM:
-            file_path = os.path.join(self.path.as_str(), self.name)
-            if os.path.exists(file_path):
-                os.remove(file_path)
-            else:
-                raise FileNotFoundError(f"Store file '{file_path}' does not exist.")
-        else:
-            raise NotImplementedError(f"Delete operation not implemented for {self.store_type}.")
+    def delete(self, key: Any) -> None:
+        sql = f"DELETE FROM {self.name} WHERE id = ?"
+        self.conn.execute(sql, (key,))
+        self.conn.commit()

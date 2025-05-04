@@ -4,6 +4,7 @@ from gamms.typing import (
     ISensorEngine,
     IVisualizationEngine,
     IInternalContext,
+    IMemoryEngine,
     IContext, 
     IRecorder,
     ILogger,
@@ -21,6 +22,7 @@ class Context(IContext):
         sensor_engine: Optional[ISensorEngine] = None,
         visual_engine: Optional[IVisualizationEngine] = None,
         graph_engine: Optional[IGraphEngine] = None,
+        memory_engine: Optional[IMemoryEngine] = None,
         recorder: Optional[IRecorder] = None,
         logger: Optional[ILogger] = None,
     ):
@@ -29,6 +31,7 @@ class Context(IContext):
         self.sensor_engine = sensor_engine
         self.visual_engine = visual_engine
         self.graph_engine = graph_engine
+        self.memory_engine = memory_engine
         self.recorder = recorder
         self._logger = logger
         self._alive = False
@@ -52,6 +55,10 @@ class Context(IContext):
     @property
     def record(self) -> IRecorder:
         return self.recorder
+    
+    @property
+    def memory(self) -> IMemoryEngine:
+        return self.memory_engine
     
     @property
     def logger(self) -> ILogger:

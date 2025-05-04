@@ -1,196 +1,168 @@
 import networkx as nx
-from typing import Dict, Any
+from typing import Dict, Any, List
 from gamms.typing.graph_engine import Node, OSMEdge, IGraph, IGraphEngine
 import pickle
 from shapely.geometry import LineString
+from shapely import wkb
 
-# TODO: Remove LineString dependency
 
 class Graph(IGraph):
-    def __init__(self):
-        self.nodes: Dict[int, Node] = {}
-        self.edges: Dict[int, OSMEdge] = {}
-    
-    def get_edge(self, edge_id):
-        return self.edges[edge_id]
+    def __init__(self, ctx=None):
+        self._ctx = ctx
+        # ensure memory engine has SQLite connection
+        conn = self._ctx.memory.conn
 
-    def get_edges(self):
-        return self.edges
-    
-    def get_node(self, node_id):
-        return self.nodes[node_id]
+        self.node_store = self._ctx.memory.create_store(
+            store_type=None,  # unused for table stores
+            name="nodes",
+            schema={"id": "INTEGER", "x": "REAL", "y": "REAL"},
+            primary_key="id"
+        )
+        self.edge_store = self._ctx.memory.create_store(
+            store_type=None,
+            name="edges",
+            schema={
+                "id": "INTEGER",
+                "source": "INTEGER",
+                "target": "INTEGER",
+                "length": "REAL",
+                "geom": "BLOB"
+            },
+            primary_key="id"
+        )
 
-    def get_nodes(self):
-        return self.nodes
-    
     def add_node(self, node_data: Dict[str, Any]) -> None:
-        if node_data['id'] in self.nodes:
-            raise KeyError(f"Node {node_data['id']} already exists.")
-        
-        node = Node(id=node_data['id'], x=node_data['x'], y=node_data['y'])
-        self.nodes[node_data['id']] = node
-    
+        # persist node
+        self.node_store.save({
+            "id": node_data["id"],
+            "x": node_data["x"],
+            "y": node_data["y"]
+        })
+
+    def get_node(self, node_id: int) -> Node:
+        row = self.node_store.load(node_id)
+        return Node(id=row["id"], x=row["x"], y=row["y"])
+
+    def get_nodes(self) -> List[Node]:
+        cur = self._ctx.memory.conn.execute("SELECT id FROM nodes")
+        return [self.get_node(r[0]) for r in cur.fetchall()]
+
     def add_edge(self, edge_data: Dict[str, Any]) -> None:
-        if edge_data['id'] in self.edges:
-            raise KeyError(f"Edge {edge_data['id']} already exists.")
-        
-        linestring = edge_data.get('linestring', None)
+        # build or validate LineString
+        linestring = edge_data.get("linestring")
         if linestring is None:
-            # Create a LineString from the source and target node coordinates
             source_node = self.get_node(edge_data['source'])
             target_node = self.get_node(edge_data['target'])
             linestring = LineString([(source_node.x, source_node.y), (target_node.x, target_node.y)])
         elif not isinstance(linestring, LineString):
-            try:
-                linestring = LineString(linestring)
-            except Exception as e:
-                raise ValueError(f"Invalid linestring data: {linestring}") from e
+            linestring = LineString(linestring)
         if linestring.is_empty:
             raise ValueError(f"Invalid linestring: {linestring}")
-        
-        edge = OSMEdge(
-            id = edge_data['id'],
-            source=edge_data['source'],
-            target=edge_data['target'],
-            length=edge_data['length'],
+        # serialize geometry to WKB
+        geom_wkb = wkb.dumps(linestring)
+        # persist edge
+        self.edge_store.save({
+            "id": edge_data["id"],
+            "source": edge_data["source"],
+            "target": edge_data["target"],
+            "length": edge_data["length"],
+            "geom": geom_wkb
+        })
+
+    def get_edge(self, edge_id: int) -> OSMEdge:
+        row = self.edge_store.load(edge_id)
+        linestring = wkb.loads(row["geom"])
+        return OSMEdge(
+            id=row["id"],
+            source=row["source"],
+            target=row["target"],
+            length=row["length"],
             linestring=linestring
         )
 
-        self.edges[edge_data['id']] = edge
+    def get_edges(self) -> List[OSMEdge]:
+        cur = self._ctx.memory.conn.execute("SELECT id FROM edges")
+        return [self.get_edge(r[0]) for r in cur.fetchall()]
 
     def update_node(self, node_data: Dict[str, Any]) -> None:
-    
-        if node_data['id'] not in self.nodes:
-            raise KeyError(f"Node {node_data['id']} does not exist.")
-        
-        node = self.nodes[node_data['id']]
-        node.x = node_data.get('x', node.x)
-        node.y = node_data.get('y', node.y)
-    
+        existing = self.node_store.load(node_data["id"])
+        updated = {"id": existing["id"],
+                   "x": node_data.get("x", existing["x"]),
+                   "y": node_data.get("y", existing["y"]) }
+        self.node_store.save(updated)
+
     def update_edge(self, edge_data: Dict[str, Any]) -> None:
-
-        if edge_data['id'] not in self.edges:
-            raise KeyError(f"Edge {edge_data['id']} does not exist. Use add_edge to create it.")
-        edge = self.edges[edge_data['id']]
-        edge.source = edge_data.get('source', edge.source)
-        edge.target = edge_data.get('target', edge.target)
-        edge.length = edge_data.get('length', edge.length)
-        edge.linestring = edge_data.get('linestring', edge.linestring)
-
-    def remove_node(self, node_id: int) -> None:
-        if node_id not in self.nodes:
-            raise KeyError(f"Node {node_id} does not exist.")
-        
-        edges_to_remove = [key for key, edge in self.edges.items() if edge.source == node_id or edge.target == node_id]
-        for key in edges_to_remove:
-            del self.edges[key]
-            print(f"Deleted edge {key} associated with node {node_id}")
-        del self.nodes[node_id]
-
-    def remove_edge(self, node_id) -> None:
-        if node_id not in self.edges:
-            raise KeyError(f"Edge {node_id} does not exist. Use add_edge to create it.")
-        del self.edges[id]
-    
-    def attach_networkx_graph(self, G: nx.Graph) -> None:
-        for node, data in G.nodes(data=True):
-            node_data = {
-                'id': node,
-                'x': data.get('x', 0.0),
-                'y': data.get('y', 0.0)
-            }
-            self.add_node(node_data)
-            
-        for u, v, data in G.edges(data=True):
-            linestring = data.get('linestring', None)
-            if linestring is None:
-                # Create a LineString from the source and target node coordinates
+        existing = self.edge_store.load(edge_data["id"])
+        # preserve or update geometry
+        if "linestring" in edge_data:
+            ls = edge_data["linestring"]
+            if ls is None:
                 source_node = self.get_node(edge_data['source'])
                 target_node = self.get_node(edge_data['target'])
-                linestring = LineString([(source_node.x, source_node.y), (target_node.x, target_node.y)])
-            elif not isinstance(linestring, LineString):
-                try:
-                    linestring = LineString(linestring)
-                except Exception as e:
-                    raise ValueError(f"Invalid linestring data: {linestring}") from e
-            if linestring.is_empty:
-                raise ValueError(f"Invalid linestring: {linestring}")
-            edge_data = {
-                'id': data.get('id', -1),
-                'source': u,
-                'target': v,
-                'length': data.get('length', 0.0),
-                'linestring': linestring
-            }
-            self.add_edge(edge_data)
-            
-    def visualize(self) -> None:
-        # A debug function to visualize the graph
-        import matplotlib.pyplot as plt
-        from matplotlib.collections import LineCollection
-        from shapely.geometry import LineString
+                ls = LineString([(source_node.x, source_node.y), (target_node.x, target_node.y)])
+            elif not isinstance(ls, LineString):
+                ls = LineString(ls)
+            if ls.is_empty:
+                raise ValueError(f"Invalid linestring: {ls}")
+            geom_wkb = wkb.dumps(ls)
+        else:
+            geom_wkb = existing["geom"]
+        updated = {
+            "id": existing["id"],
+            "source": edge_data.get("source", existing["source"]),
+            "target": edge_data.get("target", existing["target"]),
+            "length": edge_data.get("length", existing["length"]),
+            "geom": geom_wkb
+        }
+        self.edge_store.save(updated)
 
-        fig, ax = plt.subplots(figsize=(12, 12))
+    def remove_node(self, node_id: int) -> None:
+        self._ctx.memory.conn.execute(
+            "DELETE FROM edges WHERE source=? OR target=?", (node_id, node_id)
+        )
+        self._ctx.memory.conn.commit()
+        self.node_store.delete(node_id)
 
-        # Draw nodes
-        node_x = [node.x for node in self.nodes.values()]
-        node_y = [node.y for node in self.nodes.values()]
-        ax.scatter(node_x, node_y, s=10, c='blue', label='Nodes')
+    def remove_edge(self, edge_id: int) -> None:
+        self.edge_store.delete(edge_id)
 
-        # Prepare edge lines
-        edge_lines = []
-        for edge in self.edges.values():
-            if edge.linestring and isinstance(edge.linestring, LineString):
-                # Use the LineString geometry if available
-                x, y = edge.linestring.xy
-                edge_lines.append(list(zip(x, y)))
-            else:
-                # Fallback to a straight line between source and target nodes
-                source_node = self.get_node(edge.source)
-                target_node = self.get_node(edge.target)
-                edge_lines.append([(source_node.x, source_node.y), (target_node.x, target_node.y)])
-
-        # Create a LineCollection from the edge lines
-        lc = LineCollection(edge_lines, colors='gray', linewidths=1, alpha=0.7, label='Edges')
-        ax.add_collection(lc)
-
-        # Set plot titles and labels
-        ax.set_title('Graph Visualization with LineString Geometries')
-        ax.set_xlabel('X Coordinate')
-        ax.set_ylabel('Y Coordinate')
-
-        # Set equal scaling
-        ax.set_aspect('equal', adjustable='datalim')
-
-        # Add legend
-        ax.legend()
-
-        # Show grid
-        ax.grid(True)
-
-        # Display the plot
-        plt.show()
+    def attach_networkx_graph(self, G: nx.Graph) -> None:
+        for n, data in G.nodes(data=True):
+            self.add_node({"id": n, "x": data.get("x", 0.0), "y": data.get("y", 0.0)})
+        for u, v, data in G.edges(data=True):
+            self.add_edge({
+                "id": data.get("id", hash((u, v))),
+                "source": u,
+                "target": v,
+                "length": data.get("length", 0.0),
+                "linestring": data.get("linestring")
+            })
     
+            
     def save(self, path: str) -> None:
-        """
-        Saves the graph to a file.
-        """
-        pickle.dump({"nodes": self.nodes, "edges": self.edges}, open(path, 'wb'))
-        print(f"Graph saved to {path}")
+        data = {"nodes": self.get_nodes(), "edges": self.get_edges()}
+        with open(path, "wb") as f:
+            pickle.dump(data, f)
 
     def load(self, path: str) -> None:
-        """
-        Loads the graph from a file.
-        """
-        data = pickle.load(open(path, 'rb'))
-        self.nodes = data['nodes']
-        self.edges = data['edges']
+        with open(path, "rb") as f:
+            data = pickle.load(f)
+        for node in data["nodes"]:
+            self.add_node({"id": node.id, "x": node.x, "y": node.y})
+        for edge in data["edges"]:
+            self.add_edge({
+                "id": edge.id,
+                "source": edge.source,
+                "target": edge.target,
+                "length": edge.length,
+                "linestring": edge.linestring
+            })
 
 
 class GraphEngine(IGraphEngine):
     def __init__(self, ctx = None):
         self.ctx = ctx
-        self._graph = Graph()
+        self._graph = Graph(ctx=ctx, db_path=None)
     
     @property
     def graph(self) -> IGraph:

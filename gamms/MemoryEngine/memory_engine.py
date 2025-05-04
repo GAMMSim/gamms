@@ -1,30 +1,33 @@
-from gamms.typing.memory_engine import IMemoryEngine, StoreType
-from gamms.MemoryEngine.store import Store, PathLike
-import os
-from typing import Any, List
+from gamms.typing.memory_engine import IMemoryEngine
+from typing import List, Dict
+from gamms.MemoryEngine.store import TableStore
+import sqlite3
+
 
 class MemoryEngine(IMemoryEngine):
-    def __init__(self) -> None:
-            self.stores = {}
+    def __init__(self, db_path: str = "engine.db"):
+        self.conn = sqlite3.connect(db_path, check_same_thread=False)
+        self.stores: Dict[str, TableStore] = {}
 
-    def create_store(self, store_type: StoreType, name: str, path: PathLike, obj: Any) -> 'Store':
+    def create_store(
+        self,
+        name: str,
+        schema: Dict[str, str],
+        primary_key: str
+    ) -> TableStore:
         if name in self.stores:
-            raise ValueError(f"Store with name '{name}' already exists.")
-        
-        new_store = Store(name, store_type, path)
-        new_store.save(obj)
-        self.stores[name] = new_store
-        return new_store
-
+            raise ValueError(f"Store '{name}' already exists")
+        store = TableStore(self.conn, name, schema, primary_key)
+        self.stores[name] = store
+        return store
 
     def list_store(self) -> List[str]:
-        return list(self.stores.keys)
+        return list(self.stores.keys())
 
-    def load_store(self, name: str) -> Any:
+    def get_store(self, name: str) -> TableStore:
         if name not in self.stores:
-            raise ValueError(f"Store with name '{name}' does not exist.")
-        
-        return self.stores[name].load()
-    
+            raise KeyError(f"Store '{name}' does not exist")
+        return self.stores[name]
+
     def terminate(self):
-         return
+        self.conn.close()
