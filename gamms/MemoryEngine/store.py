@@ -48,6 +48,17 @@ class TableStore(IStore):
             raise KeyError(f"{self.name} no row for id={key}")
         cols = [d[0] for d in cur.description]
         return dict(zip(cols, row))
+    
+    def query(self, sql: str, params: List[Any] = None) -> List[Dict[str, Any]]:
+        """
+        Execute a query and return the results as a list of dictionaries.
+        """
+        if params is None:
+            params = []
+        cur = self.conn.execute(sql, params)
+        cols = [d[0] for d in cur.description]
+        rows = cur.fetchall()
+        return [dict(zip(cols, row)) for row in rows]
 
     def delete(self, key: Any) -> None:
         sql = f"DELETE FROM {self.name} WHERE id = ?"

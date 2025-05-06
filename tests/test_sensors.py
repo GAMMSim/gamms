@@ -6,7 +6,7 @@ from gamms.typing.sensor_engine import SensorType
 from gamms.SensorEngine.sensor_engine import SensorEngine
 
 # --- Setup context, graph, sensors, and agents ---
-ctx = gamms.create_context(vis_engine=gamms.visual.Engine.PYGAME)
+ctx = gamms.create_context(vis_engine=gamms.visual.Engine.NO_VIS)
 
 # Load the graph from file and attach it to the context.
 with open("graph.pkl", 'rb') as f:
@@ -33,11 +33,11 @@ sensor_engine = SensorEngine(ctx)
 
 
 # --- Test NEIGHBOR Sensor ---
-# neighbor_sensor = sensor_engine.create_sensor("neighbor_test", SensorType.NEIGHBOR)
-# neighbor_sensor.sense(2)  # Sense from node 0
-# print("=== NEIGHBOR Sensor Output ===")
-# for edge in neighbor_sensor.data:
-#     print(f"{edge.id}, {edge.source}, {edge.target} ")
+neighbor_sensor = sensor_engine.create_sensor("neighbor_test", SensorType.NEIGHBOR)
+neighbor_sensor.sense(2)  # Sense from node 0
+print("=== NEIGHBOR Sensor Output ===")
+for node in neighbor_sensor.data:
+    print(f"Node {node}")
 
 # # --- Test MAP Sensor ---
 # # MAP sensor: using MapSensor (via ArcSensor) with range=inf and fov=360 should detect all nodes.
@@ -49,43 +49,43 @@ sensor_engine = SensorEngine(ctx)
 
 # # --- Test RANGE Sensor ---
 # # RANGE sensor: using MapSensor with finite range (30) and fov=360.
-range_sensor = sensor_engine.create_sensor("range_test", SensorType.RANGE, sensor_range=150)
-range_sensor.set_owner("agent_0")
-range_sensor.sense(0)  # Sense from node 0
-print("=== RANGE Sensor Output ===")
-print("Nodes detected:", list(range_sensor.data.get('nodes', {}).keys()))
+# range_sensor = sensor_engine.create_sensor("range_test", SensorType.RANGE, sensor_range=150)
+# range_sensor.set_owner("agent_0")
+# range_sensor.sense(0)  # Sense from node 0
+# print("=== RANGE Sensor Output ===")
+# print("Nodes detected:", list(range_sensor.data.get('nodes', {}).keys()))
 
 # # --- Test ARC Sensor ---
 # # ARC sensor: using MapSensor with finite range (30) and a narrow fov (90).
 # # Set the owner so that the sensor automatically uses agent_0's orientation.
-arc_sensor = sensor_engine.create_sensor("arc_test", SensorType.ARC, sensor_range=150, fov=math.radians(90))
-range_sensor.set_owner("agent_0")
-arc_sensor.sense(0)  # Sense from node 0; will use agent_0.orientation
-print("=== ARC Sensor Output ===")
-print("Nodes detected:", list(arc_sensor.data.get('nodes', {}).keys()))
+# arc_sensor = sensor_engine.create_sensor("arc_test", SensorType.ARC, sensor_range=150, fov=math.radians(90))
+# range_sensor.set_owner("agent_0")
+# arc_sensor.sense(0)  # Sense from node 0; will use agent_0.orientation
+# print("=== ARC Sensor Output ===")
+# print("Nodes detected:", list(arc_sensor.data.get('nodes', {}).keys()))
 
 # # --- Test AGENT Sensor (full FOV) ---
 # # Agent sensor: detects agents within a 30-unit range (fov=360).
-agent_sensor = sensor_engine.create_sensor("agent_test", SensorType.AGENT)
-agent_sensor.owner = "agent_0"  # Skip detecting agent_0 (the owner)
-agent_sensor.sense(0)  # Sense from node 0
-print("=== AGENT Sensor Output (Full FOV) ===")
-print("Agents detected:", list(agent_sensor.data.keys()))
+# agent_sensor = sensor_engine.create_sensor("agent_test", SensorType.AGENT)
+# agent_sensor.owner = "agent_0"  # Skip detecting agent_0 (the owner)
+# agent_sensor.sense(0)  # Sense from node 0
+# print("=== AGENT Sensor Output (Full FOV) ===")
+# print("Agents detected:", list(agent_sensor.data.keys()))
 
 # # --- Test AGENT_ARC Sensor (directional agent sensor) ---
 # # Agent sensor with directional filtering: using fov=90.
-agent_arc_sensor = sensor_engine.create_sensor("agent_arc_test", SensorType.AGENT_ARC)
-agent_arc_sensor.owner = "agent_0"
-agent_arc_sensor.sense(0)
-print("=== AGENT_ARC Sensor Output (Directional) ===")
-print("Agents detected:", list(agent_arc_sensor.data.keys()))
+# agent_arc_sensor = sensor_engine.create_sensor("agent_arc_test", SensorType.AGENT_ARC)
+# agent_arc_sensor.owner = "agent_0"
+# agent_arc_sensor.sense(0)
+# print("=== AGENT_ARC Sensor Output (Directional) ===")
+# print("Agents detected:", list(agent_arc_sensor.data.keys()))
 
 # # --- Test AGENT_RANGE Sensor (full FOV agent sensor) ---
 # # Agent sensor configured as full-range (fov=360).
-agent_range_sensor = sensor_engine.create_sensor("agent_range_test", SensorType.AGENT_RANGE)
-agent_range_sensor.owner = "agent_0"
-agent_range_sensor.sense(0)
-print("=== AGENT_RANGE Sensor Output ===")
-print("Agents detected:", list(agent_range_sensor.data.keys()))
+# agent_range_sensor = sensor_engine.create_sensor("agent_range_test", SensorType.AGENT_RANGE)
+# agent_range_sensor.owner = "agent_0"
+# agent_range_sensor.sense(0)
+# print("=== AGENT_RANGE Sensor Output ===")
+# print("Agents detected:", list(agent_range_sensor.data.keys()))
 
 ctx.terminate()

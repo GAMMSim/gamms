@@ -39,12 +39,21 @@ class NeighborSensor(ISensor):
         self._owner = owner
 
     def sense(self, node_id: int) -> None:
-        nearest_neighbors = {node_id,}
-        for edge in self.ctx.graph.graph.edges.values():
-            if edge.source == node_id:
-                nearest_neighbors.add(edge.target)
-                        
-        self._data = list(nearest_neighbors)
+        nearest_neighbors = self.ctx.memory.query_store(
+            name="edges",
+            sql = f"""
+                SELECT 
+                    CASE 
+                        WHEN source = {node_id} THEN target
+                        WHEN target = {node_id} THEN source
+                    END AS neighbor_id
+                FROM edges
+                WHERE source = {node_id} OR target = {node_id}
+                """,
+            params = None
+        )
+        data = set([item["neighbor_id"] for item in nearest_neighbors])         
+        self._data = list(data)
 
     def update(self, data: Dict[str, Any]) -> None:
         pass

@@ -1,25 +1,22 @@
 import networkx as nx
 from typing import Dict, Any, List
 from gamms.typing.graph_engine import Node, OSMEdge, IGraph, IGraphEngine
+from gamms.typing import IContext
 import pickle
 from shapely.geometry import LineString
 from shapely import wkb
 
 
 class Graph(IGraph):
-    def __init__(self, ctx=None):
+    def __init__(self, ctx: IContext):
         self._ctx = ctx
-        # ensure memory engine has SQLite connection
-        conn = self._ctx.memory.conn
 
         self.node_store = self._ctx.memory.create_store(
-            store_type=None,  # unused for table stores
             name="nodes",
             schema={"id": "INTEGER", "x": "REAL", "y": "REAL"},
             primary_key="id"
         )
         self.edge_store = self._ctx.memory.create_store(
-            store_type=None,
             name="edges",
             schema={
                 "id": "INTEGER",
@@ -160,9 +157,9 @@ class Graph(IGraph):
 
 
 class GraphEngine(IGraphEngine):
-    def __init__(self, ctx = None):
+    def __init__(self, ctx: IContext):
         self.ctx = ctx
-        self._graph = Graph(ctx=ctx, db_path=None)
+        self._graph = Graph(ctx=self.ctx)
     
     @property
     def graph(self) -> IGraph:

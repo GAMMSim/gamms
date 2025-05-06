@@ -86,7 +86,8 @@ class IMemoryEngine(ABC):
     """
 
     @abstractmethod
-    def create_store(self, store_type: Enum, name: str, path: IPathLike) -> IStore:
+    # def create_store(self, store_type: Enum, name: str, path: IPathLike) -> IStore:
+    def create_store(self, store_type: IStoreType) -> IStore:
         """
         Create a new store within the memory engine.
 
