@@ -1,7 +1,6 @@
-from typing import Dict, Any, Callable, Union
+from typing import Dict, Any, Callable, Union, Optional
 from abc import ABC, abstractmethod
 from enum import Enum, auto
-
 
 class ArtistType(Enum):
     GENERAL = auto()
@@ -60,22 +59,22 @@ class IArtist(ABC):
         pass
 
     @abstractmethod
-    def set_drawer(self, drawer: Callable) -> None:
+    def set_drawer(self, drawer: Callable[["IContext", Dict[str, Any]], None]) -> None:
         """
         Set the drawer function for the artist.
 
         Args:
-            drawer (Callable): The drawer function to set.
+            drawer (Callable[[IContext, Dict[str, Any]], None]): The drawer function to set.
         """
         pass
 
     @abstractmethod
-    def get_drawer(self) -> Callable | None:
+    def get_drawer(self) -> Optional[Callable[["IContext", Dict[str, Any]], None]]:
         """
         Get the drawer function of the artist.
 
         Returns:
-            Callable | None: The current drawer function, or None if not set.
+            Optional[Callable[[IContext, Dict[str, Any]], None]]: The current drawer function, or None if not set.
         """
         pass
 
@@ -123,5 +122,27 @@ class IArtist(ABC):
     def draw(self) -> None:
         """
         Draw the artist immediately.
+        """
+        pass
+    
+    @property
+    @abstractmethod
+    def layer_dirty(self) -> bool:
+        """
+        Check if the layer is dirty.
+
+        Returns:
+            bool: True if the layer is dirty, False otherwise.
+        """
+        pass
+
+    @layer_dirty.setter
+    @abstractmethod
+    def layer_dirty(self, value: bool) -> None:
+        """
+        Set the layer dirty state.
+
+        Args:
+            value (bool): The dirty state to set.
         """
         pass

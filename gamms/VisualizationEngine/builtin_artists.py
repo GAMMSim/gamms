@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 
-from gamms.typing.graph_engine import IGraph
-
+from typing import Tuple, Union, List, Dict, Optional
 
 @dataclass
 class Circle:
@@ -42,14 +41,14 @@ class AgentData:
 
     Attributes:
         name (str): The name of the agent.
-        color (tuple): The color of the agent.
+        color (Tuple[Union[int, float], Union[int, float], Union[int, float]]): The color of the agent.
         size (float): The size of the agent.
-        current_position (tuple): The current position of the agent.
+        current_position (Optional[Tuple[float, float]]): The current position of the agent.
     """
     name: str
-    color: tuple
+    color: Tuple[Union[int, float], Union[int, float], Union[int, float]]
     size: float
-    current_position: tuple = field(default=None, init=False)
+    current_position: Optional[Tuple[float, float]] = field(default=None, init=False)
 
 
 @dataclass
@@ -58,12 +57,12 @@ class GraphData:
     Contains all necessary data for drawing a graph
 
     Attributes:
-        node_color (tuple): The color of the nodes in the graph.
-        edge_color (tuple): The color of the edges in the graph.
+        node_color (Tuple[Union[int, float], Union[int, float], Union[int, float]]): The color of the nodes in the graph.
+        edge_color (Tuple[Union[int, float], Union[int, float], Union[int, float]]): The color of the edges in the graph.
         draw_id (bool): Whether to draw the node IDs.
     """
-    node_color: tuple
+    node_color: Tuple[Union[int, float], Union[int, float], Union[int, float]]
     node_size: float
-    edge_color: tuple
+    edge_color: Tuple[Union[int, float], Union[int, float], Union[int, float]]
     draw_id: bool
-    edge_line_points: dict[int, list[tuple[float, float]]] = field(default_factory=dict)
+    edge_line_points: Dict[int, List[Tuple[float, float]]] = field(default_factory=dict)

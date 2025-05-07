@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any, Dict, Union, List, Callable
 from aenum import Enum
 
 
@@ -48,6 +48,7 @@ class ISensor(ABC):
         data (Dict[str, Any]): The data collected or maintained by the sensor.
     """
 
+    @property
     @abstractmethod
     def sensor_id(self) -> str:
         """
@@ -58,6 +59,7 @@ class ISensor(ABC):
         """
         pass
 
+    @property
     @abstractmethod
     def type(self) -> SensorType:
         """
@@ -68,18 +70,20 @@ class ISensor(ABC):
         """
         pass
 
+    @property
     @abstractmethod
-    def data(self) -> Dict[str, Any]:
+    def data(self) -> Union[Dict[str, Any], List[int]]:
         """
         Get the current data maintained by the sensor.
 
         Returns:
             Dict[str, Any]: The data maintained by the sensor.
+            List[int]: A list of node identifiers for the NEIGHBOR sensor type.
         """
         pass
 
     @abstractmethod
-    def sense(self, node_id: int) -> Dict[str, Any]:
+    def sense(self, node_id: int) -> None:
         """
         Perform sensing operations for a given node.
 
@@ -88,8 +92,9 @@ class ISensor(ABC):
         Args:
             node_id (int): The unique identifier of the node to sense.
 
-        Returns:
+        Sensed Data type:
             Dict[str, Any]: A dictionary containing the sensed data.
+            Only Neigbor sensor returns a list of node ids. List[int]
 
         Raises:
             ValueError: If the provided node_id is invalid.
@@ -114,7 +119,7 @@ class ISensor(ABC):
         pass
 
     @abstractmethod
-    def set_owner(self, owner: str) -> None:
+    def set_owner(self, owner: Union[str, None]) -> None:
         """
         Set the owner of the sensor. Owner is a string that identifies the entity responsible for the sensor.
         Used for setting the owning agent.
@@ -123,7 +128,7 @@ class ISensor(ABC):
         or management purposes.
 
         Args:
-            owner (str): The name of the owner to assign to the sensor.
+            owner (str or None): The name of the owner to assign to the sensor.
 
         Raises:
             TypeError: If the provided owner is not a string.
@@ -142,7 +147,7 @@ class ISensorEngine(ABC):
     """
 
     @abstractmethod
-    def create_sensor(self, sensor_type: SensorType, sensor_data: Dict[str, Any]) -> ISensor:
+    def create_sensor(self, sensor_id: str, sensor_type: SensorType, **kwargs: Dict[str, Any]) -> ISensor:
         """
         Create a new sensor of the specified type.
 
@@ -150,8 +155,11 @@ class ISensorEngine(ABC):
         it within the sensor engine for management.
 
         Args:
+            sensor_id (str): The unique identifier for the sensor to be created.
             sensor_type (SensorType): The type of sensor to create.
-            sensor_data (Dict[str, Any]): A dictionary containing initial data for the sensor.
+        
+        Kwargs:
+            **kwargs: Additional keyword arguments for sensor initialization.
 
         Returns:
             ISensor: The newly created sensor instance.
@@ -211,10 +219,12 @@ class ISensorEngine(ABC):
         """
         pass
 
-    def custom(self) -> None:
+    @abstractmethod
+    def custom(self, name: str) -> Callable[[ISensor], ISensor]:
         """
         Decorator for custom sensor
         For example, if the user create a new custom sensor, add a new type to SensorType enum
         and implement the new sensor class, the user can add the custom sensor to the sensor engine
         using this method.
         """
+        pass

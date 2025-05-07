@@ -1,10 +1,10 @@
 from gamms.typing import IArtist, ArtistType, IContext
 from gamms.VisualizationEngine.default_drawers import render_circle, render_rectangle
 from gamms.VisualizationEngine import Shape
-from typing import Callable, Union
+from typing import Callable, Union, Dict, Any
 
 class Artist(IArtist):
-    def __init__(self, ctx: IContext, drawer: Union[Callable, Shape], layer: int = 30):
+    def __init__(self, ctx: IContext, drawer: Union[Callable[[IContext, Dict[str, Any]], None], Shape], layer: int = 30):
         self.data = {}
 
         self._ctx = ctx
@@ -26,8 +26,12 @@ class Artist(IArtist):
     @property
     def layer_dirty(self):
         return self._layer_dirty
+    
+    @layer_dirty.setter
+    def layer_dirty(self, value: bool):
+        self._layer_dirty = value
 
-    def set_layer(self, layer):
+    def set_layer(self, layer: int):
         if self._layer == layer:
             return
 
@@ -37,13 +41,13 @@ class Artist(IArtist):
     def get_layer(self):
         return self._layer
 
-    def set_visible(self, visible):
+    def set_visible(self, visible: bool):
         self._visible = visible
 
     def get_visible(self):
         return self._visible
 
-    def set_drawer(self, drawer):
+    def set_drawer(self, drawer: Callable[[IContext, Dict[str, Any]], None]):
         self._drawer = drawer
 
     def get_drawer(self):
@@ -52,13 +56,13 @@ class Artist(IArtist):
     def get_will_draw(self):
         return self._will_draw
 
-    def set_will_draw(self, will_draw):
+    def set_will_draw(self, will_draw: bool):
         self._will_draw = will_draw
 
     def get_artist_type(self):
         return self._artist_type
 
-    def set_artist_type(self, artist_type):
+    def set_artist_type(self, artist_type: ArtistType):
         self._artist_type = artist_type
 
     def draw(self):
@@ -66,3 +70,4 @@ class Artist(IArtist):
             self._drawer(self._ctx, self.data)
         except Exception as e:
             self._ctx.logger.error(f"Error drawing artist: {e}")
+            self._ctx.logger.debug(f"Artist data: {self.data}")

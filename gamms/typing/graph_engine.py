@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, Iterator
 from dataclasses import dataclass
+from shapely.geometry import LineString
+import networkx as nx
 
 @dataclass
 class Node:
@@ -27,14 +29,14 @@ class OSMEdge:
         source (int): The ID of the source node.
         target (int): The ID of the target node.
         length (float): The length of the edge.
-        linestring (List[Tuple[float, float]], optional): A list of (x, y) tuples representing the geometry of the edge.
+        linestring (LineString): The geometry of the edge represented as a LineString.
             Defaults to None.
     """
     id: int
     source: int  # Node ID
     target: int  # Node ID
     length: float
-    linestring: List[Tuple[float, float]] = None
+    linestring: LineString
 
 
 class IGraph(ABC):
@@ -81,22 +83,22 @@ class IGraph(ABC):
         pass
 
     @abstractmethod
-    def get_nodes(self) -> List[int]:
+    def get_nodes(self) -> Iterator[int]:
         """
-        Retrieve a list of all node IDs in the graph.
+        Creates an iterator of node IDs in the graph.
 
         Returns:
-            List[int]: A list containing the IDs of all nodes.
+            Iterator[int]: An iterator that yields node IDs.
         """
         pass
 
     @abstractmethod
-    def get_edges(self) -> Dict[int, OSMEdge]:
+    def get_edges(self) -> Iterator[int]:
         """
-        Retrieve a list of all edge IDs in the graph.
+        Creates an iterator of edge IDs in the graph.
 
         Returns:
-            Dict[int, OSMEdge]: A dictionary mapping edge IDs to their corresponding OSMEdge objects.
+            Iterator[int]: An iterator that yields edge IDs.
         """
         pass
 
@@ -176,7 +178,7 @@ class IGraph(ABC):
         pass
 
     @abstractmethod
-    def get_edge(self, edge_id: int) -> Dict[str, Any]:
+    def get_edge(self, edge_id: int) -> OSMEdge:
         """
         Retrieve the attributes of a specific edge.
 
@@ -184,7 +186,7 @@ class IGraph(ABC):
             edge_id (int): The unique identifier of the edge to retrieve.
 
         Returns:
-            Dict[str, Any]: A dictionary containing the edge's attributes.
+            OSMEdge: A dictionary containing the edge's attributes.
 
         Raises:
             KeyError: If the edge with the specified ID does not exist.
@@ -210,6 +212,22 @@ class IGraphEngine(ABC):
 
         Raises:
             RuntimeError: If the graph has not been initialized.
+        """
+        pass
+
+    @abstractmethod
+    def attach_networkx_graph(self, G: nx.Graph) -> IGraph:
+        """
+        Attach a NetworkX graph to the graph engine.
+
+        Args:
+            G (nx.Graph): The NetworkX graph to attach.
+        
+        Returns:
+            IGraph: The graph instance created from the NetworkX graph.
+
+        Raises:
+            ValueError: If the provided graph is invalid or cannot be attached.
         """
         pass
 

@@ -1,6 +1,6 @@
 import networkx as nx
-from typing import Dict, Any
-from gamms.typing.graph_engine import Node, OSMEdge, IGraph, IGraphEngine
+from typing import Dict, Any, Iterator, cast, Union
+from gamms.typing import Node, OSMEdge, IGraph, IGraphEngine, IContext
 import pickle
 from shapely.geometry import LineString
 
@@ -11,17 +11,17 @@ class Graph(IGraph):
         self.nodes: Dict[int, Node] = {}
         self.edges: Dict[int, OSMEdge] = {}
     
-    def get_edge(self, edge_id):
+    def get_edge(self, edge_id: int) -> OSMEdge:
         return self.edges[edge_id]
 
-    def get_edges(self):
-        return self.edges
+    def get_edges(self) -> Iterator[int]:
+        return iter(self.edges.keys())
     
-    def get_node(self, node_id):
+    def get_node(self, node_id: int) -> Node:
         return self.nodes[node_id]
 
-    def get_nodes(self):
-        return self.nodes
+    def get_nodes(self) -> Iterator[int]:
+        return iter(self.nodes.keys())
     
     def add_node(self, node_data: Dict[str, Any]) -> None:
         if node_data['id'] in self.nodes:
@@ -87,26 +87,32 @@ class Graph(IGraph):
             print(f"Deleted edge {key} associated with node {node_id}")
         del self.nodes[node_id]
 
-    def remove_edge(self, node_id) -> None:
-        if node_id not in self.edges:
-            raise KeyError(f"Edge {node_id} does not exist. Use add_edge to create it.")
-        del self.edges[id]
+    def remove_edge(self, edge_id: int) -> None:
+        if edge_id not in self.edges:
+            raise KeyError(f"Edge {edge_id} does not exist.")
+        
+        del self.edges[edge_id]
     
     def attach_networkx_graph(self, G: nx.Graph) -> None:
-        for node, data in G.nodes(data=True):
-            node_data = {
+        for node, data in G.nodes(data=True): # type: ignore
+            node = cast(int, node)
+            data = cast(Dict[str, Any], data)
+            node_data: Dict[str, Union[int, float]] = {
                 'id': node,
                 'x': data.get('x', 0.0),
                 'y': data.get('y', 0.0)
             }
             self.add_node(node_data)
             
-        for u, v, data in G.edges(data=True):
+        for u, v, data in G.edges(data=True): # type: ignore
+            u = cast(int, u)
+            v = cast(int, v)
+            data = cast(Dict[str, Any], data)
             linestring = data.get('linestring', None)
             if linestring is None:
                 # Create a LineString from the source and target node coordinates
-                source_node = self.get_node(edge_data['source'])
-                target_node = self.get_node(edge_data['target'])
+                source_node = self.get_node(u)
+                target_node = self.get_node(v)
                 linestring = LineString([(source_node.x, source_node.y), (target_node.x, target_node.y)])
             elif not isinstance(linestring, LineString):
                 try:
@@ -115,7 +121,7 @@ class Graph(IGraph):
                     raise ValueError(f"Invalid linestring data: {linestring}") from e
             if linestring.is_empty:
                 raise ValueError(f"Invalid linestring: {linestring}")
-            edge_data = {
+            edge_data: Dict[str, Any] = {
                 'id': data.get('id', -1),
                 'source': u,
                 'target': v,
@@ -123,54 +129,7 @@ class Graph(IGraph):
                 'linestring': linestring
             }
             self.add_edge(edge_data)
-            
-    def visualize(self) -> None:
-        # A debug function to visualize the graph
-        import matplotlib.pyplot as plt
-        from matplotlib.collections import LineCollection
-        from shapely.geometry import LineString
-
-        fig, ax = plt.subplots(figsize=(12, 12))
-
-        # Draw nodes
-        node_x = [node.x for node in self.nodes.values()]
-        node_y = [node.y for node in self.nodes.values()]
-        ax.scatter(node_x, node_y, s=10, c='blue', label='Nodes')
-
-        # Prepare edge lines
-        edge_lines = []
-        for edge in self.edges.values():
-            if edge.linestring and isinstance(edge.linestring, LineString):
-                # Use the LineString geometry if available
-                x, y = edge.linestring.xy
-                edge_lines.append(list(zip(x, y)))
-            else:
-                # Fallback to a straight line between source and target nodes
-                source_node = self.get_node(edge.source)
-                target_node = self.get_node(edge.target)
-                edge_lines.append([(source_node.x, source_node.y), (target_node.x, target_node.y)])
-
-        # Create a LineCollection from the edge lines
-        lc = LineCollection(edge_lines, colors='gray', linewidths=1, alpha=0.7, label='Edges')
-        ax.add_collection(lc)
-
-        # Set plot titles and labels
-        ax.set_title('Graph Visualization with LineString Geometries')
-        ax.set_xlabel('X Coordinate')
-        ax.set_ylabel('Y Coordinate')
-
-        # Set equal scaling
-        ax.set_aspect('equal', adjustable='datalim')
-
-        # Add legend
-        ax.legend()
-
-        # Show grid
-        ax.grid(True)
-
-        # Display the plot
-        plt.show()
-    
+                
     def save(self, path: str) -> None:
         """
         Saves the graph to a file.
@@ -188,7 +147,7 @@ class Graph(IGraph):
 
 
 class GraphEngine(IGraphEngine):
-    def __init__(self, ctx = None):
+    def __init__(self, ctx: IContext):
         self.ctx = ctx
         self._graph = Graph()
     
@@ -200,14 +159,14 @@ class GraphEngine(IGraphEngine):
         """
         Attaches a NetworkX graph to the Graph object.
         """
-        self.graph.attach_networkx_graph(G)
+        self._graph.attach_networkx_graph(G)
         return self.graph
 
     def load(self, path: str) -> IGraph:
         """
         Loads a graph from a file.
         """
-        self.graph.load(path)
+        self._graph.load(path)
         return self.graph
     
     def terminate(self):

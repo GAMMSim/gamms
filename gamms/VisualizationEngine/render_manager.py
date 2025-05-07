@@ -1,11 +1,11 @@
-from gamms.context import Context
-from gamms.typing.artist import IArtist, ArtistType
-from gamms.VisualizationEngine.artist import Artist
+from gamms.typing import ArtistType, IContext, IArtist
+
+from typing import Set, Dict, List, Optional, Tuple
 
 
 class RenderManager:
-    def __init__(self, ctx: Context, camera_x: float, camera_y: float, camera_size: float, screen_width: int, screen_height: int):
-        self.ctx: Context = ctx
+    def __init__(self, ctx: IContext, camera_x: float, camera_y: float, camera_size: float, screen_width: int, screen_height: int):
+        self.ctx = ctx
 
         self._screen_width = screen_width
         self._screen_height = screen_height
@@ -18,11 +18,11 @@ class RenderManager:
 
         self._update_bounds()
 
-        self._artists: dict[str, Artist] = {}
+        self._artists: Dict[str, IArtist] = {}
         # This will call drawer on all artists in the respective layer
-        self._layer_artists: dict[int, list[str]] = {}
-        self._graph_layers = set()
-        self._current_drawing_artist: Artist | None = None
+        self._layer_artists: Dict[int, List[str]] = {}
+        self._graph_layers: Set[int] = set()
+        self._current_drawing_artist: Optional[IArtist] = None
 
         self._default_origin = (0, 0)
         self._surface_size = 0
@@ -121,7 +121,7 @@ class RenderManager:
         """
         return screen_size / self.screen_width * self.camera_size
     
-    def world_to_screen(self, x: float, y: float) -> tuple[float, float]:
+    def world_to_screen(self, x: float, y: float) -> Tuple[float, float]:
         """
         Transforms a world coordinate to a screen coordinate.
         """
@@ -131,7 +131,7 @@ class RenderManager:
         screen_y = (-y + self.camera_size_y) / (2 * self.camera_size_y) * self.screen_height
         return screen_x, screen_y
     
-    def screen_to_world(self, x: float, y: float) -> tuple[float, float]:
+    def screen_to_world(self, x: float, y: float) -> Tuple[float, float]:
         """
         Transforms a screen coordinate to a world coordinate.
         """
@@ -139,7 +139,7 @@ class RenderManager:
         world_y = -y / self.screen_height * 2 * self.camera_size_y + self.camera_size_y
         return world_x, world_y
     
-    def viewport_to_screen(self, x: float, y: float) -> tuple[float, float]:
+    def viewport_to_screen(self, x: float, y: float) -> Tuple[float, float]:
         """
         Transforms a viewport coordinate to a screen coordinate.
         """
@@ -147,7 +147,7 @@ class RenderManager:
         screen_y = y * self.screen_height
         return screen_x, screen_y
     
-    def screen_to_viewport(self, x: float, y: float) -> tuple[float, float]:
+    def screen_to_viewport(self, x: float, y: float) -> Tuple[float, float]:
         """
         Transforms a screen coordinate to a viewport coordinate.
         """
@@ -167,31 +167,31 @@ class RenderManager:
         """
         return screen_size / self.screen_width
 
-    def check_circle_culled(self, x, y, radius):
+    def check_circle_culled(self, x: float, y: float, radius: float) -> bool:
         return (x + radius < self._bound_left or x - radius > self._bound_right or
                 y + radius < self._bound_top or y - radius > self._bound_bottom)
 
-    def check_rectangle_culled(self, x, y, width, height):
+    def check_rectangle_culled(self, x: float, y: float, width: float, height: float) -> bool:
         return (x - width / 2 > self._bound_right or x + width / 2 < self._bound_left or
                 y - height / 2 > self._bound_bottom or y + height / 2 < self._bound_top)
 
-    def check_line_culled(self, x1, y1, x2, y2):
+    def check_line_culled(self, x1: float, y1: float, x2: float, y2: float) -> bool:
         return (x1 < self._bound_left and x2 < self._bound_left or x1 > self._bound_right and x2 > self._bound_right or
                 y1 < self._bound_top and y2 < self._bound_top or y1 > self._bound_bottom and y2 > self._bound_bottom)
 
-    def check_lines_culled(self, points):
+    def check_lines_culled(self, points: List[Tuple[float, float]]) -> bool:
         source = points[0]
         target = points[-1]
         return self.check_line_culled(source[0], source[1], target[0], target[1])
 
-    def check_polygon_culled(self, points):
+    def check_polygon_culled(self, points: List[Tuple[float, float]]) -> bool:
         for point in points:
             if self._bound_left <= point[0] <= self._bound_right and self._bound_top <= point[1] <= self._bound_bottom:
                 return False
 
         return True
 
-    def add_artist(self, name: str, artist: Artist) -> None:
+    def add_artist(self, name: str, artist: IArtist) -> None:
         """
         Add an artist to the render manager. An artist can draw one or more shapes on the screen and may have a customized drawer.
 
@@ -260,9 +260,9 @@ class RenderManager:
         if any(artist.layer_dirty for artist in self._artists.values()):
             self.rebuild_artist_layer()
             for artist in self._artists.values():
-                artist._layer_dirty = False
+                artist.layer_dirty = False
 
-        rendered_layers = set()
+        rendered_layers: Set[int] = set()
         for layer, artist_name_list in self._layer_artists.items():
             for artist_name in artist_name_list:
                 artist = self._artists[artist_name]

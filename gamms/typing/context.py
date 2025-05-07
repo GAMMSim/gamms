@@ -1,13 +1,12 @@
 from abc import ABC, abstractmethod
-from gamms.typing import (
-    IInternalContext,
-    ISensorEngine,
-    IVisualizationEngine,
-    IAgentEngine,
-    IGraphEngine,
-    IRecorder,
-    ILogger,
-)
+from gamms.typing.internal_context import IInternalContext
+from gamms.typing.sensor_engine import ISensorEngine
+from gamms.typing.visualization_engine import IVisualizationEngine
+from gamms.typing.agent_engine import IAgentEngine
+from gamms.typing.graph_engine import IGraphEngine
+from gamms.typing.recorder import IRecorder
+from gamms.typing.logger import ILogger
+
 
 class IContext(ABC):
     """
@@ -141,5 +140,32 @@ class IContext(ABC):
 
         Raises:
             RuntimeError: If the logger engine is not properly initialized.
+        """
+        pass
+
+    @abstractmethod
+    def is_terminated(self) -> bool:
+        """
+        Check if the context is terminated.
+
+        This method determines whether the context has been terminated, indicating
+        that no further operations should be performed.
+
+        Returns:
+            bool: True if the context is terminated, False otherwise.
+        """
+        pass
+
+    @abstractmethod
+    def terminate(self) -> None:
+        """
+        Terminate the context.
+
+        This method performs necessary cleanup operations and releases resources
+        associated with the context. It should be called when the context is no
+        longer needed.
+
+        Raises:
+            RuntimeError: If the termination process encounters an error.
         """
         pass

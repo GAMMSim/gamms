@@ -1,11 +1,16 @@
-from gamms.typing import IContext
-from gamms.typing.agent_engine import IAgent, IAgentEngine
-from gamms.typing.opcodes import OpCodes
-from typing import Callable, Dict, Any, Optional, Tuple
+from gamms.typing import (
+    IContext,
+    ISensor,
+    IAgent,
+    OpCodes,
+    IAgentEngine,
+    SensorType,
+)
+from typing import Callable, Dict, Any, Optional, Tuple, Union, List, cast
 import math
 
 class NoOpAgent(IAgent):
-    def __init__(self, ctx: IContext, name, start_node_id, **kwargs):
+    def __init__(self, ctx: IContext, name: str, start_node_id: int, **kwargs: Dict[str, Any]):
         """Initialize the agent at a specific node with access to the graph and set the color."""
         self._ctx = ctx
         self._name = name
@@ -17,11 +22,11 @@ class NoOpAgent(IAgent):
         return self._name
     
     @property
-    def current_node_id(self):
+    def current_node_id(self) -> int:
         return self._current_node_id
     
     @current_node_id.setter
-    def current_node_id(self, node_id):
+    def current_node_id(self, node_id: int):
         if self._ctx.record.record():
             self._ctx.record.write(
                 opCode=OpCodes.AGENT_CURRENT_NODE,
@@ -33,11 +38,11 @@ class NoOpAgent(IAgent):
         self._current_node_id = node_id
 
     @property
-    def prev_node_id(self):
+    def prev_node_id(self) -> int:
         return self._prev_node_id
     
     @prev_node_id.setter
-    def prev_node_id(self, node_id):
+    def prev_node_id(self, node_id: int):
         if self._ctx.record.record():
             self._ctx.record.write(
                 opCode=OpCodes.AGENT_PREV_NODE,
@@ -50,21 +55,17 @@ class NoOpAgent(IAgent):
 
     
     @property
-    def state(self):
+    def state(self) -> Dict[str, Any]:
         return {}
         
     @property
     def strategy(self):
         return 
-
-    @strategy.setter
-    def strategy(self, strategy):
+    
+    def register_sensor(self, name: str, sensor: ISensor):
         return
     
-    def register_sensor(self, name, sensor):
-        return
-    
-    def register_strategy(self, strategy):
+    def register_strategy(self, strategy: Callable[[Dict[str, Any]], None]):
         return
     
     def step(self):
@@ -82,12 +83,12 @@ class NoOpAgent(IAgent):
         return
 
 class Agent(IAgent):
-    def __init__(self, ctx: IContext, name, start_node_id, **kwargs):
+    def __init__(self, ctx: IContext, name: str, start_node_id: int, **kwargs: Dict[str, Any]):
         """Initialize the agent at a specific node with access to the graph and set the color."""
         self._ctx = ctx
         self._graph = self._ctx.graph
         self._name = name
-        self._sensor_list = {}
+        self._sensor_list: Dict[str, ISensor] = {}
         self._prev_node_id = start_node_id
         self._current_node_id = start_node_id
         self._strategy: Optional[Callable[[Dict[str, Any]], None]] = None
@@ -100,11 +101,11 @@ class Agent(IAgent):
         return self._name
     
     @property
-    def current_node_id(self):
+    def current_node_id(self) -> int:
         return self._current_node_id
     
     @current_node_id.setter
-    def current_node_id(self, node_id):
+    def current_node_id(self, node_id: int):
         if self._ctx.record.record():
             self._ctx.record.write(
                 opCode=OpCodes.AGENT_CURRENT_NODE,
@@ -116,11 +117,11 @@ class Agent(IAgent):
         self._current_node_id = node_id
 
     @property
-    def prev_node_id(self):
+    def prev_node_id(self) -> int:
         return self._prev_node_id
     
     @prev_node_id.setter
-    def prev_node_id(self, node_id):
+    def prev_node_id(self, node_id: int):
         if self._ctx.record.record():
             self._ctx.record.write(
                 opCode=OpCodes.AGENT_PREV_NODE,
@@ -139,12 +140,8 @@ class Agent(IAgent):
     @property
     def strategy(self):
         return self._strategy
-
-    @strategy.setter
-    def strategy(self, strategy):
-        self._strategy = strategy
     
-    def register_sensor(self, name, sensor):
+    def register_sensor(self, name: str, sensor: ISensor):
         if self._ctx.record.record():
             self._ctx.record.write(
                 opCode=OpCodes.AGENT_SENSOR_REGISTER,
@@ -157,7 +154,7 @@ class Agent(IAgent):
         sensor.set_owner(self._name)
         self._sensor_list[name] = sensor
     
-    def deregister_sensor(self, name):
+    def deregister_sensor(self, name: str):
         if name in self._sensor_list:
             sensor = self._sensor_list[name]
             if self._ctx.record.record():
@@ -174,8 +171,8 @@ class Agent(IAgent):
         else:
             self._ctx.logger.warning(f"Sensor {name} not found in agent {self._name}.")
     
-    def register_strategy(self, strategy):
-        self.strategy = strategy
+    def register_strategy(self, strategy: Callable[[Dict[str, Any]], None]):
+        self._strategy = strategy
     
     def step(self):
         if self._strategy is None:
@@ -184,11 +181,11 @@ class Agent(IAgent):
         self._strategy(state)
         self.set_state()
 
-    def get_state(self) -> dict:
+    def get_state(self) -> Dict[str, Any]:
         for sensor in self._sensor_list.values():
             sensor.sense(self._current_node_id)
 
-        state = {'curr_pos': self._current_node_id}
+        state: Dict[str, Any] = {'curr_pos': self._current_node_id}
         state['sensor'] = {k:(sensor.type, sensor.data) for k, sensor in self._sensor_list.items()}
         self._state = state
         return self._state
@@ -223,10 +220,10 @@ class AgentEngine(IAgentEngine):
     def create_iter(self):
         return self.agents.values()
     
-    def create_agent(self, name, **kwargs):
+    def create_agent(self, name: str, **kwargs: Dict[str, Any]) -> IAgent:
         if self.ctx.record.record():
             self.ctx.record.write(opCode=OpCodes.AGENT_CREATE, data={"name": name, "kwargs": kwargs})
-        start_node_id = kwargs.pop('start_node_id')
+        start_node_id = cast(int, kwargs.pop('start_node_id'))
         sensors = kwargs.pop('sensors', [])
         agent = Agent(self.ctx, name, start_node_id, **kwargs)
         for sensor in sensors:
@@ -246,7 +243,7 @@ class AgentEngine(IAgentEngine):
         else:
             raise KeyError(f"Agent {name} not found.")
 
-    def delete_agent(self, name) -> None:
+    def delete_agent(self, name: str) -> None:
         if self.ctx.record.record():
             self.ctx.record.write(opCode=OpCodes.AGENT_DELETE, data=name)
             
