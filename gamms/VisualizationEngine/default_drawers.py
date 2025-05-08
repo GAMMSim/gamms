@@ -1,8 +1,8 @@
 from gamms.VisualizationEngine import Color
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
-from gamms.typing import IContext, OSMEdge, Node, ISensor
+from gamms.typing import IContext, OSMEdge, Node, ColorType
 
-from typing import Dict, Any, cast, Tuple, Union, List
+from typing import Dict, Any, cast, List
 
 import math
 
@@ -146,7 +146,7 @@ def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
     for edge in active_edges:
         _render_graph_edge(ctx, graph_data, edge, edge_color)
 
-def _render_graph_edge(ctx: IContext, graph_data: GraphData, edge: OSMEdge, color: Tuple[Union[int, float], Union[int, float], Union[int, float]]):
+def _render_graph_edge(ctx: IContext, graph_data: GraphData, edge: OSMEdge, color: ColorType):
     """Draw an edge as a curve or straight line based on the linestring."""
     source = ctx.graph.graph.get_node(edge.source)
     target = ctx.graph.graph.get_node(edge.target)
@@ -165,7 +165,7 @@ def _render_graph_edge(ctx: IContext, graph_data: GraphData, edge: OSMEdge, colo
         ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2, perform_culling_test=False, is_aa=False)
 
 
-def _render_graph_node(ctx: IContext, node: Node, color: Tuple[Union[int, float], Union[int, float], Union[int, float]], radius: float, draw_id: bool):
+def _render_graph_node(ctx: IContext, node: Node, color: ColorType, radius: float, draw_id: bool):
     ctx.visual.render_circle(node.x, node.y, radius, color)
 
     if draw_id:

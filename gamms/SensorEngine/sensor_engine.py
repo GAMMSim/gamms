@@ -85,7 +85,7 @@ class MapSensor(ISensor):
         self._owner = owner
 
     def sense(self, node_id: int) -> None:
-        """ Dict[int, 
+        """
         Detects nodes within the sensor range and arc.
         
         The result is now stored in self._data as a dictionary with two keys:

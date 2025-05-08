@@ -2,6 +2,10 @@ from gamms.typing.artist import IArtist
 from typing import Dict, Any, List, Tuple, Union
 from abc import ABC, abstractmethod
 
+ColorType = Union[
+    Tuple[Union[int, float], Union[int, float], Union[int, float]],
+    Tuple[Union[int, float], Union[int, float], Union[int, float], Union[int, float]]
+]
 
 class IVisualizationEngine(ABC):
     """

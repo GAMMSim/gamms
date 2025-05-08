@@ -9,7 +9,8 @@ from gamms.typing import (
     ArtistType,
     IContext,
     SensorType, 
-    OpCodes
+    OpCodes,
+    ColorType
 )
 from typing import Dict, Any, List, Tuple, Union, cast
 
@@ -73,9 +74,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
         
         self.create_layer(10, width, height)
         
-        graph_data = GraphData(node_color=cast(Tuple[Union[int, float], Union[int, float], Union[int, float]], kwargs.get('node_color', Color.DarkGray)),
+        graph_data = GraphData(node_color=cast(ColorType, kwargs.get('node_color', Color.DarkGray)),
                                node_size=cast(int, kwargs.get('node_size', 2)),
-                               edge_color=cast(Tuple[Union[int, float], Union[int, float], Union[int, float]], kwargs.get('edge_color', Color.LightGray)), 
+                               edge_color=cast(ColorType, kwargs.get('edge_color', Color.LightGray)), 
                                draw_id=cast(bool, kwargs.get('draw_id', False)))
 
         artist = Artist(self.ctx, render_graph, 10)
@@ -112,7 +113,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         
         agent_data = AgentData(
             name=name,
-            color=cast(Tuple[Union[int, float], Union[int, float], Union[int, float]], kwargs.get('color', Color.Black)),
+            color=cast(ColorType, kwargs.get('color', Color.Black)),
             size=cast(int,kwargs.get('size', 8))
         )
 
@@ -148,7 +149,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         else:
             raise ValueError(f"Invalid sensor type: {sensor_type}")
         
-        layer = kwargs.pop('layer', 30)
+        layer = cast(int, kwargs.pop('layer', 30))
         artist = Artist(self.ctx, drawer, layer)
         artist.data.update(data)
         
@@ -174,9 +175,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
             artist_to_add = Artist(self.ctx, drawer, layer)
             artist_to_add.data = artist
-
-        if artist_to_add.get_drawer() is None:
-            raise ValueError("Drawer must be set in the artist object.")
 
         layer = artist_to_add.get_layer()
         if artist_to_add.get_artist_type() == ArtistType.AGENT:
@@ -280,7 +278,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         top += size_y + 10
         size_x, size_y = self._render_text_internal(f"FPS: {round(self._clock.get_fps(), 2)}", 10, top, Space.Screen)
 
-    def _render_text_internal(self, text: str, x: float, y: float, coord_space: Space=Space.World, color: Tuple[Union[int, float], Union[int, float], Union[int, float]] = Color.Black):
+    def _render_text_internal(self, text: str, x: float, y: float, coord_space: Space=Space.World, color: ColorType = Color.Black):
         if coord_space == Space.World:
             screen_x, screen_y = self._render_manager.world_to_screen(x, y)
         elif coord_space == Space.Screen:
@@ -326,7 +324,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         else:
             return self._screen
 
-    def render_text(self, text: str, x: float, y: float, color: Tuple[Union[int, float], Union[int, float], Union[int, float]] = Color.Black, perform_culling_test: bool=True):
+    def render_text(self, text: str, x: float, y: float, color: ColorType = Color.Black, perform_culling_test: bool=True):
         text_size = self._default_font.size(text)
         if perform_culling_test and self._render_manager.check_rectangle_culled(x, y, text_size[0], text_size[1]):
             return
@@ -343,7 +341,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         surface = self._get_target_surface(layer)
         surface.blit(text_surface, text_rect)
 
-    def render_rectangle(self, x: float, y: float, width: float, height: float, color: Tuple[Union[int, float], Union[int, float], Union[int, float]] = Color.Black,
+    def render_rectangle(self, x: float, y: float, width: float, height: float, color: ColorType = Color.Black,
                          perform_culling_test: bool=True):
         if perform_culling_test and self._render_manager.check_rectangle_culled(x, y, width, height):
             return
@@ -357,7 +355,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         surface = self._get_target_surface(layer)
         self._pygame.draw.rect(surface, color, self._pygame.Rect(x, y, width, height))
 
-    def render_circle(self, x: float, y: float, radius: float, color: Tuple[Union[int, float], Union[int, float], Union[int, float]] = Color.Black,
+    def render_circle(self, x: float, y: float, radius: float, color: ColorType = Color.Black,
                       perform_culling_test: bool=True):
         if perform_culling_test and self._render_manager.check_circle_culled(x, y, radius):
             return
@@ -374,7 +372,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         surface = self._get_target_surface(layer)
         self._pygame.draw.circle(surface, color, (x, y), radius)
 
-    def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: Tuple[Union[int, float], Union[int, float], Union[int, float]] = Color.Black,
+    def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: ColorType = Color.Black,
                     width: int=1, is_aa: bool=False, perform_culling_test: bool=True, force_no_aa: bool = False):
         if perform_culling_test and self._render_manager.check_line_culled(start_x, start_y, end_x, end_y):
             return
@@ -392,7 +390,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         else:
             self._pygame.draw.line(surface, color, (start_x, start_y), (end_x, end_y), width)
 
-    def render_linestring(self, points: List[Tuple[float, float]], color: Tuple[Union[int, float], Union[int, float], Union[int, float]] =Color.Black, width: int=1, closed: bool = False,
+    def render_linestring(self, points: List[Tuple[float, float]], color: ColorType =Color.Black, width: int=1, closed: bool = False,
                      is_aa: bool=False, perform_culling_test: bool=True):
         if perform_culling_test and self._render_manager.check_lines_culled(points):
             return
@@ -409,7 +407,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         else:
             self._pygame.draw.lines(surface, color, closed, points, width)
 
-    def render_polygon(self, points: List[Tuple[float, float]], color: Tuple[Union[int, float], Union[int, float], Union[int, float]] = Color.Black, width: int=0,
+    def render_polygon(self, points: List[Tuple[float, float]], color: ColorType = Color.Black, width: int=0,
                        perform_culling_test: bool=True):
         if perform_culling_test and self._render_manager.check_polygon_culled(points):
             return
@@ -427,7 +425,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         if layer_id in self._surface_dict:
             self._surface_dict[layer_id].fill((0, 0, 0, 0))
 
-    def fill_layer(self, layer_id: int, color: Tuple[Union[int, float], Union[int, float], Union[int, float]]):
+    def fill_layer(self, layer_id: int, color: ColorType):
         if layer_id in self._surface_dict:
             self._surface_dict[layer_id].fill(color)
 

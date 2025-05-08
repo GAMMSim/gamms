@@ -2,6 +2,7 @@ from gamms.typing import (
     IArtist,
     IContext,
     IVisualizationEngine,
+    ColorType
 )
 from gamms.typing.opcodes import OpCodes
 from gamms.VisualizationEngine.artist import Artist
@@ -46,26 +47,26 @@ class NoEngine(IVisualizationEngine):
     def terminate(self):
         return
 
-    def render_text(self, text: str, x: float, y: float, color: Tuple[Union[int, float], Union[int, float], Union[int, float]] = Color.Black, perform_culling_test: bool=True):
+    def render_text(self, text: str, x: float, y: float, color: ColorType = Color.Black, perform_culling_test: bool=True):
         return
 
-    def render_rectangle(self, x: float, y: float, width: float, height: float, color: Tuple[Union[int, float], Union[int, float], Union[int, float]] = Color.Black,
+    def render_rectangle(self, x: float, y: float, width: float, height: float, color: ColorType = Color.Black,
                          perform_culling_test: bool=True):
         return
 
-    def render_circle(self, x: float, y: float, radius: float, color: Tuple[Union[int, float], Union[int, float], Union[int, float]] = Color.Black,
+    def render_circle(self, x: float, y: float, radius: float, color: ColorType = Color.Black,
                       perform_culling_test: bool=True):
         return
 
-    def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: Tuple[Union[int, float], Union[int, float], Union[int, float]] = Color.Black,
+    def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: ColorType = Color.Black,
                     width: int=1, is_aa: bool=False, perform_culling_test: bool=True, force_no_aa: bool = False):
         return
 
-    def render_linestring(self, points: List[Tuple[float, float]], color: Tuple[Union[int, float], Union[int, float], Union[int, float]] =Color.Black, width: int=1, closed: bool = False,
+    def render_linestring(self, points: List[Tuple[float, float]], color: ColorType =Color.Black, width: int=1, closed: bool = False,
                      is_aa: bool=False, perform_culling_test: bool=True):
         return
 
-    def render_polygon(self, points: List[Tuple[float, float]], color: Tuple[Union[int, float], Union[int, float], Union[int, float]] = Color.Black, width: int=0,
+    def render_polygon(self, points: List[Tuple[float, float]], color: ColorType = Color.Black, width: int=0,
                        perform_culling_test: bool=True):
         return
     

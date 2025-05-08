@@ -24,7 +24,7 @@ class Artist(IArtist):
             self._drawer = drawer
 
     @property
-    def layer_dirty(self):
+    def layer_dirty(self) -> bool:
         return self._layer_dirty
     
     @layer_dirty.setter
@@ -38,28 +38,28 @@ class Artist(IArtist):
         self._layer = layer
         self._layer_dirty = True
 
-    def get_layer(self):
+    def get_layer(self) -> int:
         return self._layer
 
     def set_visible(self, visible: bool):
         self._visible = visible
 
-    def get_visible(self):
+    def get_visible(self) -> bool:
         return self._visible
 
     def set_drawer(self, drawer: Callable[[IContext, Dict[str, Any]], None]):
         self._drawer = drawer
 
-    def get_drawer(self):
+    def get_drawer(self) -> Callable[[IContext, Dict[str, Any]], None]:
         return self._drawer
 
-    def get_will_draw(self):
+    def get_will_draw(self) -> bool:
         return self._will_draw
 
     def set_will_draw(self, will_draw: bool):
         self._will_draw = will_draw
 
-    def get_artist_type(self):
+    def get_artist_type(self) -> ArtistType:
         return self._artist_type
 
     def set_artist_type(self, artist_type: ArtistType):
