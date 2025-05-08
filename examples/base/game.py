@@ -1,4 +1,4 @@
-import gamms
+import gamms, gamms.osm
 from gamms.VisualizationEngine.artist import Artist
 from gamms.VisualizationEngine.default_drawers import render_circle
 from gamms.VisualizationEngine import Color
