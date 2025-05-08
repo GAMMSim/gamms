@@ -1,7 +1,9 @@
-from typing import Tuple, Optional, Union, Type, TypeVar, Dict, Callable
+from typing import Optional, Type, TypeVar, Dict, Callable, Union, Tuple
 
 from gamms.typing import IContext
 from gamms.typing.opcodes import OpCodes
+
+from typing import get_origin
 
 _T = TypeVar('_T')
 
@@ -20,17 +22,17 @@ def check_validity(
         raise TypeError(f'Data type {data_type} must be an immutable python type hint')
     elif data_type.__module__ != 'typing':
         raise TypeError(f'Data type {data_type} must be an immutable python type hint')
-    elif data_type.__name__ == 'Optional':
+    elif get_origin(data_type) == Optional:
         if not hasattr(data_type, '__args__'):
             raise TypeError('Optional must have a type hint')
         for arg in data_type.__args__:
             check_validity(arg)
-    elif data_type.__name__ == 'Union':
+    elif get_origin(data_type) == Union:
         if not hasattr(data_type, '__args__'):
             raise TypeError('Union must have a type hint')
         for arg in data_type.__args__:
             check_validity(arg)
-    elif data_type.__name__ == 'Tuple':
+    elif get_origin(data_type) == Tuple:
         if not hasattr(data_type, '__args__'):
             raise TypeError('Tuple must have a type hint')
         for arg in data_type.__args__:

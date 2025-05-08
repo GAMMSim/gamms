@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Iterable, Dict, Any, Optional, Callable
+from typing import Iterable, Dict, Any, Optional, Callable, Tuple
+from gamms.typing.sensor_engine import ISensor
 
 class IAgent(ABC):
     """
@@ -28,6 +29,17 @@ class IAgent(ABC):
     def prev_node_id(self) -> int:
         """
         Get the previous node ID of the agent.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def orientation(self) -> Tuple[float, float]:
+        """
+        Get the orientation of the agent.
+
+        Returns:
+            int: The current orientation of the agent.
         """
         pass
     
@@ -74,17 +86,14 @@ class IAgent(ABC):
         pass
 
     @abstractmethod
-    def set_state(self, state):
+    def set_state(self):
         """
         Update the agent's state.
-
-        Args:
-            state (Dict[str, Any]): The new state data to set for the agent.
         """
         pass
 
     @abstractmethod
-    def register_sensor(self, name, sensor):
+    def register_sensor(self, name: str, sensor: ISensor):
         """
         Register a sensor with the agent.
 
@@ -97,7 +106,7 @@ class IAgent(ABC):
         pass
 
     @abstractmethod
-    def deregister_sensor(self, name):
+    def deregister_sensor(self, name: str):
         """
         Deregister a sensor from the agent.
 
@@ -107,7 +116,7 @@ class IAgent(ABC):
         pass
 
     @abstractmethod
-    def register_strategy(self, strategy):
+    def register_strategy(self, strategy: Callable[[Dict[str, Any]], None]):
         """
         Register a strategy with the agent.
 
@@ -138,12 +147,12 @@ class IAgentEngine(ABC):
         pass
 
     @abstractmethod
-    def create_agent(self, start_node_id: int, **kwargs) -> IAgent:
+    def create_agent(self, name:str, **kwargs: Dict[str, Any]) -> IAgent:
         """
         Instantiate a new agent within the engine.
 
         Args:
-            start_node_id (int): The identifier for the starting node or position of the agent.
+            name (str): The unique name identifier for the agent.
             **kwargs: Additional keyword arguments for agent initialization.
 
         Returns:
@@ -151,6 +160,7 @@ class IAgentEngine(ABC):
         
         Raises:
             ValueError: If an agent with the same name already exists.
+            KeyError: If start_node_id is not provided in kwargs.
         """
         pass
 

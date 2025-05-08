@@ -1,5 +1,5 @@
 from config import location, graph_path, resolution
-import gamms
+import gamms, gamms.osm
 import pickle
 # Create a graph
 

@@ -1,5 +1,7 @@
-from typing import List, Union, Iterator, Dict, Type, TypeVar, Callable, BinaryIO, Tuple
+from typing import List, Union, Iterator, Dict, Type, TypeVar, Callable, BinaryIO, Tuple, Any
 from abc import ABC, abstractmethod
+
+from gamms.typing.opcodes import OpCodes
 
 JsonType = Union[None, int, str, bool, List["JsonType"], Dict[str, "JsonType"]]
 _T = TypeVar('_T')
@@ -53,7 +55,7 @@ class IRecorder(ABC):
         """
         pass
     @abstractmethod    
-    def replay(self, path: Union[str, BinaryIO]) -> Iterator:
+    def replay(self, path: Union[str, BinaryIO]) -> Iterator[Dict[str, Any]]:
         """
         Checks validity of the file and output an iterator.
 
@@ -80,7 +82,7 @@ class IRecorder(ABC):
         """
         pass
     @abstractmethod
-    def write(self, opCode, data) -> None:
+    def write(self, opCode: OpCodes, data: Dict[str, JsonType]) -> None:
         """
         Write to record buffer if recording. If not recording raise error as it should not happen.
 
@@ -103,7 +105,7 @@ class IRecorder(ABC):
         pass
 
     @abstractmethod
-    def get_component(self, name: str) -> Type[_T]:
+    def get_component(self, name: str) -> object:
         """
         Get the component from the name.
 

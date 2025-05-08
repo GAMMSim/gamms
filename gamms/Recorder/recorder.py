@@ -1,13 +1,23 @@
-from typing import Union, BinaryIO, Callable, Dict, TypeVar, Type, Tuple, Iterator
+from typing import Union, BinaryIO, Callable, Dict, TypeVar, Type, Tuple, Iterator, Any, List
 from gamms.typing.recorder import IRecorder, JsonType
 from gamms.typing.opcodes import OpCodes, MAGIC_NUMBER, VERSION
 from gamms.typing import IContext
 import os 
 import time
-import ubjson
-import typing
+import cbor2
 from gamms.Recorder.component import component
 from io import IOBase
+
+import typing
+
+type_eval = {
+    'typing': typing,
+    'typing.List': List,
+    'typing.Dict': Dict,
+    'typing.Tuple': Tuple,
+    'NoneType': type(None),
+    'typing.Union': Union,
+}
 
 _T = TypeVar('_T')
 
@@ -55,7 +65,7 @@ def _record_switch_case(ctx: IContext, opCode: OpCodes, data: JsonType) -> None:
             module, name = cls_key
             cls_type = type(name, (object,), {})
             cls_type.__module__ = module
-            struct = {key: eval(value) for key, value in data["struct"].items()}
+            struct = {key: eval(value, type_eval) for key, value in data["struct"].items()}
             ctx.record.component(struct=struct)(cls_type)
     elif opCode == OpCodes.COMPONENT_CREATE:
         ctx.logger.info(f"Creating component {data['name']} of type {data['type']}")
@@ -139,7 +149,7 @@ class Recorder(IRecorder):
             self.is_paused = False
             self.ctx.logger.info("Recording resumed.")
 
-    def replay(self, path: Union[str, BinaryIO]):
+    def replay(self, path: Union[str, BinaryIO]) -> Iterator[Dict[str, Any]]:
         if self._fp_replay is not None:
             raise RuntimeError("Replay file is already open. Stop replaying before starting a new one.")
         
@@ -168,7 +178,7 @@ class Recorder(IRecorder):
 
         while self.is_replaying:
             try:
-                record = ubjson.load(self._fp_replay)
+                record = cbor2.load(self._fp_replay)
             except Exception as e:
                 self.is_replaying = False
                 self._fp_replay.close()
@@ -196,9 +206,9 @@ class Recorder(IRecorder):
             raise RuntimeError("Cannot write: Not currently recording.")
         timestamp = self.time()
         if data is None:
-            ubjson.dump({"timestamp": timestamp, "opCode": opCode.value}, self._fp_record)
+            cbor2.dump({"timestamp": timestamp, "opCode": opCode.value}, self._fp_record)
         else:
-            ubjson.dump({"timestamp": timestamp, "opCode": opCode.value, "data": data}, self._fp_record)
+            cbor2.dump({"timestamp": timestamp, "opCode": opCode.value, "data": data}, self._fp_record)
         
     
     def component(self, struct: Dict[str, Type[_T]]) -> Callable[[Type[_T]], Type[_T]]:

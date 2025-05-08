@@ -1,6 +1,5 @@
 import pickle 
 import gamms
-from gamms.recorder import _record_switch_case
 from config import (
     vis_engine,
     graph_path,

@@ -1,5 +1,4 @@
 import unittest
-from gamms.typing.opcodes import OpCodes
 import gamms
 import io
 
@@ -66,8 +65,8 @@ class RecorderTest(unittest.TestCase):
         self.ctx.agent.delete_agent('agent_0')
         self.ctx.agent.delete_agent('agent_1')
         # Check if the agents are removed
-        self.assertRaises(ValueError, self.ctx.agent.get_agent, 'agent_0')
-        self.assertRaises(ValueError, self.ctx.agent.get_agent, 'agent_1')
+        self.assertRaises(KeyError, self.ctx.agent.get_agent, 'agent_0')
+        self.assertRaises(KeyError, self.ctx.agent.get_agent, 'agent_1')
 
         # Remove the component
         self.ctx.record.delete_component('test')

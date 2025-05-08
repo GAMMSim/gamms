@@ -17,7 +17,7 @@ Package dependecies:
 - pygame
 - shapely
 - networkx
-- py-ubjson
+- cbor2
 - aenum
 
 ## Installation

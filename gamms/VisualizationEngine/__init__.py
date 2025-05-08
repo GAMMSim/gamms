@@ -1,4 +1,4 @@
-from enum import Enum, auto
+from enum import Enum, auto, IntEnum
 
 class Engine(Enum):
     NO_VIS = 0
@@ -21,7 +21,7 @@ class Color:
     Purple = (128, 0, 128)
 
 
-class Space:
+class Space(IntEnum):
     World = 0
     Screen = 1
     Viewport = 2
@@ -31,11 +31,10 @@ class Shape(Enum):
     Circle = auto()
     Rectangle = auto()
 
-
 import sys
 import importlib.util
 
-def lazy(fullname):
+def lazy(fullname: str):
   try:
     return sys.modules[fullname]
   except KeyError:

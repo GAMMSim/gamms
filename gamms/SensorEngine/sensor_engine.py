@@ -1,22 +1,19 @@
-import gamms.typing
 from gamms.typing import(
     IContext,
     ISensor,
     ISensorEngine,
     SensorType,
-    OpCodes,
+    Node,
+    OSMEdge,
 )
 
-from typing import Any, Dict, Optional, Type, TypeVar, Callable, Tuple
+from typing import Any, Dict, Optional, Callable, Tuple, List, Union, cast
 from aenum import extend_enum
 import math
 import numpy as np
 
-_T = TypeVar('_T')
-
-
 class NeighborSensor(ISensor):
-    def __init__(self, ctx, sensor_id, sensor_type):
+    def __init__(self, ctx: IContext, sensor_id: str, sensor_type: SensorType):
         self._sensor_id = sensor_id
         self.ctx = ctx
         self._type = sensor_type
@@ -35,12 +32,13 @@ class NeighborSensor(ISensor):
     def data(self):
         return self._data
     
-    def set_owner(self, owner: str) -> None:
+    def set_owner(self, owner: Union[str, None]) -> None:
         self._owner = owner
 
     def sense(self, node_id: int) -> None:
         nearest_neighbors = {node_id,}
-        for edge in self.ctx.graph.graph.edges.values():
+        for edge_id in self.ctx.graph.graph.get_edges():
+            edge = self.ctx.graph.graph.get_edge(edge_id)
             if edge.source == node_id:
                 nearest_neighbors.add(edge.target)
                         
@@ -50,7 +48,7 @@ class NeighborSensor(ISensor):
         pass
 
 class MapSensor(ISensor):
-    def __init__(self, ctx, sensor_id, sensor_type, sensor_range: float, fov: float, orientation: Tuple[float, float] = (1.0, 0.0)):
+    def __init__(self, ctx: IContext, sensor_id: str, sensor_type: SensorType, sensor_range: float, fov: float, orientation: Tuple[float, float] = (1.0, 0.0)):
         """
         Acts as a map sensor (if sensor_range == inf),
         a range sensor (if fov == 2*pi),
@@ -60,15 +58,15 @@ class MapSensor(ISensor):
         self.ctx = ctx
         self._sensor_id = sensor_id
         self._type = sensor_type
-        self.nodes = self.ctx.graph.graph.nodes
         self.range = sensor_range
         self.fov = fov  
         norm = math.sqrt(orientation[0]**2 + orientation[1]**2)
         self.orientation = (orientation[0] / norm, orientation[1] / norm)
-        self._data = {}
+        self._data: Dict[str, Union[Dict[int, Node], List[OSMEdge]]] = {}
         # Cache static node IDs and positions.
-        self.node_ids = list(self.nodes.keys())
-        self._positions = np.array([[self.nodes[nid].x, self.nodes[nid].y] for nid in self.node_ids])
+        self.nodes = cast(Dict[int, Node], self.ctx.graph.graph.nodes)
+        self.node_ids: List[int] = list(self.nodes.keys())
+        self._positions = np.array([[self.nodes[nid].x, self.nodes[nid].y] for nid in self.node_ids], dtype=np.float32)
         self._owner = None
     
     @property
@@ -80,10 +78,10 @@ class MapSensor(ISensor):
         return self._type
 
     @property
-    def data(self) -> Dict[str, Any]:
+    def data(self) -> Dict[str, Union[Dict[int, Node],List[OSMEdge]]]:
         return self._data
     
-    def set_owner(self, owner: str) -> None:
+    def set_owner(self, owner: Union[str, None]) -> None:
         self._owner = owner
 
     def sense(self, node_id: int) -> None:
@@ -115,7 +113,7 @@ class MapSensor(ISensor):
             in_range_mask = distances_sq <= self.range**2
         in_range_indices = np.nonzero(in_range_mask)[0]
 
-        sensed_nodes = {}
+        sensed_nodes: Dict[int, Node] = {}
         if in_range_indices.size:
             if self.fov == 2 * math.pi or orientation_used == (0.0, 0.0):
                 valid_indices = in_range_indices
@@ -131,9 +129,9 @@ class MapSensor(ISensor):
         sensed_nodes[node_id] = current_node
 
         # Now, compute the connecting edges from the sensing node to each sensed node.
-        sensed_edges = []
+        sensed_edges: List[OSMEdge] = []
         # Retrieve edges from the graph via the context's graph engine.
-        graph_edges = self.ctx.graph.graph.edges
+        graph_edges = cast(Dict[int, OSMEdge], self.ctx.graph.graph.edges)
         for edge in graph_edges.values():
             if edge.source in sensed_nodes and edge.target in sensed_nodes:
                 sensed_edges.append(edge)
@@ -147,12 +145,12 @@ class MapSensor(ISensor):
 class AgentSensor(ISensor):
     def __init__(
         self, 
-        ctx, 
-        sensor_id, 
-        sensor_type, 
+        ctx: IContext, 
+        sensor_id: str, 
+        sensor_type: SensorType, 
         sensor_range: float, 
         fov: float = 2 * math.pi, 
-        orientation: float = (1.0, 0.0), 
+        orientation: Tuple[float, float] = (1.0, 0.0), 
         owner: Optional[str] = None
     ):
         """
@@ -171,7 +169,7 @@ class AgentSensor(ISensor):
         self.fov = fov              
         self.orientation = orientation  
         self._owner = owner
-        self._data = {}
+        self._data: Dict[str, int] = {}
     
 
     @property
@@ -183,10 +181,10 @@ class AgentSensor(ISensor):
         return self._type
 
     @property
-    def data(self) -> Dict[str, Any]:
+    def data(self) -> Dict[str, int]:
         return self._data
 
-    def set_owner(self, owner: str) -> None:
+    def set_owner(self, owner: Union[str, None]) -> None:
         self._owner = owner
         
     def sense(self, node_id: int) -> None:
@@ -206,7 +204,7 @@ class AgentSensor(ISensor):
 
         agents = list(self.ctx.agent.create_iter())
         sensed_agents = {}
-        agent_ids = []
+        agent_ids: List[str] = []
         agent_positions = []
 
         # Collect positions and ids for all agents except the owner.
@@ -265,9 +263,9 @@ class AgentSensor(ISensor):
 class SensorEngine(ISensorEngine):
     def __init__(self, ctx: IContext):
         self.ctx = ctx  
-        self.sensors = {}
+        self.sensors: Dict[str, ISensor] = {}
 
-    def create_sensor(self, sensor_id, sensor_type: SensorType, **kwargs):
+    def create_sensor(self, sensor_id: str, sensor_type: SensorType, **kwargs: Dict[str, Any]) -> ISensor:
         if sensor_type == SensorType.NEIGHBOR:
             sensor = NeighborSensor(
                 self.ctx, sensor_id, sensor_type, 
@@ -285,7 +283,7 @@ class SensorEngine(ISensorEngine):
                 self.ctx, 
                 sensor_id, 
                 sensor_type, 
-                sensor_range=kwargs.get('sensor_range', 30),
+                sensor_range=cast(float, kwargs.get('sensor_range', 30.0)),
                 fov=(2 * math.pi),
             )
         elif sensor_type == SensorType.ARC:
@@ -293,8 +291,8 @@ class SensorEngine(ISensorEngine):
                 self.ctx, 
                 sensor_id, 
                 sensor_type, 
-                sensor_range=kwargs.get('sensor_range', 30),
-                fov=kwargs.get('fov', 2 * math.pi),
+                sensor_range=cast(float, kwargs.get('sensor_range', 30.0)),
+                fov=cast(float, kwargs.get('fov', 2 * math.pi)),
             )
         elif sensor_type == SensorType.AGENT:
             sensor = AgentSensor(
@@ -302,22 +300,22 @@ class SensorEngine(ISensorEngine):
                 sensor_id, 
                 sensor_type, 
                 sensor_range=float('inf'),
-                fov=kwargs.get('fov', 2 * math.pi),
+                fov=cast(float, kwargs.get('fov', 2 * math.pi)),
             )
         elif sensor_type == SensorType.AGENT_ARC:
             sensor = AgentSensor(
                 self.ctx, 
                 sensor_id, 
                 sensor_type, 
-                sensor_range=kwargs.get('sensor_range', 30),
-                fov=kwargs.get('fov', math.radians(90)), 
+                sensor_range=cast(float, kwargs.get('sensor_range', 30.0)),
+                fov=cast(float, kwargs.get('fov', 2 * math.pi)), 
             )
         elif sensor_type == SensorType.AGENT_RANGE:
             sensor = AgentSensor(
                 self.ctx, 
                 sensor_id, 
                 sensor_type, 
-                sensor_range=kwargs.get('sensor_range', 30),
+                sensor_range=cast(float, kwargs.get('sensor_range', 30.0)),
                 fov=2 * math.pi,
             )
         else:
@@ -331,18 +329,18 @@ class SensorEngine(ISensorEngine):
             raise ValueError(f"Sensor {sensor_id} already exists.")
         self.sensors[sensor_id] = sensor
 
-    def get_sensor(self, sensor_id):
+    def get_sensor(self, sensor_id: str) -> ISensor:
         try:
             return self.sensors[sensor_id]
         except KeyError:
             raise KeyError(f"Sensor {sensor_id} not found.")
 
-    def custom(self, name: str) -> Callable[[Type[_T]], Type[_T]]:
+    def custom(self, name: str) -> Callable[[ISensor], ISensor]:
         if hasattr(SensorType, name):
             raise ValueError(f"SensorType {name} already exists.")
         extend_enum(SensorType, name, len(SensorType))
         val = getattr(SensorType, name)
-        def decorator(cls_type: Type[_T]) -> Type[_T]:
+        def decorator(cls_type: ISensor) -> ISensor:
             cls_type.type = property(lambda obj: val)
             return cls_type
         return decorator
