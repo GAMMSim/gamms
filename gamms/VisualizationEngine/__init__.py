@@ -20,12 +20,10 @@ class Color:
     Brown = (210, 105, 30)
     Purple = (128, 0, 128)
 
-
 class Space(IntEnum):
     World = 0
     Screen = 1
     Viewport = 2
-
 
 class Shape(Enum):
     Circle = auto()

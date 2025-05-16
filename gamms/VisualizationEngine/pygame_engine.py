@@ -1,6 +1,8 @@
 from gamms.VisualizationEngine import Color, Space, Shape, Artist, lazy
 from gamms.VisualizationEngine.render_manager import RenderManager
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
+from gamms.VisualizationEngine.render_command import RenderCommand
+from gamms.VisualizationEngine.render_command_data import *
 from gamms.VisualizationEngine.default_drawers import render_circle, render_rectangle, \
     render_agent, render_graph, render_neighbor_sensor, render_map_sensor, render_agent_sensor, render_input_overlay
 from gamms.typing import (
@@ -10,7 +12,8 @@ from gamms.typing import (
     IContext,
     SensorType, 
     OpCodes,
-    ColorType
+    ColorType,
+    RenderOpCode
 )
 from typing import Dict, Any, List, Tuple, Union, cast
 
@@ -187,6 +190,27 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
     def remove_artist(self, name: str):
         self._render_manager.remove_artist(name)
+
+    def execute_command_list(self, command_list: List[RenderCommand]):
+        for command in command_list:
+            if command.opcode == RenderOpCode.RenderText:
+                data: TextRenderCommandData = command.data
+                self.render_text(data.text, data.x, data.y, data.color)
+            elif command.opcode == RenderOpCode.RenderRectangle:
+                data: RectangleRenderCommandData = command.data
+                self.render_rectangle(data.x, data.y, data.width, data.height, data.color)
+            elif command.opcode == RenderOpCode.RenderCircle:
+                data: CircleRenderCommandData = command.data
+                self.render_circle(data.x, data.y, data.radius, data.color)
+            elif command.opcode == RenderOpCode.RenderLine:
+                data: LineRenderCommandData = command.data
+                self.render_line(data.x1, data.y1, data.x2, data.y2, data.color)
+            elif command.opcode == RenderOpCode.RenderPolygon:
+                data: PolygonRenderCommandData = command.data
+                self.render_polygon(data.points, data.color)
+            elif command.opcode == RenderOpCode.RenderLineString:
+                data: LineStringRenderCommandData = command.data
+                self.render_linestring(data.points, data.color)
 
     def handle_input(self):
         pressed_keys = self._pygame.key.get_pressed()
@@ -373,7 +397,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._pygame.draw.circle(surface, color, (x, y), radius)
 
     def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: ColorType = Color.Black,
-                    width: int=1, is_aa: bool=False, perform_culling_test: bool=True, force_no_aa: bool = False):
+                    width: int=1, is_aa: bool=False, perform_culling_test: bool=True):
         if perform_culling_test and self._render_manager.check_line_culled(start_x, start_y, end_x, end_y):
             return
 

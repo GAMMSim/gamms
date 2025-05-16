@@ -1,4 +1,5 @@
-from typing import Dict, Any, Callable, Union, Optional
+from gamms.typing.render_command import IRenderCommand
+from typing import Dict, Any, Callable, Union, Optional, List
 from abc import ABC, abstractmethod
 from enum import Enum, auto
 
@@ -144,5 +145,16 @@ class IArtist(ABC):
 
         Args:
             value (bool): The dirty state to set.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def render_commands(self) -> List[IRenderCommand]:
+        """
+        Get the render commands for the artist.
+
+        Returns:
+            List[RenderCommand]: The list of render commands.
         """
         pass

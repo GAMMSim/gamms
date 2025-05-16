@@ -14,6 +14,7 @@ from gamms.typing.context import IContext
 from gamms.VisualizationEngine import Color, Shape
 from gamms.VisualizationEngine.artist import Artist
 from gamms.VisualizationEngine.default_drawers import render_rectangle
+from gamms.VisualizationEngine.render_command import RenderCommand
 
 import pickle
 
@@ -73,16 +74,17 @@ def custom_circle_drawer(ctx: IContext, data: dict):
     y = data.get('y')
     radius = data.get('radius')
     color = data.get('color')
-    ctx.visual.render_circle(x, y, radius, color)
+    return [RenderCommand.circle(x, y, radius, color)]
+    # ctx.visual.render_circle(x, y, radius, color)
 
 # Special nodes
 n1 = ctx.graph.graph.get_node(0)
 n2 = ctx.graph.graph.get_node(1)
 
 # You can create the artist directly
-custom_artist1 = Artist(ctx, Shape.Circle, 5)
+# custom_artist1 = Artist(ctx, Shape.Circle, 5)
 # Alternatively, you can use the custom drawer
-# custom_artist1 = Artist(ctx, custom_circle_drawer, 5)
+custom_artist1 = Artist(ctx, custom_circle_drawer, 5)
 custom_artist1.data['x'] = n1.x
 custom_artist1.data['y'] = n1.y
 custom_artist1.data['radius'] = 10

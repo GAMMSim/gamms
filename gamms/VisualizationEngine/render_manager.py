@@ -248,6 +248,7 @@ class RenderManager:
 
         self._current_drawing_artist = artist
         artist.draw()
+        self.ctx.visual.execute_command_list(artist.render_commands)
         self._current_drawing_artist = None
 
     def handle_render(self):
@@ -277,4 +278,5 @@ class RenderManager:
 
                 self._current_drawing_artist = artist
                 artist.draw()
+                self.ctx.visual.execute_command_list(artist.render_commands)
                 self._current_drawing_artist = None

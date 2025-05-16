@@ -1,10 +1,11 @@
 from gamms.typing import IArtist, ArtistType, IContext
 from gamms.VisualizationEngine.default_drawers import render_circle, render_rectangle
 from gamms.VisualizationEngine import Shape
-from typing import Callable, Union, Dict, Any
+from gamms.VisualizationEngine.render_command import RenderCommand
+from typing import Callable, Union, Dict, List, Any
 
 class Artist(IArtist):
-    def __init__(self, ctx: IContext, drawer: Union[Callable[[IContext, Dict[str, Any]], None], Shape], layer: int = 30):
+    def __init__(self, ctx: IContext, drawer: Union[Callable[[IContext, Dict[str, Any]], List[RenderCommand]], Shape], layer: int = 30):
         self.data = {}
 
         self._ctx = ctx
@@ -13,6 +14,7 @@ class Artist(IArtist):
         self._visible = True
         self._will_draw = True
         self._artist_type = ArtistType.GENERAL
+        self._render_commands: List[RenderCommand] = []
         if isinstance(drawer, Shape):
             if drawer == Shape.Circle:
                 self._drawer = render_circle
@@ -30,6 +32,10 @@ class Artist(IArtist):
     @layer_dirty.setter
     def layer_dirty(self, value: bool):
         self._layer_dirty = value
+
+    @property
+    def render_commands(self) -> List[RenderCommand]:
+        return self._render_commands
 
     def set_layer(self, layer: int):
         if self._layer == layer:
@@ -67,7 +73,7 @@ class Artist(IArtist):
 
     def draw(self):
         try:
-            self._drawer(self._ctx, self.data)
+            self._render_commands = self._drawer(self._ctx, self.data)
         except Exception as e:
             self._ctx.logger.error(f"Error drawing artist: {e}")
             self._ctx.logger.debug(f"Artist data: {self.data}")
