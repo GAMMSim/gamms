@@ -50,7 +50,7 @@ class IArtist(ABC):
         pass
 
     @abstractmethod
-    def get_visible(self) -> bool:
+    def is_visible(self) -> bool:
         """
         Get the visibility of the artist.
 
@@ -80,22 +80,23 @@ class IArtist(ABC):
         pass
 
     @abstractmethod
-    def get_will_draw(self) -> bool:
+    def is_rendering(self) -> bool:
         """
-        Get whether the artist will draw.
+        Get whether the artist is rendering. If the artist is not rendering, its content will still be drawn but not updated.
+        To hide the artist, use the set_visible method.
 
         Returns:
-            bool: True if the artist will draw, False otherwise.
+            bool: True if the artist is rendering, False otherwise.
         """
         pass
 
     @abstractmethod
-    def set_will_draw(self, will_draw: bool) -> None:
+    def set_rendering(self, is_rendering: bool) -> None:
         """
-        Set whether the artist will draw.
+        Set whether the artist is rendering.
 
         Args:
-            will_draw (bool): The will_draw state to set.
+            is_rendering (bool): The is_rendering state to set.
         """
         pass
 
@@ -120,9 +121,22 @@ class IArtist(ABC):
         pass
 
     @abstractmethod
-    def draw(self) -> None:
+    def draw(self, force = False) -> None:
         """
-        Draw the artist immediately.
+        Draw the artist immediately. Note that if the artist is invisible, it will remain invisible.
+        Later when the artist is set to visible, its content will be the updated content.
+        This method has no effect if the is_rendering attribute is True because the artist is already updating every frame.
+
+        Args:
+            force (bool): If True, force the artist to draw.
+        """
+        pass
+
+    @abstractmethod
+    def clear(self) -> None:
+        """
+        Clear the artist's data and reset its state.
+        This method has no effect if the is_rendering attribute is True because the artist will update again on the next frame.
         """
         pass
     

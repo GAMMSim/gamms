@@ -12,7 +12,7 @@ class Artist(IArtist):
         self._layer = layer
         self._layer_dirty = False
         self._visible = True
-        self._will_draw = True
+        self._is_rendering = True
         self._artist_type = ArtistType.GENERAL
         self._render_commands: List[RenderCommand] = []
         if isinstance(drawer, Shape):
@@ -50,7 +50,7 @@ class Artist(IArtist):
     def set_visible(self, visible: bool):
         self._visible = visible
 
-    def get_visible(self) -> bool:
+    def is_visible(self) -> bool:
         return self._visible
 
     def set_drawer(self, drawer: Callable[[IContext, Dict[str, Any]], None]):
@@ -59,11 +59,11 @@ class Artist(IArtist):
     def get_drawer(self) -> Callable[[IContext, Dict[str, Any]], None]:
         return self._drawer
 
-    def get_will_draw(self) -> bool:
-        return self._will_draw
+    def is_rendering(self) -> bool:
+        return self._is_rendering
 
-    def set_will_draw(self, will_draw: bool):
-        self._will_draw = will_draw
+    def set_rendering(self, is_rendering: bool):
+        self._is_rendering = is_rendering
 
     def get_artist_type(self) -> ArtistType:
         return self._artist_type
@@ -71,9 +71,18 @@ class Artist(IArtist):
     def set_artist_type(self, artist_type: ArtistType):
         self._artist_type = artist_type
 
-    def draw(self):
+    def draw(self, force = False):
+        if self._is_rendering and not force:
+            return
+
         try:
             self._render_commands = self._drawer(self._ctx, self.data)
         except Exception as e:
             self._ctx.logger.error(f"Error drawing artist: {e}")
             self._ctx.logger.debug(f"Artist data: {self.data}")
+
+    def clear(self):
+        if self._is_rendering:
+            return
+
+        self._render_commands.clear()

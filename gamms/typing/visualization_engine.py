@@ -1,4 +1,5 @@
-from gamms.typing import IArtist, IRenderCommand
+from gamms.typing import IArtist
+from gamms.typing.render_command import IRenderCommand
 from typing import Dict, Any, List, Tuple, Union
 from abc import ABC, abstractmethod
 
