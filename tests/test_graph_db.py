@@ -20,3 +20,4 @@ graph.add_node({"id": 999, "x": 1.23, "y": 4.56})
 print("New node:", graph.get_node(999))
 graph.add_edge({"id": 888, "source": 999, "target": 999, "length": 0.0})
 print("New edge:", graph.get_edge(888))
+
