@@ -1,3 +1,5 @@
+from memory_profiler import profile
+
 import gamms
 import random
 
@@ -22,12 +24,13 @@ def create_grid(graph, n):
                 graph.add_edge({'id': edge_count + 1, 'source': i * n + j, 'target': i * n + (j - 1), 'length': 1.0})
                 edge_count += 2 # increment the edge count by 2
 
-
+@profile
 def create_test(
     n: int = 10,
     n_agents: int = 10,
     map_sensors: bool = False,
 ) -> Callable[[], None]:
+    print(f"Creating test with n={n}, n_agents={n_agents}, map_sensors={map_sensors}")
     sensor_config = {}
     for i in range(n_agents):
         sensor_config[f"neigh_{i}"] = {
@@ -50,8 +53,10 @@ def create_test(
     ctx = gamms.create_context(logger_config={'level':'ERROR'})
     create_grid(ctx.graph.graph, n)
 
+    @profile
     def loop():
-        for _ in range(200):
+        print(f"Starting simulation with n={n}, n_agents={n_agents}, map_sensors={map_sensors}")
+        for _ in range(1000):
             states = {}
             for agent in ctx.agent.create_iter():
                 states[agent.name] = agent.get_state()
@@ -86,8 +91,13 @@ __benchmarks__ = [
         "10 agents vs 100 agents",
     ),
     (
+        create_test(n=1000, n_agents=10, map_sensors=False),
+        create_test(n=1000, n_agents=1000, map_sensors=False),
+        "10 agents vs 1000 agents",
+    ),
+    (
+        create_test(n=10, n_agents=10, map_sensors=True),
         create_test(n=100, n_agents=10, map_sensors=True),
-        create_test(n=1000, n_agents=10, map_sensors=True),
-        "100x100 grid vs 1000x1000 grid with map sensors",
+        "10x10 grid vs 100x100 grid with map sensors",
     ),
 ]
