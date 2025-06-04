@@ -25,7 +25,7 @@ Package dependecies:
 Installation support is directly from the source code. The package is not available on PyPi yet. If you have git installed,
 
 ```bash
-pip install "git+https://github.com/GAMMSim/gamms.git@dev"
+pip install "git+https://github.com/GAMMSim/gamms.git"
 ```
 
 Another option is to download the source code locally and run the following command in the root directory of the project:
