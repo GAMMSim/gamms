@@ -34,8 +34,8 @@ Another option is to download the source code locally and run the following comm
 python setup.py install
 ```
 
-Detailed installation and setup instructions are available in the [Installation Guide](https://gammsim.github.io/gamms/dev/start/#installation-and-setup).
+Detailed installation and setup instructions are available in the [Installation Guide](https://gammsim.github.io/gamms/stable/start/#installation-and-setup).
 
 # Documentation
 
-The documentation is available at [GAMMS Documentation](https://gammsim.github.io/gamms/dev/). The documentation is generated using [mkdocs-materials](https://squidfunk.github.io/mkdocs-material/) with mike for versioning. You can do a local build by cloning the repository and serving the documentation using mkdocs. For new users, [Tutorials](https://gammsim.github.io/gamms/dev/tutorials) is a good place to start.
+The documentation is available at [GAMMS Documentation](https://gammsim.github.io/gamms/stable/). The documentation is generated using [mkdocs-materials](https://squidfunk.github.io/mkdocs-material/) with mike for versioning. You can do a local build by cloning the repository and serving the documentation using mkdocs. For new users, [Tutorials](https://gammsim.github.io/gamms/stable/tutorials) is a good place to start.
