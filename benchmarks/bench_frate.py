@@ -1,5 +1,3 @@
-from memory_profiler import profile
-
 import gamms
 import random
 
@@ -24,7 +22,6 @@ def create_grid(graph, n):
                 graph.add_edge({'id': edge_count + 1, 'source': i * n + j, 'target': i * n + (j - 1), 'length': 1.0})
                 edge_count += 2 # increment the edge count by 2
 
-@profile
 def create_test(
     n: int = 10,
     n_agents: int = 10,
@@ -59,7 +56,7 @@ def create_test(
 
     for name, agent in agent_config.items():
         ctx.agent.create_agent(name, **agent)
-    
+
     def loop():
         print(f"Starting simulation with n={n}, n_agents={n_agents}, map_sensors={map_sensors}")
         for _ in range(100):
@@ -77,32 +74,46 @@ def create_test(
             
     return loop
 
-
-
 __benchmarks__ = [
     (
-        create_test(n=10, n_agents=10, map_sensors=False),
-        create_test(n=10, n_agents=10, map_sensors=True),
-        "10x10 grid 10 agents wo vs. w map sensors",
+        create_test(n=30, n_agents=10, map_sensors=False),
+        create_test(n=30, n_agents=100, map_sensors=False),
+        "30x30 grid with 10 agents vs 100 agents without map sensors",
     ),
     (
-        create_test(n=100, n_agents=10, map_sensors=False),
-        create_test(n=1000, n_agents=10, map_sensors=False),
-        "100x100 grid vs 1000x1000 grid",
+        create_test(n=30, n_agents=10, map_sensors=True),
+        create_test(n=30, n_agents=100, map_sensors=True),
+        "30x30 grid with 10 agents vs 100 agents with map sensors",
     ),
     (
-        create_test(n=100, n_agents=10, map_sensors=False),
-        create_test(n=100, n_agents=100, map_sensors=False),
-        "10 agents vs 100 agents",
+        create_test(n=30, n_agents=20, map_sensors=False),
+        create_test(n=30, n_agents=200, map_sensors=False),
+        "30x30 grid with 20 agents vs 200 agents without map sensors",
     ),
     (
-        create_test(n=1000, n_agents=10, map_sensors=False),
-        create_test(n=1000, n_agents=1000, map_sensors=False),
-        "10 agents vs 1000 agents",
+        create_test(n=30, n_agents=20, map_sensors=True),
+        create_test(n=30, n_agents=200, map_sensors=True),
+        "30x30 grid with 20 agents vs 200 agents with map sensors",
     ),
     (
-        create_test(n=10, n_agents=10, map_sensors=True),
-        create_test(n=100, n_agents=10, map_sensors=True),
-        "10x10 grid vs 100x100 grid with map sensors",
+        create_test(n=30, n_agents=30, map_sensors=False),
+        create_test(n=30, n_agents=300, map_sensors=False),
+        "30x30 grid with 30 agents vs 300 agents without map sensors",
+    ),
+    (
+        create_test(n=30, n_agents=30, map_sensors=True),
+        create_test(n=30, n_agents=300, map_sensors=True),
+        "30x30 grid with 30 agents vs 300 agents with map sensors",
+    ),
+    (
+        create_test(n=30, n_agents=50, map_sensors=False),
+        create_test(n=30, n_agents=500, map_sensors=False),
+        "30x30 grid with 50 agents vs 500 agents without map sensors",
+    ),
+    (
+        create_test(n=30, n_agents=50, map_sensors=True),
+        create_test(n=30, n_agents=500, map_sensors=True),
+        "30x30 grid with 50 agents vs 500 agents with map sensors",
     ),
 ]
+    
