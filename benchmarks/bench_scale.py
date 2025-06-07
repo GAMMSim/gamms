@@ -96,11 +96,6 @@ __benchmarks__ = [
         "10 agents vs 100 agents",
     ),
     (
-        create_test(n=1000, n_agents=10, map_sensors=False),
-        create_test(n=1000, n_agents=1000, map_sensors=False),
-        "10 agents vs 1000 agents",
-    ),
-    (
         create_test(n=10, n_agents=10, map_sensors=True),
         create_test(n=100, n_agents=10, map_sensors=True),
         "10x10 grid vs 100x100 grid with map sensors",
