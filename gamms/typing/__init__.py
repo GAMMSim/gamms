@@ -11,3 +11,4 @@ from gamms.typing.recorder import IRecorder
 from gamms.typing.logger import ILogger
 from gamms.typing.context import IContext
 from gamms.typing.opcodes import OpCodes
+from gamms.typing.render_command import IRenderCommand, RenderOpCode

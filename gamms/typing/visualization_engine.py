@@ -1,4 +1,5 @@
-from gamms.typing.artist import IArtist
+from gamms.typing import IArtist
+from gamms.typing.render_command import IRenderCommand
 from typing import Dict, Any, List, Tuple, Union
 from abc import ABC, abstractmethod
 
@@ -106,6 +107,16 @@ class IVisualizationEngine(ABC):
 
         Args:
             name (str): The unique name identifier of the custom artist to remove.
+        """
+        pass
+
+    @abstractmethod
+    def execute_command_list(self, command_list: List[IRenderCommand]) -> None:
+        """
+        Execute a list of rendering commands.
+
+        Args:
+            command_list (List[IRenderCommand]): A list of rendering commands to execute.
         """
         pass
 

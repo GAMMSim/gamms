@@ -248,6 +248,7 @@ class RenderManager:
 
         self._current_drawing_artist = artist
         artist.draw()
+        self.ctx.visual.execute_command_list(artist.render_commands)
         self._current_drawing_artist = None
 
     def handle_render(self):
@@ -266,15 +267,22 @@ class RenderManager:
         for layer, artist_name_list in self._layer_artists.items():
             for artist_name in artist_name_list:
                 artist = self._artists[artist_name]
-                if not artist.get_visible():
-                    continue
-
-                if not artist.get_will_draw():
-                    if artist.get_artist_type() == ArtistType.GRAPH and layer not in rendered_layers:
-                        self.ctx.visual.render_layer(layer)
-                        rendered_layers.add(layer)
+                if not artist.is_visible():
                     continue
 
                 self._current_drawing_artist = artist
-                artist.draw()
+
+                # Update the render commands
+                if artist.is_rendering():
+                    artist.draw(True)
+
+                # Execute the render commands
+                if artist.get_artist_type() != ArtistType.GRAPH:
+                    self.ctx.visual.execute_command_list(artist.render_commands)
+
+                # Render the layer if it is a graph artist and not already rendered
+                if artist.get_artist_type() == ArtistType.GRAPH and layer not in rendered_layers:
+                    self.ctx.visual.render_layer(layer)
+                    rendered_layers.add(layer)
+
                 self._current_drawing_artist = None
