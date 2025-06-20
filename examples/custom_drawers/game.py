@@ -75,7 +75,6 @@ def custom_circle_drawer(ctx: IContext, data: dict):
     radius = data.get('radius')
     color = data.get('color')
     return [RenderCommand.circle(x, y, radius, color)]
-    # ctx.visual.render_circle(x, y, radius, color)
 
 # Special nodes
 n1 = ctx.graph.graph.get_node(0)

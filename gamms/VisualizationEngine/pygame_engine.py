@@ -195,22 +195,22 @@ class PygameVisualizationEngine(IVisualizationEngine):
         for command in command_list:
             if command.opcode == RenderOpCode.RenderText:
                 data: TextRenderCommandData = command.data
-                self.render_text(data.text, data.x, data.y, data.color)
+                self.render_text(data.text, data.x, data.y, data.color, data.perform_culling_test)
             elif command.opcode == RenderOpCode.RenderRectangle:
                 data: RectangleRenderCommandData = command.data
-                self.render_rectangle(data.x, data.y, data.width, data.height, data.color)
+                self.render_rectangle(data.x, data.y, data.width, data.height, data.color, data.perform_culling_test)
             elif command.opcode == RenderOpCode.RenderCircle:
                 data: CircleRenderCommandData = command.data
-                self.render_circle(data.x, data.y, data.radius, data.color)
+                self.render_circle(data.x, data.y, data.radius, data.color, data.perform_culling_test)
             elif command.opcode == RenderOpCode.RenderLine:
                 data: LineRenderCommandData = command.data
-                self.render_line(data.x1, data.y1, data.x2, data.y2, data.color)
+                self.render_line(data.x1, data.y1, data.x2, data.y2, data.color, data.width, data.is_aa, data.perform_culling_test)
             elif command.opcode == RenderOpCode.RenderPolygon:
                 data: PolygonRenderCommandData = command.data
-                self.render_polygon(data.points, data.color)
+                self.render_polygon(data.points, data.color, data.width, data.perform_culling_test)
             elif command.opcode == RenderOpCode.RenderLineString:
                 data: LineStringRenderCommandData = command.data
-                self.render_linestring(data.points, data.color)
+                self.render_linestring(data.points, data.color, data.width, data.closed, data.is_aa, data.perform_culling_test)
 
     def handle_input(self):
         pressed_keys = self._pygame.key.get_pressed()

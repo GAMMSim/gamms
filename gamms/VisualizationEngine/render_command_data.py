@@ -3,7 +3,17 @@ from gamms.typing import ColorType
 from typing import List, Tuple, Dict, Optional
 
 @dataclass()
-class CircleRenderCommandData:
+class BaseRenderCommandData:
+    """
+    Base class for all render command data.
+
+    Attributes:
+        perform_culling_test (bool): Whether to perform culling test for this render command.
+    """
+    perform_culling_test: bool
+
+@dataclass()
+class CircleRenderCommandData(BaseRenderCommandData):
     """
     Contains all necessary data for drawing a circle.
 
@@ -19,7 +29,7 @@ class CircleRenderCommandData:
     color: ColorType
 
 @dataclass()
-class RectangleRenderCommandData:
+class RectangleRenderCommandData(BaseRenderCommandData):
     """
     Contains all necessary data for drawing a rectangle.
 
@@ -37,19 +47,21 @@ class RectangleRenderCommandData:
     color: ColorType
 
 @dataclass()
-class PolygonRenderCommandData:
+class PolygonRenderCommandData(BaseRenderCommandData):
     """
     Contains all necessary data for drawing a polygon.
 
     Attributes:
         points (List[Tuple[float, float]]): A list of points representing the vertices of the polygon.
         color (ColorType): The color of the polygon.
+        width (float): The width of the polygon's edges.
     """
     points: List[Tuple[float, float]]
     color: ColorType
+    width: float
 
 @dataclass()
-class LineRenderCommandData:
+class LineRenderCommandData(BaseRenderCommandData):
     """
     Contains all necessary data for drawing a line.
 
@@ -59,28 +71,37 @@ class LineRenderCommandData:
         x2 (float): The x-coordinate of the end point of the line.
         y2 (float): The y-coordinate of the end point of the line.
         color (ColorType): The color of the line.
+        width (float): The width of the line.
+        is_aa (bool): Whether the line should be anti-aliased line.
     """
     x1: float
     y1: float
     x2: float
     y2: float
     color: ColorType
+    width: float
+    is_aa: bool
 
 @dataclass()
-class LineStringRenderCommandData:
+class LineStringRenderCommandData(BaseRenderCommandData):
     """
     Contains all necessary data for drawing a linestring.
 
     Attributes:
         points (List[Tuple[float, float]]): A list of points representing the vertices of the linestring.
         color (ColorType): The color of the linestring.
+        width (float): The width of the linestring.
+        closed (bool): Whether the linestring should be closed (i.e., the last point connects to the first).
+        is_aa (bool): Whether the linestring should be anti-aliased linestring.
     """
     points: List[Tuple[float, float]]
     color: ColorType
+    width: float
+    closed: bool
     is_aa: bool
 
 @dataclass()
-class TextRenderCommandData:
+class TextRenderCommandData(BaseRenderCommandData):
     """
     Contains all necessary data for drawing text.
 

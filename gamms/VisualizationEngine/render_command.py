@@ -25,37 +25,37 @@ class RenderCommand:
         return f"RenderCommand({self.opcode}, {self.data})"
 
     @staticmethod
-    def circle(x: float, y: float, radius: float, color: ColorType) -> 'RenderCommand':
+    def circle(x: float, y: float, radius: float, color: ColorType, perform_culling_test: bool=True) -> 'RenderCommand':
         """Create a circle render command"""
-        cmd = RenderCommand(RenderOpCode.RenderCircle, CircleRenderCommandData(x, y, radius, color))
+        cmd = RenderCommand(RenderOpCode.RenderCircle, CircleRenderCommandData(perform_culling_test, x, y, radius, color))
         return cmd
 
     @staticmethod
-    def rectangle(x: float, y: float, width: float, height: float, color: ColorType) -> 'RenderCommand':
+    def rectangle(x: float, y: float, width: float, height: float, color: ColorType, perform_culling_test: bool=True) -> 'RenderCommand':
         """Create a rectangle render command"""
-        cmd = RenderCommand(RenderOpCode.RenderRectangle, RectangleRenderCommandData(x, y, width, height, color))
+        cmd = RenderCommand(RenderOpCode.RenderRectangle, RectangleRenderCommandData(perform_culling_test, x, y, width, height, color))
         return cmd
 
     @staticmethod
-    def polygon(points: List[Tuple[float, float]], color: ColorType) -> 'RenderCommand':
+    def polygon(points: List[Tuple[float, float]], color: ColorType, width: float=0, perform_culling_test: bool=True) -> 'RenderCommand':
         """Create a polygon render command"""
-        cmd = RenderCommand(RenderOpCode.RenderPolygon, PolygonRenderCommandData(points, color))
+        cmd = RenderCommand(RenderOpCode.RenderPolygon, PolygonRenderCommandData(perform_culling_test, points, color, width))
         return cmd
 
     @staticmethod
-    def line(x1: float, y1: float, x2: float, y2: float, color: ColorType) -> 'RenderCommand':
+    def line(x1: float, y1: float, x2: float, y2: float, color: ColorType, width: float=1.0, is_aa: bool=False, perform_culling_test: bool=True) -> 'RenderCommand':
         """Create a line render command"""
-        cmd = RenderCommand(RenderOpCode.RenderLine, LineRenderCommandData(x1, y1, x2, y2, color))
+        cmd = RenderCommand(RenderOpCode.RenderLine, LineRenderCommandData(perform_culling_test, x1, y1, x2, y2, color, width, is_aa))
         return cmd
 
     @staticmethod
-    def linestring(points: List[Tuple[float, float]], color: ColorType, is_aa: bool = True) -> 'RenderCommand':
+    def linestring(points: List[Tuple[float, float]], color: ColorType, width: float=1.0, closed: bool=False, is_aa: bool=True, perform_culling_test: bool=True) -> 'RenderCommand':
         """Create a linestring render command"""
-        cmd = RenderCommand(RenderOpCode.RenderLineString, LineStringRenderCommandData(points, color, is_aa))
+        cmd = RenderCommand(RenderOpCode.RenderLineString, LineStringRenderCommandData(perform_culling_test, points, color, width, closed, is_aa))
         return cmd
 
     @staticmethod
-    def text(x: float, y: float, text: str, color: ColorType) -> 'RenderCommand':
+    def text(x: float, y: float, text: str, color: ColorType, perform_culling_test: bool=True) -> 'RenderCommand':
         """Create a text render command"""
-        cmd = RenderCommand(RenderOpCode.RenderText, TextRenderCommandData(x, y, text, color))
+        cmd = RenderCommand(RenderOpCode.RenderText, TextRenderCommandData(perform_culling_test, x, y, text, color))
         return cmd

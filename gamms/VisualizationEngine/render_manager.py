@@ -278,7 +278,8 @@ class RenderManager:
                         artist.draw(True)
 
                     # Execute the render commands
-                    self.ctx.visual.execute_command_list(artist.render_commands)
+                    if artist.get_artist_type() != ArtistType.GRAPH:
+                        self.ctx.visual.execute_command_list(artist.render_commands)
 
                     # Render the layer if it is a graph artist and not already rendered
                     if artist.get_artist_type() == ArtistType.GRAPH and layer not in rendered_layers:

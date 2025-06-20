@@ -22,7 +22,6 @@ def render_circle(ctx: IContext, data: Dict[str, Any]):
     color = data.get('color', Color.Cyan)
     render_command = RenderCommand.circle(x, y, radius, color)
     return [render_command]
-    # ctx.visual.render_circle(x, y, radius, color)
 
 
 def render_rectangle(ctx: IContext, data: Dict[str, Any]):
@@ -40,7 +39,7 @@ def render_rectangle(ctx: IContext, data: Dict[str, Any]):
     color = data.get('color', Color.Cyan)
     render_command = RenderCommand.rectangle(x, y, width, height, color)
     return [render_command]
-    # ctx.visual.render_rectangle(x, y, width, height, color)
+
 
 def render_agent(ctx: IContext, data: Dict[str, Any]):
     """
@@ -91,7 +90,6 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
 
     render_command = RenderCommand.polygon([point1, point2, point3], color)
     return [render_command]
-    # ctx.visual.render_polygon([point1, point2, point3], color)
 
 
 def render_graph(ctx: IContext, data: Dict[str, Any]):
@@ -118,6 +116,7 @@ def render_graph(ctx: IContext, data: Dict[str, Any]):
         _render_graph_node(ctx, node, node_color, node_size, draw_id, command_list)
 
     return command_list
+
 
 def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
     """
@@ -174,20 +173,16 @@ def _render_graph_edge(ctx: IContext, graph_data: GraphData, edge: OSMEdge, colo
             edge_line_points[edge.id] = linestring
 
         line_points = edge_line_points[edge.id]
-        command_list.append(RenderCommand.linestring(line_points, color, True))
-        # ctx.visual.render_linestring(line_points, color, is_aa=True, perform_culling_test=False)
+        command_list.append(RenderCommand.linestring(line_points, color, perform_culling_test=False))
     else:
-        command_list.append(RenderCommand.line(source.x, source.y, target.x, target.y, color))
-        # ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2, perform_culling_test=False, is_aa=False)
+        command_list.append(RenderCommand.line(source.x, source.y, target.x, target.y, color, 2, is_aa=False, perform_culling_test=False))
 
 
 def _render_graph_node(ctx: IContext, node: Node, color: ColorType, radius: float, draw_id: bool, command_list: List[RenderCommand]):
     command_list.append(RenderCommand.circle(node.x, node.y, radius, color))
-    # ctx.visual.render_circle(node.x, node.y, radius, color)
 
     if draw_id:
         command_list.append(RenderCommand.text(node.x, node.y + 10, str(node.id), (0, 0, 0)))
-        # ctx.visual.render_text(str(node.id), node.x, node.y + 10, (0, 0, 0))
 
 
 def render_neighbor_sensor(ctx: IContext, data: Dict[str, Any]):
@@ -205,7 +200,6 @@ def render_neighbor_sensor(ctx: IContext, data: Dict[str, Any]):
     for neighbor_node_id in sensor_data:
         neighbor_node = ctx.graph.graph.get_node(neighbor_node_id)
         command_list.append(RenderCommand.circle(neighbor_node.x, neighbor_node.y, 2, color))
-        # ctx.visual.render_circle(neighbor_node.x, neighbor_node.y, 2, color)
 
     return command_list
 
@@ -228,7 +222,6 @@ def render_map_sensor(ctx: IContext, data: Dict[str, Any]):
     for node_id in sensed_nodes:
         node = ctx.graph.graph.get_node(node_id)
         command_list.append(RenderCommand.circle(node.x, node.y, 1, node_color))
-        # ctx.visual.render_circle(node.x, node.y, 1, node_color)
 
     edge_color = data.get('edge_color', Color.Cyan)
     sensed_edges = sensor_data.get('edges', [])
@@ -242,11 +235,9 @@ def render_map_sensor(ctx: IContext, data: Dict[str, Any]):
             line_points = ([(source.x, source.y)] + [(x, y) for (x, y) in edge.linestring.coords] +
                             [(target.x, target.y)])
 
-            command_list.append(RenderCommand.linestring(line_points, edge_color))
-            # ctx.visual.render_linestring(line_points, edge_color, 4, is_aa=False, perform_culling_test=False)
+            command_list.append(RenderCommand.linestring(line_points, edge_color, 4, is_aa=False, perform_culling_test=False))
         else:
-            command_list.append(RenderCommand.line(source.x, source.y, target.x, target.y, edge_color))
-            # ctx.visual.render_line(source.x, source.y, target.x, target.y, edge_color, 4, perform_culling_test=False)
+            command_list.append(RenderCommand.line(source.x, source.y, target.x, target.y, edge_color, 4, perform_culling_test=False))
 
     return command_list
 
@@ -274,6 +265,5 @@ def render_agent_sensor(ctx: IContext, data: Dict[str, Any]):
         point3 = (position[0] + size * math.cos(angle - 2.5), position[1] + size * math.sin(angle - 2.5))
 
         command_list.append(RenderCommand.polygon([point1, point2, point3], color))
-        # ctx.visual.render_polygon([point1, point2, point3], color)
 
     return command_list
