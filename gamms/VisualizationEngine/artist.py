@@ -70,7 +70,7 @@ class Artist(IArtist):
     def set_artist_type(self, artist_type: ArtistType):
         self._artist_type = artist_type
 
-    def draw(self, force = False):
+    def draw(self, force: bool=False):
         if self._is_rendering and not force:
             return
 
