@@ -128,13 +128,13 @@ def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
     """
     command_list = []
     graph_data = cast(GraphData, data.get('graph_data'))
-    waiting_agent_name = data.get('_waiting_agent_name', None)
+    waiting_agent_name: str | None = data.get('_waiting_agent_name', None)
     input_options = data.get('_input_options', {})
     waiting_user_input = data.get('_waiting_user_input', False)
 
     # Break checker
     if waiting_agent_name is None or waiting_user_input == False or input_options == {}:
-        return
+        return []
     
     graph = ctx.graph.graph
     node_color = graph_data.node_color

@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum, auto
+from typing import Any
 
 class RenderOpCode(Enum):
     RenderCircle = auto()
@@ -19,5 +20,16 @@ class IRenderCommand(ABC):
 
         Returns:
             RenderOpCode: The operation code for the command.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def data(self) -> Any:
+        """
+        Get the data associated with the render command.
+
+        Returns:
+            Any: The data associated with the render command.
         """
         pass

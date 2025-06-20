@@ -1,6 +1,6 @@
 from gamms.VisualizationEngine.render_command_data import *
 from gamms.typing import ColorType, RenderOpCode, IRenderCommand
-from typing import List, Tuple
+from typing import List, Tuple, Any
 
 class RenderCommand(IRenderCommand):
     """
@@ -12,14 +12,15 @@ class RenderCommand(IRenderCommand):
         self._opcode = op_code
 
         # contains all parameters for this command
-        self.data = data
+        self._data = data
 
     @property
     def opcode(self) -> RenderOpCode:
         return self._opcode
 
-    def validate(self) -> int:
-        pass
+    @property
+    def data(self) -> Any:
+        return self._data
 
     def __str__(self):
         return f"RenderCommand({self.opcode}, {self.data})"
