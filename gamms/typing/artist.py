@@ -121,7 +121,7 @@ class IArtist(ABC):
         pass
 
     @abstractmethod
-    def draw(self, force = False) -> None:
+    def draw(self, force: bool) -> None:
         """
         Draw the artist immediately. Note that if the artist is invisible, it will remain invisible.
         Later when the artist is set to visible, its content will be the updated content.

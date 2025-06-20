@@ -54,11 +54,11 @@ class PolygonRenderCommandData(BaseRenderCommandData):
     Attributes:
         points (List[Tuple[float, float]]): A list of points representing the vertices of the polygon.
         color (ColorType): The color of the polygon.
-        width (float): The width of the polygon's edges.
+        width (int): The width of the polygon's edges.
     """
     points: List[Tuple[float, float]]
     color: ColorType
-    width: float
+    width: int
 
 @dataclass()
 class LineRenderCommandData(BaseRenderCommandData):
@@ -71,7 +71,7 @@ class LineRenderCommandData(BaseRenderCommandData):
         x2 (float): The x-coordinate of the end point of the line.
         y2 (float): The y-coordinate of the end point of the line.
         color (ColorType): The color of the line.
-        width (float): The width of the line.
+        width (int): The width of the line.
         is_aa (bool): Whether the line should be anti-aliased line.
     """
     x1: float
@@ -79,7 +79,7 @@ class LineRenderCommandData(BaseRenderCommandData):
     x2: float
     y2: float
     color: ColorType
-    width: float
+    width: int
     is_aa: bool
 
 @dataclass()
@@ -90,13 +90,13 @@ class LineStringRenderCommandData(BaseRenderCommandData):
     Attributes:
         points (List[Tuple[float, float]]): A list of points representing the vertices of the linestring.
         color (ColorType): The color of the linestring.
-        width (float): The width of the linestring.
+        width (int): The width of the linestring.
         closed (bool): Whether the linestring should be closed (i.e., the last point connects to the first).
         is_aa (bool): Whether the linestring should be anti-aliased linestring.
     """
     points: List[Tuple[float, float]]
     color: ColorType
-    width: float
+    width: int
     closed: bool
     is_aa: bool
 

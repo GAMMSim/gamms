@@ -272,18 +272,17 @@ class RenderManager:
 
                 self._current_drawing_artist = artist
 
-                if artist.is_visible():
-                    # Update the render commands
-                    if artist.is_rendering():
-                        artist.draw(True)
+                # Update the render commands
+                if artist.is_rendering():
+                    artist.draw(True)
 
-                    # Execute the render commands
-                    if artist.get_artist_type() != ArtistType.GRAPH:
-                        self.ctx.visual.execute_command_list(artist.render_commands)
+                # Execute the render commands
+                if artist.get_artist_type() != ArtistType.GRAPH:
+                    self.ctx.visual.execute_command_list(artist.render_commands)
 
-                    # Render the layer if it is a graph artist and not already rendered
-                    if artist.get_artist_type() == ArtistType.GRAPH and layer not in rendered_layers:
-                        self.ctx.visual.render_layer(layer)
-                        rendered_layers.add(layer)
+                # Render the layer if it is a graph artist and not already rendered
+                if artist.get_artist_type() == ArtistType.GRAPH and layer not in rendered_layers:
+                    self.ctx.visual.render_layer(layer)
+                    rendered_layers.add(layer)
 
                 self._current_drawing_artist = None

@@ -1,8 +1,8 @@
 from gamms.VisualizationEngine.render_command_data import *
-from gamms.typing import ColorType, RenderOpCode
+from gamms.typing import ColorType, RenderOpCode, IRenderCommand
 from typing import List, Tuple
 
-class RenderCommand:
+class RenderCommand(IRenderCommand):
     """
     This represents an instance of a render command
     """

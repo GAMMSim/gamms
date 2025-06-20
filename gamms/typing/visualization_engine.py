@@ -116,7 +116,7 @@ class IVisualizationEngine(ABC):
         Execute a list of rendering commands.
 
         Args:
-            command_list (List[RenderCommand]): A list of rendering commands to execute.
+            command_list (List[IRenderCommand]): A list of rendering commands to execute.
         """
         pass
 
