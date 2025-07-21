@@ -37,11 +37,9 @@ class NeighborSensor(ISensor):
 
     def sense(self, node_id: int) -> None:
         nearest_neighbors = {node_id,}
-        for edge_id in self.ctx.graph.graph.get_edges():
-            edge = self.ctx.graph.graph.get_edge(edge_id)
-            if edge.source == node_id:
-                nearest_neighbors.add(edge.target)
-                        
+        for nid in self.ctx.graph.graph.get_neighbors(node_id):
+            nearest_neighbors.add(nid)
+
         self._data = list(nearest_neighbors)
 
     def update(self, data: Dict[str, Any]) -> None:

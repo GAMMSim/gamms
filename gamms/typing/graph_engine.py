@@ -1,8 +1,14 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Iterator
+from typing import Any, Dict, Iterator, overload
 from dataclasses import dataclass
 from shapely.geometry import LineString
 import networkx as nx
+
+from enum import Enum
+
+class Engine(Enum):
+    MEMORY = 0
+    SQLITE = 1
 
 @dataclass
 class Node:
@@ -83,6 +89,7 @@ class IGraph(ABC):
         pass
 
     @abstractmethod
+    @overload
     def get_nodes(self) -> Iterator[int]:
         """
         Creates an iterator of node IDs in the graph.
@@ -91,11 +98,41 @@ class IGraph(ABC):
             Iterator[int]: An iterator that yields node IDs.
         """
         pass
+    
+    @abstractmethod
+    @overload
+    def get_nodes(self, d: float, x: float, y: float) -> Iterator[int]:
+        """
+        Creates an iterator of node IDs in the graph.
+
+        If d is non-negative, it returns nodes within a distance d from the point (x, y).
+        May return nodes that are farther than d but will always return nodes that are within d.
+
+        Returns:
+            Iterator[int]: An iterator that yields node IDs.
+        """
+        pass
 
     @abstractmethod
+    @overload
     def get_edges(self) -> Iterator[int]:
         """
         Creates an iterator of edge IDs in the graph.
+
+        Returns:
+            Iterator[int]: An iterator that yields edge IDs.
+        """
+        pass
+
+    @abstractmethod
+    @overload
+    def get_edges(self, d: float, x: float, y: float) -> Iterator[int]:
+        """
+        Creates an iterator of edge IDs in the graph.
+        If d is non-negative, it returns edges within a distance d from the point (x, y).
+        May return edges that are farther than d but will always return edges that are within d.
+
+        "Within" means that atleast one of the edge's nodes is within distance d from the point (x, y).
 
         Returns:
             Iterator[int]: An iterator that yields edge IDs.
@@ -190,6 +227,22 @@ class IGraph(ABC):
 
         Raises:
             KeyError: If the edge with the specified ID does not exist.
+        """
+        pass
+
+    @abstractmethod
+    def get_neighbors(self, node_id: int) -> Iterator[int]:
+        """
+        Get the neighbors of a specific node.
+
+        Args:
+            node_id (int): The unique identifier of the node whose neighbors are to be retrieved.
+
+        Returns:
+            Iterator[int]: An iterator that yields the IDs of neighboring nodes.
+
+        Raises:
+            KeyError: If the node with the specified ID does not exist.
         """
         pass
 
