@@ -215,7 +215,7 @@ class Agent(IAgent):
         else:
             return (delta_x / distance, delta_y / distance)
 
-class ArialAgent(Agent):
+class AerialAgent(Agent):
     def __init__(self, ctx: IContext, name, start_node_id, speed, **kwargs):
         super().__init__(ctx, name, start_node_id, **kwargs)
         self._altitude = 0.0
@@ -246,6 +246,8 @@ class ArialAgent(Agent):
     
     def set_state(self):
         self._position = self._state['action']
+        self._altitude = self._position[2]
+        self._on_ground = (self._altitude == 0)
 
 class AgentEngine(IAgentEngine):
     def __init__(self, ctx: IContext):

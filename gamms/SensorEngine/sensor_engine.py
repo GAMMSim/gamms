@@ -260,6 +260,154 @@ class AgentSensor(ISensor):
         # No dynamic updates required for this sensor.
         pass
 
+class DroneMovementSensor(ISensor):
+    def __init__(self, ctx: IContext, sensor_id: str, sensor_type: SensorType):
+        self._sensor_id = sensor_id
+        self.ctx = ctx
+        self._type = sensor_type
+        self._data: List[Tuple[float, float, float]] = []
+        self._owner = None
+    
+    @property
+    def sensor_id(self) -> str:
+        return self._sensor_id
+    
+    @property
+    def type(self) -> SensorType:
+        return self._type
+
+    @property
+    def data(self) -> List[Tuple[float, float, float]]:
+        return self._data
+    
+    def set_owner(self, owner: Union[str, None]) -> None:
+        self._owner = owner
+
+    def sense(self, node_id: int, **kwargs) -> None:
+        """
+        Calculate possible movement positions in a circle around current position.
+        
+        Args:
+            node_id: Current node (may not be used if drone is airborne)
+            **kwargs: 
+                pos: Current (x, y, z) position
+                speed: Movement speed (default 30)
+        """
+        pos = kwargs.get('pos', None)
+        speed = kwargs.get('speed', 30)  # Default speed if not provided
+        
+        possible_positions = []
+        if pos is not None:
+            x, y, z = pos
+            # Generate 36 positions (every 10 degrees) at the given speed
+            for angle in np.linspace(0, 2 * np.pi, num=36, endpoint=False):
+                new_x = x + speed * np.cos(angle)
+                new_y = y + speed * np.sin(angle)
+                possible_positions.append((new_x, new_y, z))  # Maintain altitude
+        
+        self._data = possible_positions
+
+    def update(self, data: Dict[str, Any]) -> None:
+        pass
+
+
+class ConicDroneSensor(ISensor):
+    def __init__(self, ctx: IContext, sensor_id: str, sensor_type: SensorType, 
+                 sensor_range: float, fov: float = math.pi/3):  # Default 60° FOV
+        """
+        Downward-facing conic sensor for aerial agents.
+        
+        Args:
+            sensor_range: Maximum slant distance from drone to detected point
+            fov: Field of view angle in radians (half-angle of cone)
+        """
+        self._sensor_id = sensor_id
+        self.ctx = ctx
+        self._type = sensor_type
+        self._data: Dict[str, Union[Dict[int, Node], List[OSMEdge]]] = {}
+        self._owner = None
+        self.range = sensor_range
+        self.fov = min(fov, math.pi * 0.9)  # Cap at ~162° to avoid backward vision
+    
+    @property
+    def sensor_id(self) -> str:
+        return self._sensor_id
+    
+    @property
+    def type(self) -> SensorType:
+        return self._type
+
+    @property
+    def data(self) -> Dict[str, Union[Dict[int, Node], List[OSMEdge]]]:
+        return self._data
+    
+    def set_owner(self, owner: Union[str, None]) -> None:
+        self._owner = owner
+
+    def sense(self, node_id: int, **kwargs) -> None:
+        """
+        Detect nodes within the conic field of view from the drone's position.
+        
+        Args:
+            node_id: Current node (may not be used if drone is airborne)
+            **kwargs:
+                pos: Current (x, y, z) position of the drone
+        """
+        pos = kwargs.get('pos', None)
+        
+        # If no position provided or on ground (z=0), return empty
+        if pos is None or pos[2] <= 0:
+            self._data = {'nodes': {}, 'edges': []}
+            return
+        
+        x, y, height = pos
+        
+        # Calculate the radius of visibility on the ground
+        # Based on cone geometry and sensor range constraints
+        half_angle = self.fov / 2
+        
+        # Cone radius at ground level
+        cone_radius = height * math.tan(half_angle)
+        
+        # Maximum ground radius based on sensor range
+        # Using Pythagorean theorem: ground_radius² + height² = sensor_range²
+        max_ground_radius_sq = max(0, self.range**2 - height**2)
+        max_ground_radius = math.sqrt(max_ground_radius_sq)
+        
+        # Effective visible radius is the minimum of the two
+        visible_radius = min(cone_radius, max_ground_radius)
+        
+        # Get all nodes from the graph
+        nodes = cast(Dict[int, Node], self.ctx.graph.graph.nodes)
+        sensed_nodes: Dict[int, Node] = {}
+        
+        # Check each node if it's within the visible circle on the ground
+        for node_id, node in nodes.items():
+            # Calculate distance from drone's ground position to node
+            dx = node.x - x
+            dy = node.y - y
+            ground_distance = math.sqrt(dx**2 + dy**2)
+            
+            # Check if within visible radius
+            if ground_distance <= visible_radius:
+                # Also verify it's within sensor range (slant distance)
+                slant_distance = math.sqrt(ground_distance**2 + height**2)
+                if slant_distance <= self.range:
+                    sensed_nodes[node_id] = node
+        
+        # Get edges connecting sensed nodes
+        sensed_edges: List[OSMEdge] = []
+        if len(sensed_nodes) > 1:
+            graph_edges = cast(Dict[int, OSMEdge], self.ctx.graph.graph.edges)
+            for edge in graph_edges.values():
+                if edge.source in sensed_nodes and edge.target in sensed_nodes:
+                    sensed_edges.append(edge)
+        
+        self._data = {'nodes': sensed_nodes, 'edges': sensed_edges}
+
+    def update(self, data: Dict[str, Any]) -> None:
+        pass
+
 class SensorEngine(ISensorEngine):
     def __init__(self, ctx: IContext):
         self.ctx = ctx  
@@ -347,3 +495,7 @@ class SensorEngine(ISensorEngine):
 
     def terminate(self):
         return
+
+
+
+
