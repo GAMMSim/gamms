@@ -215,6 +215,38 @@ class Agent(IAgent):
         else:
             return (delta_x / distance, delta_y / distance)
 
+class ArialAgent(Agent):
+    def __init__(self, ctx: IContext, name, start_node_id, speed, **kwargs):
+        super().__init__(ctx, name, start_node_id, **kwargs)
+        self._altitude = 0.0
+        self._speed = speed  # Speed of the agent in units per second
+        self._position = (0.0, 0.0, 0.0)  # position vector (x, y, z)
+        self._orientation = (0.0, 0.0, 0.0, 0.0)  # orientation vector
+        self._on_ground = True # Indicates if the agent is on the ground
+        self.get_starting_position()
+    
+    def get_starting_position(self):
+        """Set the starting position of the agent based on the start node."""
+        start_node = self._graph.graph.get_node(self._current_node_id)
+        self._position = (start_node.x, start_node.y, self._altitude)
+        self._orientation = (0.0, 0.0, 0.0, 1.0)
+    
+    def get_state(self) -> dict:
+        for sensor in self._sensor_list.values():
+            sensor.sense(self._current_node_id)
+
+        state = {}
+        state['sensor'] = {k:(sensor.type, sensor.data) for k, sensor in self._sensor_list.items()}
+        state['altitude'] = self._altitude
+        state['speed'] = self._speed
+        state['position'] = self._position
+        state['orientation'] = self._orientation
+        state['on_ground'] = self._on_ground
+        self._state = state
+    
+    def set_state(self):
+        self._position = self._state['action']
+
 class AgentEngine(IAgentEngine):
     def __init__(self, ctx: IContext):
         self.ctx = ctx

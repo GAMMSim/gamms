@@ -228,6 +228,7 @@ class MapSensor(ISensor):
     def update(self, data: Dict[str, Any]) -> None:
         # No dynamic updates required for this sensor.
         pass
+
 class AgentSensor(ISensor):
     def __init__(
         self, 
@@ -360,6 +361,48 @@ class AgentSensor(ISensor):
     def update(self, data: Dict[str, Any]) -> None:
         # No dynamic updates required for this sensor.
         pass
+
+class DroneMovementSensor(ISensor):
+    def __init__(self, ctx, sensor_id, sensor_type):
+        self._sensor_id = sensor_id
+        self.ctx = ctx
+        self._type = sensor_type
+        self._data = []
+        self._owner = None
+    
+    @property
+    def sensor_id(self) -> str:
+        return self._sensor_id
+    
+    @property
+    def type(self) -> SensorType:
+        return self._type
+
+    @property
+    def data(self):
+        return self._data
+    
+    def set_owner(self, owner: str) -> None:
+        self._owner = owner
+
+    def sense(self, node_id: int, **kwargs) -> None:
+        pos = kwargs.get('pos', None)
+        speed = kwargs.get('speed', 30)  # Default speed if not provided
+        possible_positions = []
+        if pos is not None:
+            x, y, z = pos
+            speed = 30 
+            for angle in np.linspace(0, 2 * np.pi, num=36):
+                new_x = x + speed * np.cos(angle)
+                new_y = y + speed * np.sin(angle)
+                possible_positions.append((new_x, new_y, z))
+        self._data = possible_positions
+
+    def update(self, data: Dict[str, Any]) -> None:
+        pass
+
+class ConicDroneSensor(ISensor):
+    pass
 
 class SensorEngine(ISensorEngine):
     def __init__(self, ctx: IContext):
