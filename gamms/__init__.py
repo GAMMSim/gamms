@@ -7,15 +7,17 @@ from gamms.context import Context
 from enum import Enum
 
 from gamms.typing import logger
+from typing import Dict, Any, Optional
 
 import logging
 
 import os
 
 def create_context(
+    graph_engine: Enum = graph.Engine.SQLITE,
     vis_engine: Enum = visual.Engine.NO_VIS,
-    vis_kwargs: dict = None,
-    logger_config: dict = None,
+    vis_kwargs: Optional[Dict[str, Any]] = None,
+    logger_config: Optional[Dict[str, Any]] = None,
 ) -> Context:
     _logger = logging.getLogger("gamms")
     if logger_config is None:
@@ -30,11 +32,10 @@ def create_context(
     else:
         raise NotImplementedError(f"Visualization engine {vis_engine} not implemented")
     
-    graph_engine = graph.GraphEngine(ctx)
     agent_engine = agent.AgentEngine(ctx)
     sensor_engine = sensor.SensorEngine(ctx)
     ctx.agent_engine = agent_engine
-    ctx.graph_engine = graph_engine
+    ctx.graph_engine = graph.GraphEngine(ctx, engine=graph_engine)
     ctx.visual_engine = visual_engine
     ctx.sensor_engine = sensor_engine
     ctx.recorder = Recorder(ctx)

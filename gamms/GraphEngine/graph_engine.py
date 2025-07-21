@@ -1,5 +1,6 @@
 import networkx as nx
 from typing import Dict, Any, Iterator, cast, Union, Set, overload
+from enum import Enum
 from gamms.typing import Node, OSMEdge, IGraph, IGraphEngine, IContext
 from gamms.typing.graph_engine import Engine
 import pickle
@@ -279,7 +280,7 @@ class SqliteGraph(IGraph):
             self._call_commit = False
         cursor = self._conn.cursor()
         if d >= 0:
-            cursor.execute("SELECT id FROM edges JOIN nodes AS u ON edges.source = u.id JOIN nodes AS v ON edges.target = v.id WHERE (ABS(u.x - ?) <= ? AND ABS(u.y - ?) <= ?) OR (ABS(v.x - ?) <= ? AND ABS(v.y - ?) <= ?)",
+            cursor.execute("SELECT edges.id FROM edges JOIN nodes AS u ON edges.source = u.id JOIN nodes AS v ON edges.target = v.id WHERE (ABS(u.x - ?) <= ? AND ABS(u.y - ?) <= ?) OR (ABS(v.x - ?) <= ? AND ABS(v.y - ?) <= ?)",
                            (x, d, y, d, x, d, y, d))
         else:
             cursor.execute("SELECT id FROM edges")
@@ -443,7 +444,7 @@ class SqliteGraph(IGraph):
             yield row[0]
 
 class GraphEngine(IGraphEngine):
-    def __init__(self, ctx: IContext, engine: Engine = Engine.SQLITE):
+    def __init__(self, ctx: IContext, engine: Enum = Engine.SQLITE):
         if engine == Engine.MEMORY:
             self._graph = Graph()
         elif engine == Engine.SQLITE:
@@ -451,7 +452,6 @@ class GraphEngine(IGraphEngine):
         else:
             raise ValueError(f"Unsupported engine type: {engine}")
         self.ctx = ctx
-        self._graph = Graph()
     
     @property
     def graph(self) -> IGraph:
