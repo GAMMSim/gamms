@@ -223,7 +223,7 @@ class AgentSensor(ISensor):
                 if self.fov == 2 * math.pi or orientation_used == (0.0, 0.0):
                     sensed_agents[agent.name] = agent.current_node_id
                 else:
-                    angle = math.atan2(current_node.y - agent_node.y, current_node.x - agent_node.x) - math.atan2(orientation_used[1], orientation_used[0]) + math.pi
+                    angle = math.atan2(agent_node.y - current_node.y, agent_node.x - current_node.x) - math.atan2(orientation_used[1], orientation_used[0]) + math.pi
                     angle = angle % (2 * math.pi)
                     angle = angle - math.pi
                     if abs(angle) <= self.fov / 2:
