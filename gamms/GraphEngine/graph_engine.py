@@ -299,8 +299,10 @@ class SqliteGraph(IGraph):
             self._call_commit = False
         cursor = self._conn.cursor()
         if d >= 0:
-            cursor.execute("SELECT edges.id FROM edges JOIN nodes AS u ON edges.source = u.id JOIN nodes AS v ON edges.target = v.id WHERE (ABS(u.x - ?) <= ? AND ABS(u.y - ?) <= ?) OR (ABS(v.x - ?) <= ? AND ABS(v.y - ?) <= ?)",
-                           (x, d, y, d, x, d, y, d))
+            x_min, x_max = x - d, x + d
+            y_min, y_max = y - d, y + d
+            cursor.execute("SELECT edges.id FROM edges JOIN nodes AS u ON edges.source = u.id JOIN nodes AS v ON edges.target = v.id WHERE (u.x BETWEEN ? AND ? AND u.y BETWEEN ? AND ?) OR (v.x BETWEEN ? AND ? AND v.y BETWEEN ? AND ?)",
+                           (x_min, x_max, y_min, y_max, x_min, x_max, y_min, y_max))
         else:
             cursor.execute("SELECT id FROM edges")
         while True:
