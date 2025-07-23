@@ -85,6 +85,7 @@ class IGraph(ABC):
         Raises:
             ValueError: If the edge_data is missing required fields, contains invalid data, or references non-existent nodes.
             KeyError: If an edge with the same ID already exists in the graph.
+            KeyError: If source or target nodes do not exist in the graph.
         """
         pass
 
@@ -174,14 +175,10 @@ class IGraph(ABC):
     @abstractmethod
     def remove_node(self, node_id: int) -> None:
         """
-        Remove a node from the graph.
+        Remove a node from the graph. Removing a node will also remove all edges connected to it.
 
         Args:
             node_id (int): The unique identifier of the node to be removed.
-
-        Raises:
-            KeyError: If the node with the specified ID does not exist.
-            ValueError: If removing the node would leave edges without valid source or target nodes.
         """
         pass
 
@@ -192,9 +189,6 @@ class IGraph(ABC):
 
         Args:
             edge_id (int): The unique identifier of the edge to be removed.
-
-        Raises:
-            KeyError: If the edge with the specified ID does not exist.
         """
         pass
 

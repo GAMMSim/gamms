@@ -38,14 +38,20 @@ class Graph(IGraph):
         return iter(self.nodes.keys())
     
     def add_node(self, node_data: Dict[str, Any]) -> None:
+        if 'id' not in node_data or 'x' not in node_data or 'y' not in node_data:
+            raise ValueError("Node data must include 'id', 'x', and 'y'.")
+
         if node_data['id'] in self.nodes:
             raise KeyError(f"Node {node_data['id']} already exists.")
-        
+                
         node = Node(id=node_data['id'], x=node_data['x'], y=node_data['y'])
         self.nodes[node_data['id']] = node
         self._adjacency[node_data['id']] = set()
     
     def add_edge(self, edge_data: Dict[str, Any]) -> None:
+        if 'id' not in edge_data or 'source' not in edge_data or 'target' not in edge_data or 'length' not in edge_data:
+            raise ValueError("Edge data must include 'id', 'source', 'target', and 'length'.")
+        
         if edge_data['id'] in self.edges:
             raise KeyError(f"Edge {edge_data['id']} already exists.")
         
@@ -62,6 +68,9 @@ class Graph(IGraph):
                 raise ValueError(f"Invalid linestring data: {linestring}") from e
         if linestring.is_empty:
             raise ValueError(f"Invalid linestring: {linestring}")
+        
+        if edge_data['source'] not in self.nodes or edge_data['target'] not in self.nodes:
+            raise KeyError(f"Source or target node does not exist in the graph: {edge_data['source']}, {edge_data['target']}")
         
         edge = OSMEdge(
             id = edge_data['id'],
@@ -100,12 +109,11 @@ class Graph(IGraph):
 
     def remove_node(self, node_id: int) -> None:
         if node_id not in self.nodes:
-            raise KeyError(f"Node {node_id} does not exist.")
+            return
         
         edges_to_remove = [key for key, edge in self.edges.items() if edge.source == node_id or edge.target == node_id]
         for key in edges_to_remove:
             del self.edges[key]
-            print(f"Deleted edge {key} associated with node {node_id}")
         del self.nodes[node_id]
         del self._adjacency[node_id]
         for neighbors in self._adjacency.values():
@@ -113,8 +121,7 @@ class Graph(IGraph):
 
     def remove_edge(self, edge_id: int) -> None:
         if edge_id not in self.edges:
-            raise KeyError(f"Edge {edge_id} does not exist.")
-        
+            return        
         edge = self.edges[edge_id]
         self._adjacency[edge.source].discard(edge.target)
         del self.edges[edge_id]
@@ -189,6 +196,8 @@ class SqliteGraph(IGraph):
         self._dbfile = tempfile.NamedTemporaryFile(dir="./", suffix=".sqlite")
         self._conn = sqlite3.connect(self._dbfile.name)
         self._cursor = self._conn.cursor()
+        # Enable foreign key constraints
+        self._cursor.execute("PRAGMA foreign_keys = ON")
         self.node_store = self._cursor.execute(
             "CREATE TABLE IF NOT EXISTS nodes (id INTEGER PRIMARY KEY, x REAL, y REAL)"
         )
@@ -220,8 +229,12 @@ class SqliteGraph(IGraph):
         if 'id' not in node_data or 'x' not in node_data or 'y' not in node_data:
             raise ValueError("Node data must include 'id', 'x', and 'y'.")
         
-        self._cursor.execute("INSERT INTO nodes (id, x, y) VALUES (?, ?, ?)", 
-                       (node_data['id'], node_data['x'], node_data['y']))
+        try:
+            self._cursor.execute("INSERT INTO nodes (id, x, y) VALUES (?, ?, ?)", 
+                           (node_data['id'], node_data['x'], node_data['y']))
+        except sqlite3.IntegrityError as e:
+            if "UNIQUE constraint failed" in str(e):
+                raise KeyError(f"Node {node_data['id']} already exists.") from e
         
         self._call_commit = True
     
@@ -247,8 +260,14 @@ class SqliteGraph(IGraph):
         else:
             linestring = tuple(linestring.coords)
 
-        self._cursor.execute("INSERT INTO edges (id, source, target, length, geom) VALUES (?, ?, ?, ?, ?)",
-                       (edge_data['id'], edge_data['source'], edge_data['target'], edge_data['length'], cbor2.dumps(linestring)))
+        try:
+            self._cursor.execute("INSERT INTO edges (id, source, target, length, geom) VALUES (?, ?, ?, ?, ?)",
+                           (edge_data['id'], edge_data['source'], edge_data['target'], edge_data['length'], cbor2.dumps(linestring)))
+        except sqlite3.IntegrityError as e:
+            if "UNIQUE constraint failed" in str(e):
+                raise KeyError(f"Edge {edge_data['id']} already exists.") from e
+            elif "FOREIGN KEY constraint failed" in str(e):
+                raise KeyError(f"Source or target node does not exist in the graph: {edge_data['source']}, {edge_data['target']}") from e
 
         self._call_commit = True
     
@@ -374,11 +393,9 @@ class SqliteGraph(IGraph):
         """
         Removes a node from the graph.
         """
-        self._cursor.execute("DELETE FROM nodes WHERE id = ?", (node_id,))
-        
         # Remove edges associated with this node
         self._cursor.execute("DELETE FROM edges WHERE source = ? OR target = ?", (node_id, node_id))
-        
+        self._cursor.execute("DELETE FROM nodes WHERE id = ?", (node_id,))        
         self._call_commit = True
     
     def remove_edge(self, edge_id: int) -> None:
@@ -461,7 +478,10 @@ class GraphEngine(IGraphEngine):
         """
         Attaches a NetworkX graph to the Graph object.
         """
-        self._graph.attach_networkx_graph(G)
+        try:
+            self._graph.attach_networkx_graph(G)
+        except Exception as e:
+            raise ValueError(f"Failed to attach NetworkX graph: {e}") from e
         return self.graph
 
     def load(self, path: str) -> IGraph:
