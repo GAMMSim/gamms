@@ -217,10 +217,7 @@ class SqliteGraph(IGraph):
         """
         self._conn.close()
         if self._dbfile:
-            try:
-                self._dbfile.close()
-            except Exception as e:
-                self.ctx.logger.error(f"Error closing temporary file: {e}")        
+            self._dbfile.close()
     
     def add_node(self, node_data: Dict[str, Any]) -> None:
         """

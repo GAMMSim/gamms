@@ -114,13 +114,17 @@ class MapSensor(ISensor):
             sbool = (source.x - current_node.x)**2 + (source.y - current_node.y)**2 <= self.range**2
             tbool = (target.x - current_node.x)**2 + (target.y - current_node.y)**2 <= self.range**2
             if not (self.fov == 2 * math.pi or orientation_used == (0.0, 0.0)):
+                angle = math.atan2(current_node.y - source.y, current_node.x - source.x) - math.atan2(orientation_used[1], orientation_used[0]) + math.pi
+                angle = angle % (2 * math.pi)
+                angle = angle - math.pi
                 sbool &= (
-                    abs(math.atan2(source.y - current_node.y, source.x - current_node.x) - 
-                        math.atan2(orientation_used[1], orientation_used[0])) <= self.fov / 2
+                    abs(angle) <= self.fov / 2
                 )
+                angle = math.atan2(current_node.y - target.y, current_node.x - target.x) - math.atan2(orientation_used[1], orientation_used[0]) + math.pi
+                angle = angle % (2 * math.pi)
+                angle = angle - math.pi
                 tbool &= (
-                    abs(math.atan2(target.y - current_node.y, target.x - current_node.x) - 
-                        math.atan2(orientation_used[1], orientation_used[0])) <= self.fov / 2
+                    abs(angle) <= self.fov / 2
                 )
             if sbool:
                 sensed_nodes[source.id] = source
@@ -219,8 +223,10 @@ class AgentSensor(ISensor):
                 if self.fov == 2 * math.pi or orientation_used == (0.0, 0.0):
                     sensed_agents[agent.name] = agent.current_node_id
                 else:
-                    angle = math.atan2(agent_node.y - current_node.y, agent_node.x - current_node.x)
-                    if abs(angle - math.atan2(orientation_used[1], orientation_used[0])) <= self.fov / 2:
+                    angle = math.atan2(agent_node.y - current_node.y, agent_node.x - current_node.x) - math.atan2(orientation_used[1], orientation_used[0]) + math.pi
+                    angle = angle % (2 * math.pi)
+                    angle = angle - math.pi
+                    if abs(angle) <= self.fov / 2:
                         sensed_agents[agent.name] = agent.current_node_id
 
         self._data = sensed_agents
