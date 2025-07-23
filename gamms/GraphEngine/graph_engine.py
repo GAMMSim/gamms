@@ -339,7 +339,7 @@ class SqliteGraph(IGraph):
             self._call_commit = False
         cursor = self._conn.cursor()
         if d >= 0:
-            cursor.execute("SELECT id FROM nodes WHERE ABS(x - ?) <= ? AND ABS(y - ?) <= ?", (x, d, y, d))
+            cursor.execute("SELECT id FROM nodes WHERE x BETWEEN ? AND ? AND y BETWEEN ? AND ?", (x - d, x + d, y - d, y + d))
         else:
             cursor.execute("SELECT id FROM nodes")
         while True:
