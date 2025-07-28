@@ -130,10 +130,31 @@ class MapSensor(ISensor):
 
         # Now, compute the connecting edges from the sensing node to each sensed node.
         sensed_edges: List[OSMEdge] = []
-        # Retrieve edges from the graph via the context's graph engine.
-        graph_edges = cast(Dict[int, OSMEdge], self.ctx.graph.graph.edges)
-        for edge in graph_edges.values():
-            if edge.source in sensed_nodes and edge.target in sensed_nodes:
+
+        for edge_id in edge_iter:
+            edge = self.ctx.graph.graph.get_edge(edge_id)
+            source = self.ctx.graph.graph.get_node(edge.source)
+            target = self.ctx.graph.graph.get_node(edge.target)
+            sbool = (source.x - current_node.x)**2 + (source.y - current_node.y)**2 <= self.range**2
+            tbool = (target.x - current_node.x)**2 + (target.y - current_node.y)**2 <= self.range**2
+            if not (self.fov == 2 * math.pi or orientation_used == (0.0, 0.0)):
+                angle = math.atan2(source.y - current_node.y, source.x - current_node.x) - math.atan2(orientation_used[1], orientation_used[0]) + math.pi
+                angle = angle % (2 * math.pi)
+                angle = angle - math.pi
+                sbool &= (
+                    abs(angle) <= self.fov / 2
+                ) or (source.id == node_id)
+                angle = math.atan2(target.y - current_node.y, target.x - current_node.x) - math.atan2(orientation_used[1], orientation_used[0]) + math.pi
+                angle = angle % (2 * math.pi)
+                angle = angle - math.pi
+                tbool &= (
+                    abs(angle) <= self.fov / 2
+                ) or (target.id == node_id)
+            if sbool:
+                sensed_nodes[source.id] = source
+            if tbool:
+                sensed_nodes[target.id] = target
+            if sbool and tbool:
                 sensed_edges.append(edge)
 
         self._data = {'nodes': sensed_nodes, 'edges': sensed_edges}
@@ -237,22 +258,25 @@ class AgentSensor(ISensor):
             else:
                 orientation_used = self.orientation
 
-            if self.fov == 2 * math.pi or orientation_used == (0.0, 0.0):
-                valid_indices = in_range_indices
-            else:
-                orientation_used = np.arctan2(orientation_used[1], orientation_used[0]) % (2 * math.pi)
-                diff_in_range = diff_agents[in_range_indices]
-                angles = np.arctan2(diff_in_range[:, 1], diff_in_range[:, 0]) % (2 * math.pi)
-                angle_diff = np.abs((angles - orientation_used + math.pi) % (2 * math.pi) - math.pi)
-                valid_mask = angle_diff <= (self.fov / 2)
-                valid_indices = in_range_indices[valid_mask]
+        sensed_agents = {}
 
-            in_range_agent_ids = {agent_ids[i] for i in valid_indices}
-            for agent in agents:
-                if self._owner is not None and agent.name == self._owner:
-                    continue
-                if agent.name in in_range_agent_ids:
+        # Collect positions and ids for all agents except the owner.
+        for agent in self.ctx.agent.create_iter():
+            if agent.name == self._owner:
+                continue
+            
+            agent_node = self.ctx.graph.graph.get_node(agent.current_node_id)
+            distance = (agent_node.x - current_node.x)**2 + (agent_node.y - current_node.y)**2
+            
+            if distance <= self.range**2:
+                if self.fov == 2 * math.pi or orientation_used == (0.0, 0.0):
                     sensed_agents[agent.name] = agent.current_node_id
+                else:
+                    angle = math.atan2(agent_node.y - current_node.y, agent_node.x - current_node.x) - math.atan2(orientation_used[1], orientation_used[0]) + math.pi
+                    angle = angle % (2 * math.pi)
+                    angle = angle - math.pi
+                    if abs(angle) <= self.fov / 2 or agent.current_node_id == node_id:
+                        sensed_agents[agent.name] = agent.current_node_id
 
         self._data = sensed_agents
 
@@ -320,7 +344,7 @@ class SensorEngine(ISensorEngine):
             )
         else:
             raise ValueError("Invalid sensor type")
-        self.sensors[sensor_id] = sensor
+        self.add_sensor(sensor)
         return sensor
     
     def add_sensor(self, sensor: ISensor) -> None:
