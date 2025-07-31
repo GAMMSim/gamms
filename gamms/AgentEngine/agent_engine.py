@@ -93,6 +93,7 @@ class Agent(IAgent):
         self._current_node_id = start_node_id
         self._strategy: Optional[Callable[[Dict[str, Any]], None]] = None
         self._state = {}
+        self._orientation = (0.0, 0.0)
         for k, v in kwargs.items():
             setattr(self, k, v)
     
@@ -193,7 +194,27 @@ class Agent(IAgent):
 
     def set_state(self) -> None:
         self.prev_node_id = self._current_node_id
-        self.current_node_id = self._state['action']
+        # Action can either be a node ID or a dictionary with 'action' key
+        if isinstance(self._state['action'], int): # Node ids are integers
+            # Check if the node exists in the graph
+            _ = self._ctx.graph.graph.get_node(self._state['action'])
+            self.current_node_id = self._state['action']
+        elif isinstance(self._state['action'], dict):
+            action = cast(Dict[str, Any], self._state['action'])
+            if 'node_id' not in action:
+                raise ValueError("Action dictionary must contain 'node_id' key.")
+            else:
+                _ = self._ctx.graph.graph.get_node(action['node_id'])
+                self.current_node_id = action['node_id']
+            
+            if 'orientation' in action:
+                orientation = cast(Tuple[float, float], action['orientation'])
+                if len(orientation) != 2:
+                    raise ValueError("Orientation must be a tuple of (sin, cos).")
+                self._orientation = orientation
+        else:
+            raise TypeError("Action must be an integer (node ID) or a dictionary with 'node_id' key.")
+            
     
     @property
     def orientation(self) -> Tuple[float, float]:
@@ -202,6 +223,8 @@ class Agent(IAgent):
         The angle is calculated using the difference between the current and previous node positions.
         If the distance is zero, return (0.0, 0.0).
         """
+        if self._orientation != (0.0, 0.0):
+            return self._orientation
         prev_node = self._graph.graph.get_node(self.prev_node_id)
         curr_node = self._graph.graph.get_node(self.current_node_id)
         delta_x = curr_node.x - prev_node.x

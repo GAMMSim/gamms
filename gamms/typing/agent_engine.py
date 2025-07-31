@@ -89,6 +89,13 @@ class IAgent(ABC):
     def set_state(self):
         """
         Update the agent's state.
+
+        Raises:
+            KeyError: If action is not found in the agent's state.
+            KeyError: If action is an int but not a valid node ID.
+            TypeError: If action is not an int or dict.
+            ValueError: If action dict does not contain 'node_id' key
+            ValueError: If orientation is not a tuple of (sin, cos).
         """
         pass
 
