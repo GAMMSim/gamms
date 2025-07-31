@@ -35,6 +35,22 @@ def _record_switch_case(ctx: IContext, opCode: OpCodes, data: JsonType) -> None:
         ctx.agent.get_agent(data["agent_name"]).current_node_id = data["node_id"]
     elif opCode == OpCodes.AGENT_PREV_NODE:
         ctx.agent.get_agent(data["agent_name"]).prev_node_id = data["node_id"]
+    elif opCode == OpCodes.AGENT_ORIENTATION:
+        ctx.logger.info(f"Setting orientation for agent {data['agent_name']} to {data['orientation']}")
+        agent = ctx.agent.get_agent(data["agent_name"])
+        orientation = data["orientation"]
+        agent.orientation = (orientation[0], orientation[1])
+    elif opCode == OpCodes.AERIAL_AGENT_POSITION:
+        ctx.logger.info(f"Setting aerial agent {data['agent_name']} position to {data['position']}")
+        agent = ctx.agent.get_agent(data["agent_name"])
+        agent.position = (data["position"][0], data["position"][1], data["position"][2])
+    elif opCode == OpCodes.AERIAL_AGENT_QUATERNION:
+        ctx.logger.info(f"Setting aerial agent {data['agent_name']} quaternion to {data['quat']}")
+        agent = ctx.agent.get_agent(data["agent_name"])
+        quat = data["quat"]
+        if len(quat) != 4:
+            raise ValueError("Quaternion must be a tuple of (w, x, y, z).")
+        agent.quat = (quat[0], quat[1], quat[2], quat[3])
     elif opCode == OpCodes.AGENT_SENSOR_REGISTER:
         ctx.logger.info(f"Registering sensor {data['sensor_id']} for agent {data['agent_name']} under {data['name']}")
         try:
@@ -172,6 +188,9 @@ class Recorder(IRecorder):
             raise ValueError("Invalid file format.")
         
         _version = self._fp_replay.read(4)
+
+        if _version > VERSION:
+            raise ValueError(f"Unsupported version: {_version.hex()}. Supported Version: {VERSION.hex()}.")
 
         # Not checking version for now        
         self.is_replaying = True
