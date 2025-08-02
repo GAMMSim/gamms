@@ -27,7 +27,7 @@ def _record_switch_case(ctx: IContext, opCode: OpCodes, data: JsonType) -> None:
         ctx.agent.create_agent(data["name"], **data["kwargs"])
     elif opCode == OpCodes.AGENT_DELETE:
         ctx.logger.info(f"Deleting agent {data['name']}")
-        ctx.agent.delete_agent(data)
+        ctx.agent.delete_agent(data['name'])
     elif opCode == OpCodes.SIMULATE:
         ctx.visual.simulate()
     elif opCode == OpCodes.AGENT_CURRENT_NODE:
