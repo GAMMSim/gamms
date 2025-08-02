@@ -1,6 +1,7 @@
+from gamms.AgentEngine.agent_engine import AerialAgent
 from gamms.VisualizationEngine import Color
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
-from gamms.typing import IContext, OSMEdge, Node, ColorType
+from gamms.typing import IContext, OSMEdge, Node, ColorType, AgentType
 
 from typing import Dict, Any, cast, List
 
@@ -54,32 +55,56 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
         size = agent_data.size * 1.5
 
     agent = ctx.agent.get_agent(agent_data.name)
-    target_node = ctx.graph.graph.get_node(agent.current_node_id)
     waiting_simulation = data.get('_waiting_simulation', False)
-    if waiting_simulation:
-        prev_node = ctx.graph.graph.get_node(agent.prev_node_id)
-        prev_position = (prev_node.x, prev_node.y)
-        target_position = (target_node.x, target_node.y)
-        current_edge = None
-        for edge_id in ctx.graph.graph.get_edges():
-            edge = ctx.graph.graph.get_edge(edge_id)
-            if edge.source == agent.prev_node_id and edge.target == agent.current_node_id:
-                current_edge = edge
 
-        alpha = cast(float, data.get('_alpha'))
-        if current_edge is not None:
-            point = current_edge.linestring.interpolate(alpha, True)
-            position = (point.x, point.y)
+    if agent.type == AgentType.BASIC:
+        target_node = ctx.graph.graph.get_node(agent.current_node_id)
+        if waiting_simulation:
+            prev_node = ctx.graph.graph.get_node(agent.prev_node_id)
+            prev_position = (prev_node.x, prev_node.y)
+            target_position = (target_node.x, target_node.y)
+            current_edge = None
+            for edge_id in ctx.graph.graph.get_edges():
+                edge = ctx.graph.graph.get_edge(edge_id)
+                if edge.source == agent.prev_node_id and edge.target == agent.current_node_id:
+                    current_edge = edge
+
+            alpha = cast(float, data.get('_alpha'))
+            if current_edge is not None:
+                point = current_edge.linestring.interpolate(alpha, True)
+                position = (point.x, point.y)
+            else:
+                position = (prev_position[0] + alpha * (target_position[0] - prev_position[0]),
+                            prev_position[1] + alpha * (target_position[1] - prev_position[1]))
+
+            agent_data.current_position = position
         else:
-            position = (prev_position[0] + alpha * (target_position[0] - prev_position[0]), 
-                        prev_position[1] + alpha * (target_position[1] - prev_position[1]))
-            
-        agent_data.current_position = position
-    else:
-        position = (target_node.x, target_node.y)
+            position = (target_node.x, target_node.y)
 
-    # Draw each agent as a triangle at its current position
-    angle = math.radians(45)
+        # Draw each agent as a triangle at its current position
+        angle = math.radians(45)
+
+    elif agent.type == AgentType.AERIAL:
+        aerial_agent = cast(AerialAgent, agent)
+        if waiting_simulation:
+            prev_position = aerial_agent.prev_position
+            target_position = aerial_agent.position
+            alpha = cast(float, data.get('_alpha'))
+            position = (prev_position[0] + alpha * (target_position[0] - prev_position[0]),
+                        prev_position[1] + alpha * (target_position[1] - prev_position[1]))
+        else:
+            position = aerial_agent.position
+
+        quat = aerial_agent.quat
+        x = quat[1]
+        y = quat[2]
+        z = quat[3]
+        w = quat[0]
+        angle = math.atan2(2 * (w * z + x * y), 1 - 2 * (y ** 2 + z **2))
+
+    else:
+        raise ValueError(f"Unsupported agent type: {agent.type}")
+
     point1 = (position[0] + size * math.cos(angle), position[1] + size * math.sin(angle))
     point2 = (position[0] + size * math.cos(angle + 2.5), position[1] + size * math.sin(angle + 2.5))
     point3 = (position[0] + size * math.cos(angle - 2.5), position[1] + size * math.sin(angle - 2.5))
