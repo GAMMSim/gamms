@@ -87,7 +87,6 @@ class MapSensor(ISensor):
           - 'edges': List of edges visible from all sensed nodes.
         """
         current_node = self.ctx.graph.graph.get_node(node_id)
-        current_node = self.ctx.graph.graph.get_node(node_id)
         if self._owner is not None:
             # Fetch the owner's orientation from the agent engine.
             orientation_used = self.ctx.agent.get_agent(self._owner).orientation
