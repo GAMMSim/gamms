@@ -39,9 +39,6 @@ class NeighborSensor(ISensor):
         for nid in self.ctx.graph.graph.get_neighbors(node_id):
             nearest_neighbors.add(nid)
 
-        for nid in self.ctx.graph.graph.get_neighbors(node_id):
-            nearest_neighbors.add(nid)
-
         self._data = list(nearest_neighbors)
 
     def update(self, data: Dict[str, Any]) -> None:
@@ -102,43 +99,13 @@ class MapSensor(ISensor):
         else:
             orientation_used = self.orientation
         
-        
         if self.range == float('inf'):
-            edge_iter = self.ctx.graph.graph.get_edges()
             edge_iter = self.ctx.graph.graph.get_edges()
         else:
             edge_iter = self.ctx.graph.graph.get_edges(d=self.range, x=current_node.x, y=current_node.y)
 
-            edge_iter = self.ctx.graph.graph.get_edges(d=self.range, x=current_node.x, y=current_node.y)
-
-
         sensed_nodes: Dict[int, Node] = {}
         sensed_edges: List[OSMEdge] = []
-
-        for edge_id in edge_iter:
-            edge = self.ctx.graph.graph.get_edge(edge_id)
-            source = self.ctx.graph.graph.get_node(edge.source)
-            target = self.ctx.graph.graph.get_node(edge.target)
-            sbool = (source.x - current_node.x)**2 + (source.y - current_node.y)**2 <= self.range**2
-            tbool = (target.x - current_node.x)**2 + (target.y - current_node.y)**2 <= self.range**2
-            if not (self.fov == 2 * math.pi or orientation_used == (0.0, 0.0)):
-                angle = math.atan2(source.y - current_node.y, source.x - current_node.x) - math.atan2(orientation_used[1], orientation_used[0]) + math.pi
-                angle = angle % (2 * math.pi)
-                angle = angle - math.pi
-                sbool &= (
-                    abs(angle) <= self.fov / 2
-                ) or (source.id == node_id)
-                angle = math.atan2(target.y - current_node.y, target.x - current_node.x) - math.atan2(orientation_used[1], orientation_used[0]) + math.pi
-                angle = angle % (2 * math.pi)
-                angle = angle - math.pi
-                tbool &= (
-                    abs(angle) <= self.fov / 2
-                ) or (target.id == node_id)
-            if sbool:
-                sensed_nodes[source.id] = source
-            if tbool:
-                sensed_nodes[target.id] = target
-            if sbool and tbool:
 
         for edge_id in edge_iter:
             edge = self.ctx.graph.graph.get_edge(edge_id)
@@ -241,36 +208,7 @@ class AgentSensor(ISensor):
             )
         else:
             orientation_used = self.orientation
-        if self._owner is not None:
-            # Fetch the owner's orientation from the agent engine.
-            orientation_used = self.ctx.agent.get_agent(self._owner).orientation
-            # Complex multiplication to rotate the orientation vector.
-            orientation_used = (
-                self.orientation[0]*orientation_used[0] - self.orientation[1]*orientation_used[1], 
-                self.orientation[0]*orientation_used[1] + self.orientation[1]*orientation_used[0]
-            )
-        else:
-            orientation_used = self.orientation
 
-        sensed_agents = {}
-
-        # Collect positions and ids for all agents except the owner.
-        for agent in self.ctx.agent.create_iter():
-            if agent.name == self._owner:
-                continue
-            
-            agent_node = self.ctx.graph.graph.get_node(agent.current_node_id)
-            distance = (agent_node.x - current_node.x)**2 + (agent_node.y - current_node.y)**2
-            
-            if distance <= self.range**2:
-                if self.fov == 2 * math.pi or orientation_used == (0.0, 0.0):
-                    sensed_agents[agent.name] = agent.current_node_id
-                else:
-                    angle = math.atan2(agent_node.y - current_node.y, agent_node.x - current_node.x) - math.atan2(orientation_used[1], orientation_used[0]) + math.pi
-                    angle = angle % (2 * math.pi)
-                    angle = angle - math.pi
-                    if abs(angle) <= self.fov / 2 or agent.current_node_id == node_id:
-                        sensed_agents[agent.name] = agent.current_node_id
         sensed_agents = {}
 
         # Collect positions and ids for all agents except the owner.
