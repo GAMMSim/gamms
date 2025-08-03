@@ -245,7 +245,7 @@ class AgentEngine(IAgentEngine):
 
     def delete_agent(self, name: str) -> None:
         if self.ctx.record.record():
-            self.ctx.record.write(opCode=OpCodes.AGENT_DELETE, data=name)
+            self.ctx.record.write(opCode=OpCodes.AGENT_DELETE, data={'name' :name})
             
         if name not in self.agents:
             self.ctx.logger.warning(f"Deleting non-existent agent {name}")
