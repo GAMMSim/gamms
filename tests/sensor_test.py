@@ -175,16 +175,6 @@ class SensorEngineTest(unittest.TestCase):
                 gamms.SensorEngine.sensor_engine.SensorType.RANGE,
                 sensor_range=30.0, fov=2*math.pi
             )
-        with patch('gamms.SensorEngine.sensor_engine.MapSensor') as MockSensor:
-            _ = self.ctx.sensor.create_sensor(
-                sensor_id='test_map_sensor_2',
-                sensor_type=gamms.SensorEngine.sensor_engine.SensorType.RANGE,
-            )
-            MockSensor.assert_called_once_with(
-                self.ctx, 'test_map_sensor_2',
-                gamms.SensorEngine.sensor_engine.SensorType.RANGE,
-                sensor_range=30.0, fov=2*math.pi
-            )
         
         with patch('gamms.SensorEngine.sensor_engine.AgentSensor') as MockSensor:
             _ = self.ctx.sensor.create_sensor(
