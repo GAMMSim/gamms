@@ -34,6 +34,9 @@ class SensorType(Enum):
     ARC = 5
     AGENT_RANGE = 6
     AGENT_ARC = 7
+    AERIAL_MOVEMENT = 8
+    AERIAL = 9
+    AERIAL_AGENT = 10
 
 
 class ISensor(ABC):
