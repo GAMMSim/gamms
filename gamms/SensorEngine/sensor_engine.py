@@ -247,7 +247,7 @@ import numpy as np
 import math
 
 
-class DroneMovementSensor(ISensor):
+class AerialMovementSensor(ISensor):
     def __init__(self, ctx: IContext, sensor_id: str, sensor_type: SensorType):
         self._sensor_id = sensor_id
         self.ctx = ctx
@@ -324,7 +324,7 @@ class DroneMovementSensor(ISensor):
         pass
 
 
-class ConicDroneSensor(ISensor):
+class AerialSensor(ISensor):
     def __init__(self, ctx: IContext, sensor_id: str, sensor_type: SensorType, 
                  sensor_range: float, fov: float = math.pi/3):  # Default 60° FOV
         """
@@ -453,7 +453,7 @@ class AerialAgentSensor(ISensor):
         sensor_type: SensorType, 
         sensor_range: float, 
         fov: float = 2 * math.pi, 
-        orientation: Tuple[float, float] = (1.0, 0.0)
+        quat: Tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)
     ):
         """
         Detects other aerial agents within a specified 3D range and field of view.
@@ -462,14 +462,14 @@ class AerialAgentSensor(ISensor):
         Args:
             sensor_range: Maximum detection distance for agents
             fov: Field of view in radians. Use 2*pi for no angular filtering
-            orientation: Default orientation (sin, cos) if no owner is set
+            quat: Default quaternion (w, x, y, z) if no owner is set
         """
         self._sensor_id = sensor_id
         self.ctx = ctx
         self._type = sensor_type
         self.range = sensor_range
         self.fov = fov              
-        self.orientation = orientation  
+        self.quat = quat  
         self._owner = None
         self._data: Dict[str, Tuple[float, float, float]] = {}
     
@@ -487,10 +487,22 @@ class AerialAgentSensor(ISensor):
 
     def set_owner(self, owner: Union[str, None]) -> None:
         self._owner = owner
+    
+    def _quat_to_orientation(self, quat: Tuple[float, float, float, float]) -> Tuple[float, float]:
+        """
+        Convert quaternion (w, x, y, z) to orientation (sin, cos).
+        This extracts the yaw rotation from the quaternion for horizontal FOV calculations.
+        """
+        w, x, y, z = quat
+        # Calculate yaw angle from quaternion
+        sin_theta = 2 * (w * z + x * y)
+        cos_theta = 1 - 2 * (y**2 + z**2)
+        return (sin_theta, cos_theta)
         
     def sense(self, node_id: int, **kwargs) -> None:
         """
-        Detects agents within the sensor range in 3D space and returns agent positions instead of node IDs for aerial agents.
+        Detects agents within the sensor range in 3D space.
+        Returns agent positions instead of node IDs for aerial agents.
         """
         # Get sensing position
         pos = kwargs.get('pos', None)
@@ -524,19 +536,22 @@ class AerialAgentSensor(ISensor):
         if self._owner is not None:
             try:
                 owner_agent = self.ctx.agent.get_agent(self._owner)
-                if hasattr(owner_agent, 'orientation'):
-                    orientation_used = owner_agent.orientation
-                    # Rotate orientation vector
+                if hasattr(owner_agent, 'quat'):
+                    owner_quat = owner_agent.quat
+                    orientation_used = self._quat_to_orientation(owner_quat)
+                    # Apply sensor's quaternion rotation to owner's orientation
+                    sensor_orientation = self._quat_to_orientation(self.quat)
+                    # Complex multiplication to combine orientations
                     orientation_used = (
-                        self.orientation[0]*orientation_used[0] - self.orientation[1]*orientation_used[1], 
-                        self.orientation[0]*orientation_used[1] + self.orientation[1]*orientation_used[0]
+                        sensor_orientation[0]*orientation_used[0] - sensor_orientation[1]*orientation_used[1], 
+                        sensor_orientation[0]*orientation_used[1] + sensor_orientation[1]*orientation_used[0]
                     )
                 else:
-                    orientation_used = self.orientation
+                    orientation_used = self._quat_to_orientation(self.quat)
             except (KeyError, AttributeError):
-                orientation_used = self.orientation
+                orientation_used = self._quat_to_orientation(self.quat)
         else:
-            orientation_used = self.orientation
+            orientation_used = self._quat_to_orientation(self.quat)
 
         sensed_agents = {}
 
@@ -559,12 +574,12 @@ class AerialAgentSensor(ISensor):
             distance_3d = math.sqrt(dx**2 + dy**2 + dz**2)
             
             if distance_3d <= self.range:
-                # Check FOV -> only considering horizontal angle for now
+                # Check FOV (only considering horizontal angle for now)
                 if self.fov == 2 * math.pi or orientation_used == (0.0, 0.0):
                     sensed_agents[agent.name] = agent_pos
                 else:
                     # Calculate horizontal angle
-                    if dx != 0 or dy != 0:  
+                    if dx != 0 or dy != 0:  # Avoid division by zero
                         angle = math.atan2(dy, dx) - math.atan2(orientation_used[1], orientation_used[0]) + math.pi
                         angle = angle % (2 * math.pi) - math.pi
                         if abs(angle) <= self.fov / 2:
@@ -635,6 +650,23 @@ class SensorEngine(ISensorEngine):
                 sensor_type, 
                 sensor_range=cast(float, kwargs.get('sensor_range', 30.0)),
                 fov=2 * math.pi,
+            )
+        elif sensor_type == SensorType.AERIAL_MOVEMENT:
+            sensor = AerialMovementSensor(
+                self.ctx, sensor_id, sensor_type
+            )
+        elif sensor_type == SensorType.AERIAL:
+            sensor = AerialSensor(
+                self.ctx, sensor_id, sensor_type,
+                sensor_range=cast(float, kwargs.get('sensor_range', 100.0)),
+                fov=cast(float, kwargs.get('fov', math.pi/3))  # Default 60° FOV
+            )
+        elif sensor_type == SensorType.AERIAL_AGENT:
+            sensor = AerialAgentSensor(
+                self.ctx, sensor_id, sensor_type,
+                sensor_range=cast(float, kwargs.get('sensor_range', 100.0)),
+                fov=cast(float, kwargs.get('fov', 2 * math.pi)),
+                quat=kwargs.get('quat', (1.0, 0.0, 0.0, 0.0))
             )
         else:
             raise ValueError("Invalid sensor type")
