@@ -148,9 +148,15 @@ def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
     waiting_user_input = data.get('_waiting_user_input', False)
 
     # Break checker
-    if waiting_agent_name == None or waiting_user_input == False or input_options == {}:
+    if waiting_agent_name is None or waiting_user_input == False or input_options == {}:
         return
-    
+
+    current_waiting_agent = ctx.agent.get_agent(waiting_agent_name)
+    if current_waiting_agent.type == AgentType.AERIAL:
+        # aerial_agent = cast(AerialAgent, current_waiting_agent)
+        # ctx.visual.render_circle(aerial_agent.position[0], aerial_agent.position[1], 200, (0, 255, 255, 100))
+        return
+
     graph = ctx.graph.graph
     node_color = graph_data.node_color
     node_size = graph_data.node_size
@@ -164,7 +170,6 @@ def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
     active_edges: List[OSMEdge] = []
     for edge_id in graph.get_edges():
         edge = graph.get_edge(edge_id)
-        current_waiting_agent = ctx.agent.get_agent(waiting_agent_name)
         if (edge.source == current_waiting_agent.current_node_id and edge.target in target_node_id_set):
             active_edges.append(edge)
 
