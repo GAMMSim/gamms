@@ -363,7 +363,7 @@ class AerialAgent(IAerialAgent):
                 ret = node_id
                 max_d = dist
         if ret == -1:
-            max_d = (d + 0.001)**2
+            max_d = float("inf")
             ret = -1
             for node_id in self._ctx.graph.graph.get_nodes():
                 node = self._ctx.graph.graph.get_node(node_id)
