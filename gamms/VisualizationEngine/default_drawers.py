@@ -84,6 +84,12 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
         # Draw each agent as a triangle at its current position
         angle = math.radians(45)
 
+        point1 = (position[0] + size * math.cos(angle), position[1] + size * math.sin(angle))
+        point2 = (position[0] + size * math.cos(angle + 2.5), position[1] + size * math.sin(angle + 2.5))
+        point3 = (position[0] + size * math.cos(angle - 2.5), position[1] + size * math.sin(angle - 2.5))
+
+        ctx.visual.render_polygon([point1, point2, point3], color)
+
     elif agent.type == AgentType.AERIAL:
         aerial_agent = cast(AerialAgent, agent)
         if waiting_simulation:
@@ -102,14 +108,38 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
         w = quat[0]
         angle = math.atan2(2 * (w * z + x * y), 1 - 2 * (y ** 2 + z **2))
 
+        render_aerial_agent(ctx, position, angle, size, color)
+
     else:
         raise ValueError(f"Unsupported agent type: {agent.type}")
 
-    point1 = (position[0] + size * math.cos(angle), position[1] + size * math.sin(angle))
-    point2 = (position[0] + size * math.cos(angle + 2.5), position[1] + size * math.sin(angle + 2.5))
-    point3 = (position[0] + size * math.cos(angle - 2.5), position[1] + size * math.sin(angle - 2.5))
 
-    ctx.visual.render_polygon([point1, point2, point3], color)
+def render_aerial_agent(ctx: IContext, position: tuple[float, float, float], angle: float, size: float, color: ColorType):
+    cx = position[0]
+    cy = position[1]
+    points = []
+
+    base_radius = size * 0.45
+    base_half = size * 0.22
+    arm_len = size * 0.8
+
+    for i in range(4):
+        a = angle - i * (math.pi / 2) + math.pi / 4
+        dx = math.cos(a)
+        dy = math.sin(a)
+        pdx = -dy
+        pdy = dx
+
+        bx = cx + dx * base_radius
+        by = cy + dy * base_radius
+
+        p1 = (bx + pdx * base_half, by + pdy * base_half)
+        p2 = (bx + dx * arm_len, by + dy * arm_len)
+        p3 = (bx - pdx * base_half, by - pdy * base_half)
+
+        points.extend([p1, p2, p3])
+
+    ctx.visual.render_polygon(points, color)
 
 
 def render_graph(ctx: IContext, data: Dict[str, Any]):
