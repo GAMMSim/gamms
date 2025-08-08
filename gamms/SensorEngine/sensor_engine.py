@@ -103,7 +103,6 @@ class MapSensor(ISensor):
         else:
             edge_iter = self.ctx.graph.graph.get_edges(d=self.range, x=current_node.x, y=current_node.y)
 
-
         sensed_nodes: Dict[int, Node] = {}
         sensed_edges: List[OSMEdge] = []
 
@@ -119,13 +118,13 @@ class MapSensor(ISensor):
                 angle = angle - math.pi
                 sbool &= (
                     abs(angle) <= self.fov / 2
-                )
+                ) or (source.id == node_id)
                 angle = math.atan2(target.y - current_node.y, target.x - current_node.x) - math.atan2(orientation_used[1], orientation_used[0]) + math.pi
                 angle = angle % (2 * math.pi)
                 angle = angle - math.pi
                 tbool &= (
                     abs(angle) <= self.fov / 2
-                )
+                ) or (target.id == node_id)
             if sbool:
                 sensed_nodes[source.id] = source
             if tbool:
@@ -226,7 +225,7 @@ class AgentSensor(ISensor):
                     angle = math.atan2(agent_node.y - current_node.y, agent_node.x - current_node.x) - math.atan2(orientation_used[1], orientation_used[0]) + math.pi
                     angle = angle % (2 * math.pi)
                     angle = angle - math.pi
-                    if abs(angle) <= self.fov / 2:
+                    if abs(angle) <= self.fov / 2 or agent.current_node_id == node_id:
                         sensed_agents[agent.name] = agent.current_node_id
 
         self._data = sensed_agents
@@ -295,7 +294,7 @@ class SensorEngine(ISensorEngine):
             )
         else:
             raise ValueError("Invalid sensor type")
-        self.sensors[sensor_id] = sensor
+        self.add_sensor(sensor)
         return sensor
     
     def add_sensor(self, sensor: ISensor) -> None:
