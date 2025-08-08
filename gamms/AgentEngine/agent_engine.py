@@ -269,6 +269,7 @@ class AerialAgent(IAerialAgent):
         self._quat = (1.0, 0.0, 0.0, 0.0)  # Default quaternion (no rotation)
         node = self._ctx.graph.graph.get_node(start_node_id)
         self._position = (node.x, node.y, 0.0)  # Default position at the node's coordinates with z=0.0
+        self._prev_position = self._position
         self._prev_node_id = start_node_id
         self._speed = speed  # Speed of the aerial agent
 
@@ -295,8 +296,12 @@ class AerialAgent(IAerialAgent):
                 }
             )
         self.prev_node_id = self.current_node_id  # Update previous node ID
-        self._position = pos
         self._prev_position = self._position
+        self._position = pos
+
+    @property
+    def prev_position(self):
+        return self._prev_position
     
     @property
     def quat(self) -> Tuple[float, float, float, float]:

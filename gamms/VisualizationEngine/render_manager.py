@@ -137,7 +137,7 @@ class RenderManager:
         """
         world_x = x / self.screen_width * 2 * self.camera_size - self.camera_size
         world_y = -y / self.screen_height * 2 * self.camera_size_y + self.camera_size_y
-        return world_x, world_y
+        return world_x + self.camera_x, world_y + self.camera_y
     
     def viewport_to_screen(self, x: float, y: float) -> Tuple[float, float]:
         """

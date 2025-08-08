@@ -1,8 +1,9 @@
+from gamms.AgentEngine.agent_engine import AerialAgent
 from gamms.VisualizationEngine import Color
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
-from gamms.typing import IContext, OSMEdge, Node, ColorType
+from gamms.typing import IContext, OSMEdge, Node, ColorType, AgentType
 
-from typing import Dict, Any, cast, List
+from typing import Dict, Any, cast, List, Optional
 
 import math
 
@@ -54,37 +55,91 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
         size = agent_data.size * 1.5
 
     agent = ctx.agent.get_agent(agent_data.name)
-    target_node = ctx.graph.graph.get_node(agent.current_node_id)
     waiting_simulation = data.get('_waiting_simulation', False)
-    if waiting_simulation:
-        prev_node = ctx.graph.graph.get_node(agent.prev_node_id)
-        prev_position = (prev_node.x, prev_node.y)
-        target_position = (target_node.x, target_node.y)
-        current_edge = None
-        for edge_id in ctx.graph.graph.get_edges():
-            edge = ctx.graph.graph.get_edge(edge_id)
-            if edge.source == agent.prev_node_id and edge.target == agent.current_node_id:
-                current_edge = edge
 
-        alpha = cast(float, data.get('_alpha'))
-        if current_edge is not None:
-            point = current_edge.linestring.interpolate(alpha, True)
-            position = (point.x, point.y)
+    if agent.type == AgentType.BASIC:
+        target_node = ctx.graph.graph.get_node(agent.current_node_id)
+        if waiting_simulation:
+            prev_node = ctx.graph.graph.get_node(agent.prev_node_id)
+            prev_position = (prev_node.x, prev_node.y)
+            target_position = (target_node.x, target_node.y)
+            current_edge = None
+            for edge_id in ctx.graph.graph.get_edges():
+                edge = ctx.graph.graph.get_edge(edge_id)
+                if edge.source == agent.prev_node_id and edge.target == agent.current_node_id:
+                    current_edge = edge
+
+            alpha = cast(float, data.get('_alpha'))
+            if current_edge is not None:
+                point = current_edge.linestring.interpolate(alpha, True)
+                position = (point.x, point.y)
+            else:
+                position = (prev_position[0] + alpha * (target_position[0] - prev_position[0]),
+                            prev_position[1] + alpha * (target_position[1] - prev_position[1]))
+
+            agent_data.current_position = position
         else:
-            position = (prev_position[0] + alpha * (target_position[0] - prev_position[0]), 
+            position = (target_node.x, target_node.y)
+
+        # Draw each agent as a triangle at its current position
+        angle = math.radians(45)
+
+        point1 = (position[0] + size * math.cos(angle), position[1] + size * math.sin(angle))
+        point2 = (position[0] + size * math.cos(angle + 2.5), position[1] + size * math.sin(angle + 2.5))
+        point3 = (position[0] + size * math.cos(angle - 2.5), position[1] + size * math.sin(angle - 2.5))
+
+        ctx.visual.render_polygon([point1, point2, point3], color)
+
+    elif agent.type == AgentType.AERIAL:
+        aerial_agent = cast(AerialAgent, agent)
+        if waiting_simulation:
+            prev_position = aerial_agent.prev_position
+            target_position = aerial_agent.position
+            alpha = cast(float, data.get('_alpha'))
+            position = (prev_position[0] + alpha * (target_position[0] - prev_position[0]),
                         prev_position[1] + alpha * (target_position[1] - prev_position[1]))
-            
-        agent_data.current_position = position
+        else:
+            position = aerial_agent.position
+
+        quat = aerial_agent.quat
+        x = quat[1]
+        y = quat[2]
+        z = quat[3]
+        w = quat[0]
+        angle = math.atan2(2 * (w * z + x * y), 1 - 2 * (y ** 2 + z **2))
+
+        render_aerial_agent(ctx, position, angle, size, color)
+
     else:
-        position = (target_node.x, target_node.y)
+        raise ValueError(f"Unsupported agent type: {agent.type}")
 
-    # Draw each agent as a triangle at its current position
-    angle = math.radians(45)
-    point1 = (position[0] + size * math.cos(angle), position[1] + size * math.sin(angle))
-    point2 = (position[0] + size * math.cos(angle + 2.5), position[1] + size * math.sin(angle + 2.5))
-    point3 = (position[0] + size * math.cos(angle - 2.5), position[1] + size * math.sin(angle - 2.5))
 
-    ctx.visual.render_polygon([point1, point2, point3], color)
+def render_aerial_agent(ctx: IContext, position: tuple[float, float], angle: float, size: float, color: ColorType):
+    cx = position[0]
+    cy = position[1]
+    points = []
+
+    base_radius = size * 0.45
+    base_half = size * 0.22
+    arm_len = size * 0.8
+
+    for i in range(4):
+        a = angle - i * (math.pi / 2) + math.pi / 4
+        dx = math.cos(a)
+        dy = math.sin(a)
+        pdx = -dy
+        pdy = dx
+
+        bx = cx + dx * base_radius
+        by = cy + dy * base_radius
+
+        p1 = (bx + pdx * base_half, by + pdy * base_half)
+        p2 = (bx + dx * arm_len, by + dy * arm_len)
+        p3 = (bx - pdx * base_half, by - pdy * base_half)
+
+        points.extend([p1, p2, p3])
+
+    ctx.visual.render_polygon(points, color)
 
 
 def render_graph(ctx: IContext, data: Dict[str, Any]):
@@ -118,14 +173,18 @@ def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
         data (dict): The data containing the graph's information.
     """
     graph_data = cast(GraphData, data.get('graph_data'))
-    waiting_agent_name = data.get('_waiting_agent_name', None)
+    waiting_agent_name: Optional[str] = data.get('_waiting_agent_name', None)
     input_options = data.get('_input_options', {})
     waiting_user_input = data.get('_waiting_user_input', False)
 
     # Break checker
-    if waiting_agent_name == None or waiting_user_input == False or input_options == {}:
+    if waiting_agent_name is None or not waiting_user_input or input_options == {}:
         return
-    
+
+    current_waiting_agent = ctx.agent.get_agent(waiting_agent_name)
+    if current_waiting_agent.type == AgentType.AERIAL:
+        return
+
     graph = ctx.graph.graph
     node_color = graph_data.node_color
     node_size = graph_data.node_size
@@ -139,8 +198,7 @@ def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
     active_edges: List[OSMEdge] = []
     for edge_id in graph.get_edges():
         edge = graph.get_edge(edge_id)
-        current_waiting_agent = ctx.agent.get_agent(waiting_agent_name)
-        if (edge.source == current_waiting_agent.current_node_id and edge.target in target_node_id_set):
+        if edge.source == current_waiting_agent.current_node_id and edge.target in target_node_id_set:
             active_edges.append(edge)
 
     for edge in active_edges:
