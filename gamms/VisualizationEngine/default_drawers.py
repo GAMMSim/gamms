@@ -3,7 +3,7 @@ from gamms.VisualizationEngine import Color
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
 from gamms.typing import IContext, OSMEdge, Node, ColorType, AgentType
 
-from typing import Dict, Any, cast, List
+from typing import Dict, Any, cast, List, Optional
 
 import math
 
@@ -114,7 +114,7 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
         raise ValueError(f"Unsupported agent type: {agent.type}")
 
 
-def render_aerial_agent(ctx: IContext, position: tuple[float, float, float], angle: float, size: float, color: ColorType):
+def render_aerial_agent(ctx: IContext, position: tuple[float, float], angle: float, size: float, color: ColorType):
     cx = position[0]
     cy = position[1]
     points = []
@@ -173,18 +173,16 @@ def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
         data (dict): The data containing the graph's information.
     """
     graph_data = cast(GraphData, data.get('graph_data'))
-    waiting_agent_name = data.get('_waiting_agent_name', None)
+    waiting_agent_name: Optional[str] = data.get('_waiting_agent_name', None)
     input_options = data.get('_input_options', {})
     waiting_user_input = data.get('_waiting_user_input', False)
 
     # Break checker
-    if waiting_agent_name is None or waiting_user_input == False or input_options == {}:
+    if waiting_agent_name is None or not waiting_user_input or input_options == {}:
         return
 
     current_waiting_agent = ctx.agent.get_agent(waiting_agent_name)
     if current_waiting_agent.type == AgentType.AERIAL:
-        # aerial_agent = cast(AerialAgent, current_waiting_agent)
-        # ctx.visual.render_circle(aerial_agent.position[0], aerial_agent.position[1], 200, (0, 255, 255, 100))
         return
 
     graph = ctx.graph.graph
@@ -200,7 +198,7 @@ def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
     active_edges: List[OSMEdge] = []
     for edge_id in graph.get_edges():
         edge = graph.get_edge(edge_id)
-        if (edge.source == current_waiting_agent.current_node_id and edge.target in target_node_id_set):
+        if edge.source == current_waiting_agent.current_node_id and edge.target in target_node_id_set:
             active_edges.append(edge)
 
     for edge in active_edges:
