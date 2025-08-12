@@ -54,7 +54,7 @@ class NoEngine(IVisualizationEngine):
                          perform_culling_test: bool=True):
         return
 
-    def render_circle(self, x: float, y: float, radius: float, color: ColorType = Color.Black,
+    def render_circle(self, x: float, y: float, radius: float, color: ColorType = Color.Black, width: int=0,
                       perform_culling_test: bool=True):
         return
 
