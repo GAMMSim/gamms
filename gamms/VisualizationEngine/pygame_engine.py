@@ -380,8 +380,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         surface = self._get_target_surface(layer)
         self._pygame.draw.rect(surface, color, self._pygame.Rect(x, y, width, height))
 
-    def render_circle(self, x: float, y: float, radius: float, color: ColorType = Color.Black, width: int=0,
-                      perform_culling_test: bool=True):
+    def render_circle(self, x: float, y: float, radius: float, color: ColorType = Color.Black, width: int = 0,
+                      perform_culling_test: bool = True):
         if perform_culling_test and self._render_manager.check_circle_culled(x, y, radius):
             return
         
