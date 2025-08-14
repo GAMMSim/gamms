@@ -284,6 +284,10 @@ class AerialAgent(IAerialAgent):
     @property
     def position(self) -> Tuple[float, float, float]:
         return self._position
+
+    @property
+    def speed(self) -> float:
+        return self._speed
     
     @position.setter
     def position(self, pos: Tuple[float, float, float]):

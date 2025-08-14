@@ -183,6 +183,9 @@ def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
 
     current_waiting_agent = ctx.agent.get_agent(waiting_agent_name)
     if current_waiting_agent.type == AgentType.AERIAL:
+        aerial_agent = cast(AerialAgent, current_waiting_agent)
+        radius = aerial_agent.speed
+        ctx.visual.render_circle(aerial_agent.position[0], aerial_agent.position[1], radius, (0, 255, 255), 3)
         return
 
     graph = ctx.graph.graph

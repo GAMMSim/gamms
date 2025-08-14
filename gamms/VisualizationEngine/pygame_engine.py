@@ -248,6 +248,12 @@ class PygameVisualizationEngine(IVisualizationEngine):
                         world_pos = self._render_manager.screen_to_world(pos[0], pos[1])
                         delta = (world_pos[0] - aerial_agent.position[0], world_pos[1] - aerial_agent.position[1])
                         self._input_position_result = (delta[0], delta[1], 0)
+                    elif event.type == self._pygame.KEYDOWN and event.key == self._pygame.K_0:
+                        self._input_position_result = (0, 0, 0)
+                    elif event.type == self._pygame.KEYDOWN and event.key == self._pygame.K_UP:
+                        self._input_position_result = (0, 0, 1)
+                    elif event.type == self._pygame.KEYDOWN and event.key == self._pygame.K_DOWN:
+                        self._input_position_result = (0, 0, -1)
 
 
     def handle_tick(self):
@@ -374,8 +380,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         surface = self._get_target_surface(layer)
         self._pygame.draw.rect(surface, color, self._pygame.Rect(x, y, width, height))
 
-    def render_circle(self, x: float, y: float, radius: float, color: ColorType = Color.Black,
-                      perform_culling_test: bool=True):
+    def render_circle(self, x: float, y: float, radius: float, color: ColorType = Color.Black, width: int = 0,
+                      perform_culling_test: bool = True):
         if perform_culling_test and self._render_manager.check_circle_culled(x, y, radius):
             return
         
@@ -389,7 +395,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         
         layer = self._render_manager.current_drawing_artist.get_layer()
         surface = self._get_target_surface(layer)
-        self._pygame.draw.circle(surface, color, (x, y), radius)
+        self._pygame.draw.circle(surface, color, (x, y), radius, width)
 
     def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: ColorType = Color.Black,
                     width: int=1, is_aa: bool=False, perform_culling_test: bool=True, force_no_aa: bool = False):
@@ -482,11 +488,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         if self.ctx.is_terminated():
             return state["curr_pos"]
         self._toggle_waiting_user_input(True)
-        def get_neighbours(state: Dict[str, Any]) -> List[int]:
-            for (type, data) in state["sensor"].values():
-                if type == SensorType.NEIGHBOR:
-                    return data
-            return []
 
         prev_waiting_agent_name = self._waiting_agent_name
         if prev_waiting_agent_name is not None:
@@ -497,7 +498,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         waiting_agent_artist = self._agent_artists[agent_name]
         waiting_agent_artist.data['_is_waiting'] = True
 
-        options = get_neighbours(state)
+        waiting_agent = self.ctx.agent.get_agent(agent_name)
+        options = [waiting_agent.current_node_id] + list(self.ctx.graph.graph.get_neighbors(waiting_agent.current_node_id))
 
         self._input_options: dict[int, int] = {}
         for i in range(min(len(options), 10)):

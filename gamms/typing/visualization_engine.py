@@ -169,7 +169,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_circle(self, x: float, y: float, radius: float, color: Tuple[Union[int, float], Union[int, float], Union[int, float]], perform_culling_test: bool):
+    def render_circle(self, x: float, y: float, radius: float, color: Tuple[Union[int, float], Union[int, float], Union[int, float]], width: int, perform_culling_test: bool):
         """
         Render a circle shape at the specified position with the given radius and color.
 
@@ -178,6 +178,7 @@ class IVisualizationEngine(ABC):
             y (float): The y-coordinate of the circle's center.
             radius (float): The radius of the circle.
             color (Tuple[Union[int, float], Union[int, float], Union[int, float]]): The color of the circle in RGB format.
+            width (int): The width of the circle's outline in pixels. If equal to 0, the circle is filled.
             perform_culling_test (bool): Whether to perform culling.
         """
         pass
