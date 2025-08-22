@@ -2,7 +2,8 @@ from gamms.typing import (
     IArtist,
     IContext,
     IVisualizationEngine,
-    ColorType
+    ColorType,
+    AgentType
 )
 from gamms.typing.opcodes import OpCodes
 from gamms.VisualizationEngine.artist import Artist
@@ -41,8 +42,14 @@ class NoEngine(IVisualizationEngine):
             self.ctx.record.write(opCode=OpCodes.SIMULATE, data={})
         return
     
-    def human_input(self, agent_name: str, state: Dict[str, Any]) -> int:
-        return state["curr_pos"]
+    def human_input(self, agent_name: str, state: Dict[str, Any]) -> Union[int, Tuple[float, float, float]]:
+        agent = self.ctx.agent.get_agent(agent_name)
+        if agent.type == AgentType.BASIC:
+            return state["curr_pos"]
+        elif agent.type == AgentType.AERIAL:
+            return (0.0, 0.0, 0.0)
+        else:
+            raise RuntimeError(f"Unknown agent type {agent.type} for agent {agent_name}")
     
     def terminate(self):
         return

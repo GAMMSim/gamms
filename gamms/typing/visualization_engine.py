@@ -125,7 +125,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def human_input(self, agent_name: str, state: Dict[str, Any]) -> int:
+    def human_input(self, agent_name: str, state: Dict[str, Any]) -> Union[int, Tuple[float, float, float]]:
         """
         Process input from a human player or user.
 
@@ -144,11 +144,13 @@ class IVisualizationEngine(ABC):
 
         Returns:
             int: The target node id selected by the user.
+            Tuple[float, float, float]: The target position (x, y, z) selected by the user for aerial agents.
 
         Raises:
             ValueError: If the input `state` contains invalid or unsupported commands.
             KeyError: If required keys are missing from the `state` dictionary.
             TypeError: If the types of the provided input data do not match expected types.
+            RuntimeError: If the agent type is unknown or unsupported.
         """
         pass
 

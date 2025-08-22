@@ -306,3 +306,31 @@ def render_agent_sensor(ctx: IContext, data: Dict[str, Any]):
         point3 = (position[0] + size * math.cos(angle - 2.5), position[1] + size * math.sin(angle - 2.5))
 
         ctx.visual.render_polygon([point1, point2, point3], color)
+
+def render_aerial_agent_sensor(ctx: IContext, data: Dict[str, Any]):
+    """
+    Render an aerial agent sensor.
+
+    Args:
+        ctx (Context): The current simulation context.
+        data (Dict[str, Any]): The data containing the sensor's information.
+    """
+    sensor = ctx.sensor.get_sensor(data.get('name'))
+    color = data.get('color', Color.Cyan)
+    size = data.get('size', 8)
+    sensor_data = cast(Dict[str, Any], sensor.data)
+    for agent_info in sensor_data.values():
+        agent_type = agent_info[0]
+        if agent_type == AgentType.BASIC:
+            angle = math.radians(45)
+            point1 = (agent_info[1][0] + size * math.cos(angle), agent_info[1][1] + size * math.sin(angle))
+            point2 = (agent_info[1][0] + size * math.cos(angle + 2.5), agent_info[1][1] + size * math.sin(angle + 2.5))
+            point3 = (agent_info[1][0] + size * math.cos(angle - 2.5), agent_info[1][1] + size * math.sin(angle - 2.5))
+            ctx.visual.render_polygon([point1, point2, point3], color)
+        elif agent_type == AgentType.AERIAL:
+            position = agent_info[1]
+            angle = 0.0
+
+            render_aerial_agent(ctx, position, angle, size, color)
+        else:
+            raise ValueError(f"Unsupported agent type: {agent_type}")

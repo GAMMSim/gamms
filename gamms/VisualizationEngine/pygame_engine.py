@@ -2,8 +2,12 @@ from gamms.AgentEngine.agent_engine import AerialAgent
 from gamms.VisualizationEngine import Color, Space, Shape, Artist, lazy
 from gamms.VisualizationEngine.render_manager import RenderManager
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
-from gamms.VisualizationEngine.default_drawers import render_circle, render_rectangle, \
-    render_agent, render_graph, render_neighbor_sensor, render_map_sensor, render_agent_sensor, render_input_overlay
+from gamms.VisualizationEngine.default_drawers import (
+    render_circle, render_rectangle,
+    render_agent, render_graph, render_neighbor_sensor,
+    render_map_sensor, render_agent_sensor, render_input_overlay,
+    render_aerial_agent_sensor,
+)
 from gamms.typing import (
     IVisualizationEngine,
     IArtist,
@@ -141,12 +145,16 @@ class PygameVisualizationEngine(IVisualizationEngine):
             drawer = render_neighbor_sensor
             data['color'] = kwargs.pop('color', Color.Cyan)
             data['size'] = kwargs.pop('size', 8)
-        elif sensor_type == SensorType.MAP or sensor_type == SensorType.RANGE or sensor_type == SensorType.ARC:
+        elif sensor_type in (SensorType.MAP, SensorType.RANGE, SensorType.ARC, SensorType.AERIAL):
             drawer = render_map_sensor
             data['node_color'] = kwargs.pop('node_color', Color.Cyan)
             data['edge_color'] = kwargs.pop('edge_color', Color.Cyan)
-        elif sensor_type == SensorType.AGENT or sensor_type == SensorType.AGENT_RANGE or sensor_type == SensorType.AGENT_ARC:
+        elif sensor_type in (SensorType.AGENT, SensorType.AGENT_RANGE, SensorType.AGENT_ARC):
             drawer = render_agent_sensor
+            data['color'] = kwargs.pop('color', Color.Cyan)
+            data['size'] = kwargs.pop('size', 8)
+        elif sensor_type == SensorType.AERIAL_AGENT:
+            drawer = render_aerial_agent_sensor
             data['color'] = kwargs.pop('color', Color.Cyan)
             data['size'] = kwargs.pop('size', 8)
         else:
@@ -484,7 +492,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self.handle_tick()
         self._pygame.display.flip()
 
-    def human_input(self, agent_name: str, state: Dict[str, Any]) -> int:
+    def human_input(self, agent_name: str, state: Dict[str, Any]) -> Union[int, Tuple[float, float, float]]:
         if self.ctx.is_terminated():
             return state["curr_pos"]
         self._toggle_waiting_user_input(True)
@@ -532,14 +540,21 @@ class PygameVisualizationEngine(IVisualizationEngine):
                 if self._input_position_result == -1:
                     self.end_handle_human_input()
                     self.ctx.terminate()
-                    return state["curr_pos"]
+                    return (0.0, 0.0, 0.0)
 
                 if self._input_position_result is not None:
                     result = self._input_position_result
                     self.end_handle_human_input()
                     return result
-
-        return state["curr_pos"]
+            else:
+                raise RuntimeError(f"Unknown agent type {waiting_agent.type} for agent {agent_name}")
+        
+        if waiting_agent.type == AgentType.BASIC:
+            return state["curr_pos"]
+        elif waiting_agent.type == AgentType.AERIAL:
+            return (0.0, 0.0, 0.0)
+        else:
+            raise RuntimeError(f"Unknown agent type {waiting_agent.type} for agent {agent_name}")
 
     def end_handle_human_input(self):
         for agent_artist in self._agent_artists.values():
