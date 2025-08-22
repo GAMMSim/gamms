@@ -5,6 +5,8 @@ from gamms.typing import(
     SensorType,
     Node,
     OSMEdge,
+    AgentType,
+    IAerialAgent
 )
 
 from typing import Any, Dict, Optional, Callable, Tuple, List, Union, cast
@@ -234,99 +236,35 @@ class AgentSensor(ISensor):
     def update(self, data: Dict[str, Any]) -> None:
         # No dynamic updates required for this sensor.
         pass
-from gamms.typing import (
-    IContext,
-    ISensor,
-    SensorType,
-    Node,
-    OSMEdge,
-    AgentType,
-)
-from typing import Dict, Any, List, Tuple, Union, cast
-import numpy as np
-import math
 
+def multiply_quaternions(q1: Tuple[float, float, float, float], q2: Tuple[float, float, float, float]) -> Tuple[float, float, float, float]:
+    w1, x1, y1, z1 = q1
+    w2, x2, y2, z2 = q2
+    return (
+        w1*w2 - x1*x2 - y1*y2 - z1*z2,
+        w1*x2 + x1*w2 + y1*z2 - z1*y2,
+        w1*y2 - x1*z2 + y1*w2 + z1*x2,
+        w1*z2 + x1*y2 - y1*x2 + z1*w2
+    )
 
-class AerialMovementSensor(ISensor):
-    def __init__(self, ctx: IContext, sensor_id: str, sensor_type: SensorType):
-        self._sensor_id = sensor_id
-        self.ctx = ctx
-        self._type = sensor_type
-        self._data: List[Tuple[float, float, float]] = []
-        self._owner = None
-    
-    @property
-    def sensor_id(self) -> str:
-        return self._sensor_id
-    
-    @property
-    def type(self) -> SensorType:
-        return self._type
-
-    @property
-    def data(self) -> List[Tuple[float, float, float]]:
-        return self._data
-    
-    def set_owner(self, owner: Union[str, None]) -> None:
-        self._owner = owner
-
-    def sense(self, node_id: int, **kwargs) -> None:
-        """
-        Calculate possible movement positions in a circle around current position.
-        
-        Args:
-            node_id: Current node (may not be used if drone is airborne)
-            **kwargs: 
-                pos: Current (x, y, z) position
-                speed: Movement speed (default 30)
-        """
-        # Get position from kwargs first, then try to get from owner agent
-        pos = kwargs.get('pos', None)
-        speed = kwargs.get('speed', 30)  # Default speed if not provided
-        
-        # If no position in kwargs and we have an owner, get position from agent
-        if pos is None and self._owner is not None:
-            try:
-                agent = self.ctx.agent.get_agent(self._owner)
-                # Check if it's an aerial agent
-                if hasattr(agent, 'type') and agent.type == AgentType.AERIAL:
-                    pos = agent.position
-                    # Get speed from agent if available
-                    if hasattr(agent, '_speed'):
-                        speed = agent._speed
-                else:
-                    # For ground agents, use node position
-                    node = self.ctx.graph.graph.get_node(agent.current_node_id)
-                    pos = (node.x, node.y, 0.0)
-            except (KeyError, AttributeError):
-                # Fallback to node position if agent not found or doesn't have position
-                if node_id is not None:
-                    node = self.ctx.graph.graph.get_node(node_id)
-                    pos = (node.x, node.y, 0.0)
-        
-        # If still no position, fallback to node
-        if pos is None and node_id is not None:
-            node = self.ctx.graph.graph.get_node(node_id)
-            pos = (node.x, node.y, 0.0)
-        
-        possible_positions = []
-        if pos is not None:
-            x, y, z = pos
-            # Generate 36 positions (every 10 degrees) at the given speed
-            for angle in np.linspace(0, 2 * np.pi, num=36, endpoint=False):
-                new_x = x + speed * np.cos(angle)
-                new_y = y + speed * np.sin(angle)
-                possible_positions.append((new_x, new_y, z))  # Maintain altitude
-        
-        self._data = possible_positions
-
-    def update(self, data: Dict[str, Any]) -> None:
-        pass
-
+def quaternion_to_direction(quat: Tuple[float, float, float, float]) -> Tuple[float, float, float]:
+    w, x, y, z = quat
+    # Convert quaternion to direction vector (assuming forward is along the x-axis)
+    return (
+        1 - 2*(y**2 + z**2),
+        2*(x*y + w*z),
+        2*(x*z - w*y)
+    )
 
 class AerialSensor(ISensor):
-    def __init__(self, ctx: IContext, sensor_id: str, sensor_type: SensorType, 
-                 sensor_range: float, fov: float = math.pi/3):  # Default 60° FOV
+    def __init__(
+        self,
+        ctx: IContext,
+        sensor_id: str,
+        sensor_range: float,
+        fov: float = math.pi / 3,
+        quat: Tuple[float, float, float, float] = (0.0, 0.0, 1.0, 0.0)
+    ):  # Default 60° FOV
         """
         Downward-facing conic sensor for aerial agents.
         
@@ -336,108 +274,80 @@ class AerialSensor(ISensor):
         """
         self._sensor_id = sensor_id
         self.ctx = ctx
-        self._type = sensor_type
         self._data: Dict[str, Union[Dict[int, Node], List[OSMEdge]]] = {}
         self._owner = None
         self.range = sensor_range
         self.fov = min(fov, math.pi * 0.9)  # Cap at ~162° to avoid backward vision
-    
+        self.quat = quat
+
     @property
     def sensor_id(self) -> str:
         return self._sensor_id
     
     @property
     def type(self) -> SensorType:
-        return self._type
+        return SensorType.AERIAL
 
     @property
     def data(self) -> Dict[str, Union[Dict[int, Node], List[OSMEdge]]]:
         return self._data
     
     def set_owner(self, owner: Union[str, None]) -> None:
+        if owner is not None:
+            agent = self.ctx.agent.get_agent(owner)
+            if agent.type != AgentType.AERIAL:
+                raise ValueError("Owner of AerialSensor must be an aerial agent")
         self._owner = owner
 
-    def sense(self, node_id: int, **kwargs) -> None:
+    def sense(self, node_id: int) -> None:
         """
         Detect nodes within the conic field of view from the drone's position.
         
         Args:
             node_id: Current node (may not be used if drone is airborne)
-            **kwargs:
-                pos: Current (x, y, z) position of the drone
-        """
-        # Get position from kwargs first, then try to get from owner agent
-        pos = kwargs.get('pos', None)
-        
-        # If no position in kwargs and we have an owner, get position from agent
-        if pos is None and self._owner is not None:
-            try:
-                agent = self.ctx.agent.get_agent(self._owner)
-                # Check if it's an aerial agent
-                if hasattr(agent, 'type') and agent.type == AgentType.AERIAL:
-                    pos = agent.position
-                else:
-                    # For ground agents, use node position with z=0
-                    node = self.ctx.graph.graph.get_node(agent.current_node_id)
-                    pos = (node.x, node.y, 0.0)
-            except (KeyError, AttributeError):
-                # Fallback to node position if agent not found
-                if node_id is not None:
-                    node = self.ctx.graph.graph.get_node(node_id)
-                    pos = (node.x, node.y, 0.0)
-        
-        # If still no position, fallback to node
-        if pos is None and node_id is not None:
-            node = self.ctx.graph.graph.get_node(node_id)
-            pos = (node.x, node.y, 0.0)
-        
-        # If no position provided or on ground (z=0), return empty
-        if pos is None or pos[2] <= 0:
+        """        
+        # If no owner, return empty
+        if self._owner is None:
             self._data = {'nodes': {}, 'edges': []}
             return
-        
-        x, y, height = pos
+        agent = cast(IAerialAgent, self.ctx.agent.get_agent(self._owner))
+
+        # Multiply agent orientation by sensor quaternion
+        orientation = multiply_quaternions(agent.quat, self.quat)
+        # Convert to Euler angles to extract pitch
+        fx, fy, fz = quaternion_to_direction(orientation)
+
+        pos = agent.position
+                
+        x, y, z = pos
         
         # Calculate the radius of visibility on the ground
         # Based on cone geometry and sensor range constraints
         half_angle = self.fov / 2
-        
-        # Cone radius at ground level
-        cone_radius = height * math.tan(half_angle)
-        
-        # Maximum ground radius based on sensor range
-        # Using Pythagorean theorem: ground_radius² + height² = sensor_range²
-        max_ground_radius_sq = max(0, self.range**2 - height**2)
-        max_ground_radius = math.sqrt(max_ground_radius_sq)
-        
-        # Effective visible radius is the minimum of the two
-        visible_radius = min(cone_radius, max_ground_radius)
-        
-        # Get all nodes from the graph
-        nodes = cast(Dict[int, Node], self.ctx.graph.graph.nodes)
+
         sensed_nodes: Dict[int, Node] = {}
-        
-        # Check each node if it's within the visible circle on the ground
-        for node_id_iter, node in nodes.items():
-            # Calculate distance from drone's ground position to node
-            dx = node.x - x
-            dy = node.y - y
-            ground_distance = math.sqrt(dx**2 + dy**2)
-            
-            # Check if within visible radius
-            if ground_distance <= visible_radius:
-                # Also verify it's within sensor range (hypotenuse check)
-                slant_distance = math.sqrt(ground_distance**2 + height**2)
-                if slant_distance <= self.range:
-                    sensed_nodes[node_id_iter] = node
-        
-        # Get edges connecting sensed nodes
         sensed_edges: List[OSMEdge] = []
-        if len(sensed_nodes) > 1:
-            graph_edges = cast(Dict[int, OSMEdge], self.ctx.graph.graph.edges)
-            for edge in graph_edges.values():
-                if edge.source in sensed_nodes and edge.target in sensed_nodes:
-                    sensed_edges.append(edge)
+
+        for edge_id in self.ctx.graph.graph.get_edges(d=self.range, x=x, y=y):
+            edge = self.ctx.graph.graph.get_edge(edge_id)
+            source = self.ctx.graph.graph.get_node(edge.source)
+            target = self.ctx.graph.graph.get_node(edge.target)
+            # Check if either endpoint is within range
+            normsq = (source.x - x)**2 + (source.y - y)**2 + z**2
+            cosine = (source.x - x) * fx + (source.y - y) * fy - z * fz
+            angle = math.acos(cosine/math.sqrt(normsq)) if normsq != 0 else 2*math.pi
+            sbool = (normsq <= self.range**2) and (angle <= half_angle)
+            normsq = (target.x - x)**2 + (target.y - y)**2 + z**2
+            cosine = (target.x - x) * fx + (target.y - y) * fy - z * fz
+            angle = math.acos(cosine/math.sqrt(normsq)) if normsq != 0 else 2*math.pi
+            tbool = (normsq <= self.range**2) and (angle <= half_angle)
+            # Check if angle between node vector and downward vertical is within FOV
+            if sbool:
+                sensed_nodes[source.id] = source
+            if tbool:
+                sensed_nodes[target.id] = target
+            if sbool and tbool:
+                sensed_edges.append(edge)
         
         self._data = {'nodes': sensed_nodes, 'edges': sensed_edges}
 
@@ -450,7 +360,6 @@ class AerialAgentSensor(ISensor):
         self, 
         ctx: IContext, 
         sensor_id: str, 
-        sensor_type: SensorType, 
         sensor_range: float, 
         fov: float = 2 * math.pi, 
         quat: Tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)
@@ -466,12 +375,11 @@ class AerialAgentSensor(ISensor):
         """
         self._sensor_id = sensor_id
         self.ctx = ctx
-        self._type = sensor_type
         self.range = sensor_range
         self.fov = fov              
         self.quat = quat  
         self._owner = None
-        self._data: Dict[str, Tuple[float, float, float]] = {}
+        self._data: Dict[str, Tuple[AgentType, Tuple[float, float, float]]] = {}
     
     @property
     def sensor_id(self) -> str:
@@ -479,79 +387,33 @@ class AerialAgentSensor(ISensor):
     
     @property
     def type(self) -> SensorType:
-        return self._type
+        return SensorType.AERIAL_AGENT
 
     @property
     def data(self) -> Dict[str, Tuple[float, float, float]]:
         return self._data
 
     def set_owner(self, owner: Union[str, None]) -> None:
+        agent = self.ctx.agent.get_agent(owner) if owner else None
+        if agent is not None:
+            if agent.type != AgentType.AERIAL:
+                raise ValueError("Owner of AerialAgentSensor must be an aerial agent")
         self._owner = owner
-    
-    def _quat_to_orientation(self, quat: Tuple[float, float, float, float]) -> Tuple[float, float]:
-        """
-        Convert quaternion (w, x, y, z) to orientation (sin, cos).
-        This extracts the yaw rotation from the quaternion for horizontal FOV calculations.
-        """
-        w, x, y, z = quat
-        # Calculate yaw angle from quaternion
-        sin_theta = 2 * (w * z + x * y)
-        cos_theta = 1 - 2 * (y**2 + z**2)
-        return (sin_theta, cos_theta)
-        
-    def sense(self, node_id: int, **kwargs) -> None:
+            
+    def sense(self, node_id: int) -> None:
         """
         Detects agents within the sensor range in 3D space.
         Returns agent positions instead of node IDs for aerial agents.
         """
         # Get sensing position
-        pos = kwargs.get('pos', None)
-        
-        # If no position in kwargs and we have an owner, get position from agent
-        if pos is None and self._owner is not None:
-            try:
-                agent = self.ctx.agent.get_agent(self._owner)
-                if hasattr(agent, 'type') and agent.type == AgentType.AERIAL:
-                    pos = agent.position
-                else:
-                    node = self.ctx.graph.graph.get_node(agent.current_node_id)
-                    pos = (node.x, node.y, 0.0)
-            except (KeyError, AttributeError):
-                if node_id is not None:
-                    node = self.ctx.graph.graph.get_node(node_id)
-                    pos = (node.x, node.y, 0.0)
-        
-        # Fallback to node position
-        if pos is None and node_id is not None:
-            node = self.ctx.graph.graph.get_node(node_id)
-            pos = (node.x, node.y, 0.0)
-        
-        if pos is None:
+        if self._owner is None:
             self._data = {}
             return
-        
-        current_x, current_y, current_z = pos
+        agent = cast(IAerialAgent, self.ctx.agent.get_agent(self._owner))
+        quat = multiply_quaternions(agent.quat, self.quat)
+        fx, fy, fz = quaternion_to_direction(quat)
 
-        # Get orientation for FOV calculations
-        if self._owner is not None:
-            try:
-                owner_agent = self.ctx.agent.get_agent(self._owner)
-                if hasattr(owner_agent, 'quat'):
-                    owner_quat = owner_agent.quat
-                    orientation_used = self._quat_to_orientation(owner_quat)
-                    # Apply sensor's quaternion rotation to owner's orientation
-                    sensor_orientation = self._quat_to_orientation(self.quat)
-                    # Complex multiplication to combine orientations
-                    orientation_used = (
-                        sensor_orientation[0]*orientation_used[0] - sensor_orientation[1]*orientation_used[1], 
-                        sensor_orientation[0]*orientation_used[1] + sensor_orientation[1]*orientation_used[0]
-                    )
-                else:
-                    orientation_used = self._quat_to_orientation(self.quat)
-            except (KeyError, AttributeError):
-                orientation_used = self._quat_to_orientation(self.quat)
-        else:
-            orientation_used = self._quat_to_orientation(self.quat)
+        x, y, z = agent.position
 
         sensed_agents = {}
 
@@ -561,32 +423,27 @@ class AerialAgentSensor(ISensor):
                 continue
             
             # Get agent position
-            if hasattr(agent, 'type') and agent.type == AgentType.AERIAL:
-                agent_pos = agent.position
-            else:
+            if agent.type == AgentType.AERIAL:
+                agent_pos = cast(IAerialAgent, agent).position
+            elif agent.type == AgentType.BASIC:
                 agent_node = self.ctx.graph.graph.get_node(agent.current_node_id)
                 agent_pos = (agent_node.x, agent_node.y, 0.0)
+            else:
+                raise RuntimeError(f"Unknown agent type {agent.type} for agent {agent.name}")
             
             # Calculate 3D distance
-            dx = agent_pos[0] - current_x
-            dy = agent_pos[1] - current_y
-            dz = agent_pos[2] - current_z
-            distance_3d = math.sqrt(dx**2 + dy**2 + dz**2)
-            
-            if distance_3d <= self.range:
-                # Check FOV (only considering horizontal angle for now)
-                if self.fov == 2 * math.pi or orientation_used == (0.0, 0.0):
-                    sensed_agents[agent.name] = agent_pos
-                else:
-                    # Calculate horizontal angle
-                    if dx != 0 or dy != 0:  # Avoid division by zero
-                        angle = math.atan2(dy, dx) - math.atan2(orientation_used[1], orientation_used[0]) + math.pi
-                        angle = angle % (2 * math.pi) - math.pi
-                        if abs(angle) <= self.fov / 2:
-                            sensed_agents[agent.name] = agent_pos
-                    else:
-                        # Agent is at same horizontal position
-                        sensed_agents[agent.name] = agent_pos
+            dx = agent_pos[0] - x
+            dy = agent_pos[1] - y
+            dz = agent_pos[2] - z
+            distance_3d = dx**2 + dy**2 + dz**2
+
+            cosine = dx * fx + dy * fy + dz * fz
+            angle = math.acos(cosine/math.sqrt(distance_3d)) if distance_3d != 0 else 2*math.pi
+            # Check range and FOV
+            agent_bool = (distance_3d <= self.range**2) and (angle <= self.fov / 2)
+
+            if agent_bool:
+                sensed_agents[agent.name] = (agent.type, agent_pos)
 
         self._data = sensed_agents
 
@@ -651,19 +508,16 @@ class SensorEngine(ISensorEngine):
                 sensor_range=cast(float, kwargs.get('sensor_range', 30.0)),
                 fov=2 * math.pi,
             )
-        elif sensor_type == SensorType.AERIAL_MOVEMENT:
-            sensor = AerialMovementSensor(
-                self.ctx, sensor_id, sensor_type
-            )
         elif sensor_type == SensorType.AERIAL:
             sensor = AerialSensor(
-                self.ctx, sensor_id, sensor_type,
+                self.ctx, sensor_id,
                 sensor_range=cast(float, kwargs.get('sensor_range', 100.0)),
-                fov=cast(float, kwargs.get('fov', math.pi/3))  # Default 60° FOV
+                fov=cast(float, kwargs.get('fov', math.pi/3)),  # Default 60° FOV
+                quat=kwargs.get('quat', (0.0, 0.0, 1.0, 0.0))  # Default downward-facing
             )
         elif sensor_type == SensorType.AERIAL_AGENT:
             sensor = AerialAgentSensor(
-                self.ctx, sensor_id, sensor_type,
+                self.ctx, sensor_id,
                 sensor_range=cast(float, kwargs.get('sensor_range', 100.0)),
                 fov=cast(float, kwargs.get('fov', 2 * math.pi)),
                 quat=kwargs.get('quat', (1.0, 0.0, 0.0, 0.0))
