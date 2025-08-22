@@ -193,7 +193,7 @@ class Graph(IGraph):
 class SqliteGraph(IGraph):
     def __init__(self):
         # Create a random name for the SQLite database
-        self._dbfile = tempfile.NamedTemporaryFile(dir="./", suffix=".sqlite")
+        self._dbfile = tempfile.NamedTemporaryFile(dir=".", suffix=".sqlite")
         self._conn = sqlite3.connect(self._dbfile.name)
         self._cursor = self._conn.cursor()
         # Enable foreign key constraints
