@@ -476,15 +476,17 @@ class AgentEngine(IAgentEngine):
             agent = AerialAgent(self.ctx, name, start_node_id, speed)
         else:
             agent = Agent(self.ctx, name, start_node_id, **kwargs)
+
+        if name in self.agents:
+            raise ValueError(f"Agent {name} already exists.")
+        self.agents[name] = agent
+
         for sensor in sensors:
             try:
                 agent.register_sensor(sensor, self.ctx.sensor.get_sensor(sensor))
             except KeyError:
                 self.ctx.logger.warning(f"Ignoring sensor {sensor} for agent {name}")
-        if name in self.agents:
-            raise ValueError(f"Agent {name} already exists.")
-        self.agents[name] = agent
-       
+               
         return agent
     
     def get_agent(self, name: str) -> IAgent:
