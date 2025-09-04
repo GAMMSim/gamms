@@ -263,7 +263,7 @@ class AerialSensor(ISensor):
         sensor_id: str,
         sensor_range: float,
         fov: float = math.pi / 3,
-        quat: Tuple[float, float, float, float] = (0.0, 0.0, 1.0, 0.0)
+        quat: Tuple[float, float, float, float] = (math.sqrt(0.5), 0.0, math.sqrt(0.5), 0.0)
     ):  # Default 60° FOV
         """
         Downward-facing conic sensor for aerial agents.
@@ -335,11 +335,11 @@ class AerialSensor(ISensor):
             # Check if either endpoint is within range
             normsq = (source.x - x)**2 + (source.y - y)**2 + z**2
             cosine = (source.x - x) * fx + (source.y - y) * fy - z * fz
-            angle = math.acos(cosine/math.sqrt(normsq)) if normsq != 0 else 2*math.pi
+            angle = math.acos(max(min(cosine/math.sqrt(normsq), 1.0), -1.0)) if normsq != 0 else 2*math.pi
             sbool = (normsq <= self.range**2) and (angle <= half_angle)
             normsq = (target.x - x)**2 + (target.y - y)**2 + z**2
             cosine = (target.x - x) * fx + (target.y - y) * fy - z * fz
-            angle = math.acos(cosine/math.sqrt(normsq)) if normsq != 0 else 2*math.pi
+            angle = math.acos(max(min(cosine/math.sqrt(normsq), 1.0), -1.0)) if normsq != 0 else 2*math.pi
             tbool = (normsq <= self.range**2) and (angle <= half_angle)
             # Check if angle between node vector and downward vertical is within FOV
             if sbool:
@@ -438,7 +438,7 @@ class AerialAgentSensor(ISensor):
             distance_3d = dx**2 + dy**2 + dz**2
 
             cosine = dx * fx + dy * fy + dz * fz
-            angle = math.acos(cosine/math.sqrt(distance_3d)) if distance_3d != 0 else 2*math.pi
+            angle = math.acos(max(min(cosine/math.sqrt(distance_3d), 1.0), -1.0)) if distance_3d != 0 else 2*math.pi
             # Check range and FOV
             agent_bool = (distance_3d <= self.range**2) and (angle <= self.fov / 2)
 
