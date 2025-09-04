@@ -64,7 +64,10 @@ extra:
 plugins:
   - search
   - autorefs
-  - mkdocstrings
+  - mkdocstrings:
+      rendering:
+        show_root_heading: false
+        show_navigation: false
 
 # Extensions
 markdown_extensions:
@@ -117,4 +120,5 @@ nav:
     - Sensor: sensor.md
     - Recorder: record.md
     - Visualization : visual.md
+    - Logger : logger.md
   - Issue Tracker: "https://github.com/GAMMSim/GAMMS/issues"

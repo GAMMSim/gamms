@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='gamms',
-    version='0.2',
+    version='0.2.5',
     packages=find_packages(),
     install_requires=[
         'pygame',

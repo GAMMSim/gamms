@@ -7,6 +7,13 @@ import networkx as nx
 from enum import Enum
 
 class Engine(Enum):
+    """
+    Enum representing different types of graph engines.
+
+    Attributes:
+        MEMORY: In-memory graph engine.
+        SQLITE: SQLite-based graph engine.        
+    """
     MEMORY = 0
     SQLITE = 1
 
