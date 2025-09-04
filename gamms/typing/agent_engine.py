@@ -289,7 +289,7 @@ class IAgentEngine(ABC):
             None
 
         Raises:
-            KeyError: If no agent with the specified name exists.
+            Logs a warning and does nothing if no agent with the specified name exists.
         """
         pass
     

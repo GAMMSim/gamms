@@ -339,7 +339,7 @@ class AerialAgent(IAerialAgent):
         w, x, y, z = self.quat
         sin_theta = 2 * (w * y - x * z)
         cos_theta = 1 - 2 * (y**2 + z**2)
-        return (sin_theta, cos_theta)
+        return (cos_theta, sin_theta)
 
     @property
     def prev_node_id(self) -> int:
