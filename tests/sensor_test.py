@@ -116,6 +116,17 @@ class SensorEngineTest(unittest.TestCase):
             logger_config={'level': 'CRITICAL'},
             graph_engine=gamms.graph.Engine.MEMORY,
         )
+
+        # Manually create a grid graph
+        for i in range(25):
+            self.ctx.graph.graph.add_node({'id': i, 'x': i % 5, 'y': i // 5})
+        
+        for i in range(25):
+            for j in range(25):
+                if i == j + 1 or i == j - 1 or i == j + 5 or i == j - 5:
+                    self.ctx.graph.graph.add_edge(
+                        {'id': i * 25 + j, 'source': i, 'target': j, 'length': 1}
+                    )
     
     def test_add_get_sensor(self):
         with patch('gamms.SensorEngine.sensor_engine.ISensor') as MockSensor:
@@ -255,80 +266,89 @@ class SensorEngineTest(unittest.TestCase):
         self.assertEqual(custom.type, gamms.typing.SensorType.TEST)
 
         with self.assertRaises(ValueError):
-            self.ctx.sensor.custom(name='T EST')(CustomSensor)
-
-    def test_aerial_movement_sensor(self):
-        sensor = gamms.SensorEngine.sensor_engine.AerialMovementSensor(
-            self.ctx, sensor_id='aerial_movement_sensor',
-            sensor_type=gamms.SensorEngine.sensor_engine.SensorType.AERIAL_MOVEMENT
-        )
-
-        self.assertEqual(None, sensor.update(None))
-
-        # Test with explicit position and speed
-        sensor.sense(12, pos=(2.0, 2.0, 10.0), speed=5.0)
-        data = sensor.data
-        self.assertIsInstance(data, list)
-        self.assertEqual(len(data), 36)  # Should generate 36 positions
-        
-        # Check that all positions maintain altitude and are at correct distance
-        for pos in data:
-            self.assertEqual(len(pos), 3)  # x, y, z
-            self.assertEqual(pos[2], 10.0)  # Altitude maintained
-            distance = math.sqrt((pos[0] - 2.0)**2 + (pos[1] - 2.0)**2)
-            self.assertAlmostEqual(distance, 5.0, places=1)
+            self.ctx.sensor.custom(name='TEST')(CustomSensor)
 
     def test_aerial_sensor(self):
         sensor = gamms.SensorEngine.sensor_engine.AerialSensor(
             self.ctx, sensor_id='aerial_sensor',
-            sensor_type=gamms.SensorEngine.sensor_engine.SensorType.AERIAL,
             sensor_range=50.0,
             fov=math.pi/3  # 60 degree FOV
         )
 
+        # Create aerial agent to own the sensor
+        aerial_agent = self.ctx.agent.create_agent(
+            name='aerial_agent',
+            type=gamms.typing.agent_engine.AgentType.AERIAL,
+            start_node_id=12,
+            speed=5.0
+        )
+        sensor.set_owner(aerial_agent.name)
+
+        aerial_agent.position = (2.0, 2.0, 0.01)  # Set initial position
+
         self.assertEqual(None, sensor.update(None))
 
         # Test at ground level (should return empty)
-        sensor.sense(12, pos=(2.0, 2.0, 0.0))
+        sensor.sense(12)
         data = sensor.data
         self.assertIsInstance(data, dict)
         self.assertIn('nodes', data)
         self.assertIn('edges', data)
-        self.assertEqual(len(data['nodes']), 0)
+        self.assertEqual(len(data['nodes']), 1)  # Only the current node should be detected
+        self.assertEqual(len(data['edges']), 0)  # No edges at ground level
+        self.assertIn(12, data['nodes'])
 
         # Test at altitude
-        sensor.sense(12, pos=(2.0, 2.0, 10.0))
+        aerial_agent.position = (2.0, 2.0, 2.0)  # Set initial position
+        sensor.sense(12)
         data = sensor.data
         self.assertIsInstance(data, dict)
         self.assertIn('nodes', data)
         self.assertIn('edges', data)
-        self.assertGreater(len(data['nodes']), 0)  # Should detect some nodes
+        self.assertEqual(len(data['nodes']), 5)
 
     def test_aerial_agent_sensor(self):
         sensor = gamms.SensorEngine.sensor_engine.AerialAgentSensor(
             self.ctx, sensor_id='aerial_agent_sensor',
-            sensor_type=gamms.SensorEngine.sensor_engine.SensorType.AERIAL_AGENT,
             sensor_range=15.0,
             fov=2 * math.pi,  # Full 360 degree detection
             quat=(1.0, 0.0, 0.0, 0.0)  # Default quaternion (no rotation)
         )
 
+        # Create aerial agent to own the sensor
+        aerial_agent = self.ctx.agent.create_agent(
+            name='aerial_agent',
+            type=gamms.typing.agent_engine.AgentType.AERIAL,
+            start_node_id=12,
+            speed=5.0
+        )
+        sensor.set_owner(aerial_agent.name)
+
+        aerial_agent.position = (2.0, 2.0, 0.01)  # Set initial position
+
         self.assertEqual(None, sensor.update(None))
 
         # Create some agents
         self.ctx.agent.create_agent('agent_0', start_node_id=11)  # (x=1, y=2)
-        self.ctx.agent.create_agent('agent_1', start_node_id=13)  # (x=3, y=2)
+        self.ctx.agent.create_agent(
+            'agent_1',
+            start_node_id=13,
+            type=gamms.typing.agent_engine.AgentType.AERIAL,
+            speed=1.0,
+        )  # (x=3, y=2)
 
         # Test from position (2, 2, 0) - should detect both agents
-        sensor.sense(12, pos=(2.0, 2.0, 0.0))
+        sensor.sense(12)
         data = sensor.data
         self.assertIsInstance(data, dict)
         self.assertIn('agent_0', data)
         self.assertIn('agent_1', data)
         
-        # Check returned positions are tuples with 3 elements
-        self.assertEqual(len(data['agent_0']), 3)
-        self.assertEqual(len(data['agent_1']), 3)
+        # Check returned type and position
+        self.assertEqual(data['agent_0'][0], gamms.typing.agent_engine.AgentType.BASIC)
+        self.assertEqual(data['agent_0'][1], (1.0, 2.0, 0.0))
+        self.assertEqual(data['agent_1'][0], gamms.typing.agent_engine.AgentType.AERIAL)
+        self.assertEqual(data['agent_1'][1], (3.0, 2.0, 0.0))
     
     def tearDown(self) -> None:
         return self.ctx.terminate()
@@ -341,7 +361,6 @@ def suite():
     suite.addTest(SensorEngineTest('test_add_get_sensor'))
     suite.addTest(SensorEngineTest('test_create_sensor'))
     suite.addTest(SensorEngineTest('test_custom_sensor'))
-    suite.addTest(SensorEngineTest('test_aerial_movement_sensor'))
     suite.addTest(SensorEngineTest('test_aerial_sensor'))
     suite.addTest(SensorEngineTest('test_aerial_agent_sensor'))
     return suite
