@@ -64,10 +64,7 @@ extra:
 plugins:
   - search
   - autorefs
-  - mkdocstrings:
-      rendering:
-        show_root_heading: false
-        show_navigation: false
+  - mkdocstrings
 
 # Extensions
 markdown_extensions:
