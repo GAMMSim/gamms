@@ -4,11 +4,10 @@ import pickle
 import glob
 
 
-files = glob.glob('raws/*.osm')
-print(files)
+files = glob.glob('raws/map*.osm')
 for file in files:
     print(f'Processing {file}')
-    G = gamms.osm.graph_from_xml(file, resolution=100.0)
+    G = gamms.osm.graph_from_xml(file, resolution=10.0)
     graph_path = file.replace('.osm', '.pkl')
     graph_path = graph_path.replace('raws/', 'processed/')
     with open(graph_path, 'wb') as f:
@@ -21,8 +20,6 @@ graph_vis_config = {
 }
 
 files = glob.glob('processed/*.pkl')
-
-
 for file in files:
     show = True
     print(f'Processing {file}')
@@ -35,7 +32,7 @@ for file in files:
 
     while show: 
         ctx.visual.simulate()
-        # sleep(10)
-        # show = False
+        sleep(5)
+        show = False
     
     
