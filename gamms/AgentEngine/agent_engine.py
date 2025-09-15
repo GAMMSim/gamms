@@ -248,6 +248,10 @@ class Agent(IAgent):
         """
         if len(orientation) != 2:
             raise ValueError("Orientation must be a tuple of (sin, cos).")
+        dist = math.sqrt(orientation[0]**2 + orientation[1]**2)
+        if dist == 0:
+            raise ValueError("Orientation cannot be a zero vector.")
+        orientation = (orientation[0]/dist, orientation[1]/dist)
         self._orientation = orientation
         if self._ctx.record.record():
             self._ctx.record.write(
