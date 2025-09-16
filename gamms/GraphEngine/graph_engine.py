@@ -6,10 +6,16 @@ from gamms.typing.graph_engine import Engine
 import pickle
 from shapely.geometry import LineString
 
+from dataclasses import dataclass
+
 import sqlite3
 
 import tempfile
 import cbor2
+
+
+_mem_Node = dataclass()(Node)
+_mem_OSMEdge = dataclass()(OSMEdge)
 
 class Graph(IGraph):
     def __init__(self):
@@ -44,7 +50,7 @@ class Graph(IGraph):
         if node_data['id'] in self.nodes:
             raise KeyError(f"Node {node_data['id']} already exists.")
                 
-        node = Node(id=node_data['id'], x=node_data['x'], y=node_data['y'])
+        node = _mem_Node(id=node_data['id'], x=node_data['x'], y=node_data['y'])
         self.nodes[node_data['id']] = node
         self._adjacency[node_data['id']] = set()
     
@@ -72,7 +78,7 @@ class Graph(IGraph):
         if edge_data['source'] not in self.nodes or edge_data['target'] not in self.nodes:
             raise KeyError(f"Source or target node does not exist in the graph: {edge_data['source']}, {edge_data['target']}")
         
-        edge = OSMEdge(
+        edge = _mem_OSMEdge(
             id = edge_data['id'],
             source=edge_data['source'],
             target=edge_data['target'],
@@ -189,6 +195,21 @@ class Graph(IGraph):
         for edge in self.edges.values():
             self._adjacency[edge.source].add(edge.target)
 
+_sql_Node = _mem_Node
+
+class _sql_OSMEdge(OSMEdge):
+    __slots__ = ('id', 'source', 'target', 'length', '_geom')
+
+    def __init__(self, row: sqlite3.Row):
+        self.id: int = row[0]
+        self.source: int = row[1]
+        self.target: int = row[2]
+        self.length: float = row[3]
+        self._geom = row[4]
+    
+    @property
+    def linestring(self) -> LineString:
+        return LineString(cbor2.loads(self._geom))
 
 class SqliteGraph(IGraph):
     def __init__(self):
@@ -281,7 +302,7 @@ class SqliteGraph(IGraph):
         if row is None:
             raise KeyError(f"Node {node_id} does not exist.")
         
-        return Node(id=row[0], x=row[1], y=row[2])
+        return _sql_Node(id=row[0], x=row[1], y=row[2])
     
     @overload
     def get_edges(self) -> Iterator[int]: ...
@@ -321,7 +342,7 @@ class SqliteGraph(IGraph):
         if row is None:
             raise KeyError(f"Edge {edge_id} does not exist.")
         
-        return OSMEdge(id=row[0], source=row[1], target=row[2], length=row[3], linestring=LineString(cbor2.loads(row[4])))
+        return _sql_OSMEdge(row)
     
     @overload
     def get_nodes(self) -> Iterator[int]: ...

@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Iterator, overload
-from dataclasses import dataclass
 from shapely.geometry import LineString
 import networkx as nx
 
@@ -17,7 +16,6 @@ class Engine(Enum):
     MEMORY = 0
     SQLITE = 1
 
-@dataclass
 class Node:
     """
     Represents a node within a graph.
@@ -32,7 +30,6 @@ class Node:
     y: float
 
 
-@dataclass
 class OSMEdge:
     """
     Represents an OpenStreetMap (OSM) edge within a graph.
