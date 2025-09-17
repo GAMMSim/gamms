@@ -541,8 +541,9 @@ class SensorEngine(ISensorEngine):
 
     def custom(self, name: str) -> Callable[[ISensor], ISensor]:
         if hasattr(SensorType, name):
-            raise ValueError(f"SensorType {name} already exists.")
-        extend_enum(SensorType, name, len(SensorType))
+            self.ctx.logger.warning(f"SensorType {name} already exists. Type has been set previously in current process.")
+        else:
+            extend_enum(SensorType, name, len(SensorType))
         val = getattr(SensorType, name)
         def decorator(cls_type: ISensor) -> ISensor:
             cls_type.type = property(lambda obj: val)

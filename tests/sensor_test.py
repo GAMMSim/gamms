@@ -265,9 +265,6 @@ class SensorEngineTest(unittest.TestCase):
         custom = CustomSensor(extra_param=42)
         self.assertEqual(custom.type, gamms.typing.SensorType.TEST)
 
-        with self.assertRaises(ValueError):
-            self.ctx.sensor.custom(name='TEST')(CustomSensor)
-
     def test_aerial_sensor(self):
         sensor = gamms.SensorEngine.sensor_engine.AerialSensor(
             self.ctx, sensor_id='aerial_sensor',
