@@ -62,7 +62,7 @@ This command will create a subfolder named `venv` that contains your virtual env
 
 **Install Gamms** within the virtual environment:
 ```sh
-python -m pip install git+https://github.com/GAMMSim/gamms.git@dev
+python -m pip install git+https://github.com/GAMMSim/gamms.git
 ```
 
 **Verify your installation**:
