@@ -2,6 +2,15 @@ from abc import ABC, abstractmethod
 from typing import Iterable, Dict, Any, Optional, Callable, Tuple
 from gamms.typing.sensor_engine import ISensor
 
+from enum import IntEnum
+
+class AgentType(IntEnum):
+    """
+    Enum representing different types of agents.
+    """
+    BASIC = 0
+    AERIAL = 1
+
 class IAgent(ABC):
     """
     Abstract base class representing an agent in the system.
@@ -34,12 +43,23 @@ class IAgent(ABC):
 
     @property
     @abstractmethod
+    def type(self) -> AgentType:
+        """
+        Get the type of the agent.
+        
+        Returns:
+            AgentType: The type of the agent (e.g., BASIC, AERIAL).
+        """
+        pass
+
+    @property
+    @abstractmethod
     def orientation(self) -> Tuple[float, float]:
         """
         Get the orientation of the agent.
 
         Returns:
-            int: The current orientation of the agent.
+            Tuple[float, float]: The current orientation of the agent.
         """
         pass
     
@@ -89,6 +109,13 @@ class IAgent(ABC):
     def set_state(self):
         """
         Update the agent's state.
+
+        Raises:
+            KeyError: If action is not found in the agent's state.
+            KeyError: If action is an int but not a valid node ID.
+            TypeError: If action is not an int or dict.
+            ValueError: If action dict does not contain 'node_id' key
+            ValueError: If orientation is not a tuple of (sin, cos).
         """
         pass
 
@@ -124,6 +151,66 @@ class IAgent(ABC):
 
         Args:
             strategy (Callable[[Dict[str, Any]], None]): The strategy instance or object to be registered.
+        """
+        pass
+
+
+class IAerialAgent(IAgent):
+    """
+    Abstract base class representing an aerial agent in the system.
+
+    This class extends the basic agent functionality to include aerial-specific behaviors.
+
+    Requires a start node ID and speed for initialization.
+    """
+
+    @property
+    @abstractmethod
+    def quat(self) -> Tuple[float, float, float, float]:
+        """
+        Get the quaternion representation of the agent's orientation.
+        Formatted as (w, x, y, z).
+
+        Returns:
+            Tuple[float, float, float, float]: The quaternion representing the agent's orientation.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def orientation(self) -> Tuple[float, float]:
+        """
+        Get the orientation of the agent in the x-y plane.
+
+        Returns:
+            Tuple[float, float]: The current orientation of the agent as a tuple (sin, cos).
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def position(self) -> Tuple[float, float, float]:
+        """
+        Get the current position of the agent in 3D space.
+
+        Returns:
+            Tuple[float, float, float]: The current position of the agent as a tuple (x, y, z).
+        """
+        pass
+
+    @abstractmethod
+    def set_state(self):
+        """
+        Update the agent's position and orientation.
+        Action should be a 3d direction tuple. It will be normalized to a unit vector and multiplied by the agent's speed.
+
+        Action can also be a dictionary with 'direction' key to specify the direction and have 'quat' key to specify the quaternion orientation.
+
+        Raises:
+            KeyError: If action is not found in the agent's state.
+            TypeError: If action is not a tuple or dict.
+            ValueError: If action dict does not contain 'direction' key
+            ValueError: If quat is not a tuple of (w, x, y, z).
         """
         pass
 
@@ -202,7 +289,7 @@ class IAgentEngine(ABC):
             None
 
         Raises:
-            KeyError: If no agent with the specified name exists.
+            Logs a warning and does nothing if no agent with the specified name exists.
         """
         pass
     

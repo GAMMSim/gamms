@@ -1,21 +1,5 @@
 # Sensor Engine
 
-::: gamms.typing.ISensorEngine
+::: gamms.typing.sensor_engine
     options:
-        show_source: false
-        heading_level: 4
-
-## Sensor
----
-
-::: gamms.typing.ISensor
-    options:
-        show_source: false
-        heading_level: 4
-
-## Sensor Type
----
-::: gamms.sensor.SensorType
-    options:
-        show_source: false
-        heading_level: 4
+        members: true

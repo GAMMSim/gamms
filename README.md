@@ -1,4 +1,4 @@
-# GAMMS v0.2
+# GAMMS v0.2.5
 
 GAMMS (Graph based Adversarial Multiagent Modelling Simulator) is a Python library designed for simulating large scale multi-agent scenarios on environments represented as graphs. The library is a framework which focuses on providing a flexible and extensible architecture to facilitate implementing interactions between agents and the environment as well as controlling the information flow between them. The library is geared towards easing development of high level scenario dynamics and testing agent behaviours rather than low level details like the actual physics of real world interactions. GAMMS tries to solve the following problems:
 
@@ -19,10 +19,17 @@ Package dependecies:
 - networkx
 - cbor2
 - aenum
+- osmnx
 
 ## Installation
 
-Installation support is directly from the source code. The package is not available on PyPi yet. If you have git installed,
+Direct pip installation from PyPI:
+
+```bash
+pip install gamms
+```
+
+Installation support is directly from the source code. If you have git installed,
 
 ```bash
 pip install "git+https://github.com/GAMMSim/gamms.git"
@@ -31,7 +38,7 @@ pip install "git+https://github.com/GAMMSim/gamms.git"
 Another option is to download the source code locally and run the following command in the root directory of the project:
 
 ```bash
-python setup.py install
+pip install .
 ```
 
 Detailed installation and setup instructions are available in the [Installation Guide](https://gammsim.github.io/gamms/stable/start/#installation-and-setup).

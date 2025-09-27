@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 from gamms.typing.opcodes import OpCodes
 
-JsonType = Union[None, int, str, bool, List["JsonType"], Dict[str, "JsonType"]]
+JsonType = Union[None, int, str, bool, float, List["JsonType"], Dict[str, "JsonType"]]
 _T = TypeVar('_T')
 
 class IRecorder(ABC):
@@ -70,6 +70,7 @@ class IRecorder(ABC):
             FileNotFoundError: If the file does not exist.
             TypeError: If the path is not a string or file object.
             ValueError: If the file is not a valid recording file or if recording terminated unexpectedly.
+            ValueError: If the version of the file is not supported.
         """
         pass
     @abstractmethod

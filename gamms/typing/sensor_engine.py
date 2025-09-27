@@ -24,6 +24,10 @@ class SensorType(Enum):
             Data Representation (`Dict[str, int]`): Dictionary mapping agent names to node identifiers. Range only version of AGENT.
         AGENT_ARC (Enum): Sensor type for agent arc data.
             Data Representation (`Dict[str, int]`): Dictionary mapping agent names to node identifiers. Range and Fov version of AGENT.
+        AERIAL (Enum): Sensor type for aerial map data.
+            Data Representation (`Dict[str, Union[Dict[int, Node], List[OSMEdge]]]`): Keys nodes and edges give respective node and edge data. Range and Fov version of MAP for aerial agents.
+        AERIAL_AGENT (Enum): Sensor type for aerial agent data.
+            Data Representation (`Dict[str, Tuple[AgentType, Tuple[float, float, float]]]`): Dictionary mapping agent names to (x, y, z) coordinates.
 
     """
     CUSTOM = 0
@@ -34,6 +38,8 @@ class SensorType(Enum):
     ARC = 5
     AGENT_RANGE = 6
     AGENT_ARC = 7
+    AERIAL = 8
+    AERIAL_AGENT = 9
 
 
 class ISensor(ABC):

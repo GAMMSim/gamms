@@ -117,4 +117,5 @@ nav:
     - Sensor: sensor.md
     - Recorder: record.md
     - Visualization : visual.md
+    - Logger : logger.md
   - Issue Tracker: "https://github.com/GAMMSim/GAMMS/issues"

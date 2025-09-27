@@ -1,16 +1,22 @@
+from gamms.AgentEngine.agent_engine import AerialAgent
 from gamms.VisualizationEngine import Color, Space, Shape, Artist, lazy
 from gamms.VisualizationEngine.render_manager import RenderManager
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
-from gamms.VisualizationEngine.default_drawers import render_circle, render_rectangle, \
-    render_agent, render_graph, render_neighbor_sensor, render_map_sensor, render_agent_sensor, render_input_overlay
+from gamms.VisualizationEngine.default_drawers import (
+    render_circle, render_rectangle,
+    render_agent, render_graph, render_neighbor_sensor,
+    render_map_sensor, render_agent_sensor, render_input_overlay,
+    render_aerial_agent_sensor,
+)
 from gamms.typing import (
     IVisualizationEngine,
     IArtist,
     ArtistType,
     IContext,
-    SensorType, 
+    SensorType,
     OpCodes,
-    ColorType
+    ColorType,
+    AgentType
 )
 from typing import Dict, Any, List, Tuple, Union, cast
 
@@ -30,6 +36,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._default_font = self._pygame.font.Font(None, 36)
         self._waiting_user_input = False
         self._input_option_result = None
+        self._input_position_result = None
         self._waiting_agent_name = None
         self._waiting_simulation = False
         self._simulation_time = 0
@@ -138,12 +145,16 @@ class PygameVisualizationEngine(IVisualizationEngine):
             drawer = render_neighbor_sensor
             data['color'] = kwargs.pop('color', Color.Cyan)
             data['size'] = kwargs.pop('size', 8)
-        elif sensor_type == SensorType.MAP or sensor_type == SensorType.RANGE or sensor_type == SensorType.ARC:
+        elif sensor_type in (SensorType.MAP, SensorType.RANGE, SensorType.ARC, SensorType.AERIAL):
             drawer = render_map_sensor
             data['node_color'] = kwargs.pop('node_color', Color.Cyan)
             data['edge_color'] = kwargs.pop('edge_color', Color.Cyan)
-        elif sensor_type == SensorType.AGENT or sensor_type == SensorType.AGENT_RANGE or sensor_type == SensorType.AGENT_ARC:
+        elif sensor_type in (SensorType.AGENT, SensorType.AGENT_RANGE, SensorType.AGENT_ARC):
             drawer = render_agent_sensor
+            data['color'] = kwargs.pop('color', Color.Cyan)
+            data['size'] = kwargs.pop('size', 8)
+        elif sensor_type == SensorType.AERIAL_AGENT:
+            drawer = render_aerial_agent_sensor
             data['color'] = kwargs.pop('color', Color.Cyan)
             data['size'] = kwargs.pop('size', 8)
         else:
@@ -220,6 +231,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
             if event.type == self._pygame.QUIT:
                 self._will_quit = True
                 self._input_option_result = -1
+                self._input_position_result = -1
             if event.type == self._pygame.VIDEORESIZE:
                 self._render_manager.screen_width = event.w
                 self._render_manager.screen_height = event.h
@@ -229,11 +241,28 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
                 self._redraw_graph_artists()
 
-            if self._waiting_user_input and event.type == self._pygame.KEYDOWN:
-                if self._pygame.K_0 <= event.key <= self._pygame.K_9:
-                    number_pressed = event.key - self._pygame.K_0
-                    if number_pressed in self._input_options:
-                        self._input_option_result = self._input_options[number_pressed]
+            if self._waiting_user_input:
+                waiting_agent = self.ctx.agent.get_agent(self._waiting_agent_name)
+                if waiting_agent.type == AgentType.BASIC:
+                    if event.type == self._pygame.KEYDOWN:
+                        if self._pygame.K_0 <= event.key <= self._pygame.K_9:
+                            number_pressed = event.key - self._pygame.K_0
+                            if number_pressed in self._input_options:
+                                self._input_option_result = self._input_options[number_pressed]
+                elif waiting_agent.type == AgentType.AERIAL:
+                    if event.type == self._pygame.MOUSEBUTTONDOWN and event.button == self._pygame.BUTTON_LEFT:
+                        aerial_agent = cast(AerialAgent, waiting_agent)
+                        pos = event.pos
+                        world_pos = self._render_manager.screen_to_world(pos[0], pos[1])
+                        delta = (world_pos[0] - aerial_agent.position[0], world_pos[1] - aerial_agent.position[1])
+                        self._input_position_result = (delta[0], delta[1], 0)
+                    elif event.type == self._pygame.KEYDOWN and event.key == self._pygame.K_0:
+                        self._input_position_result = (0, 0, 0)
+                    elif event.type == self._pygame.KEYDOWN and event.key == self._pygame.K_UP:
+                        self._input_position_result = (0, 0, 1)
+                    elif event.type == self._pygame.KEYDOWN and event.key == self._pygame.K_DOWN:
+                        self._input_position_result = (0, 0, -1)
+
 
     def handle_tick(self):
         self._clock.tick()
@@ -261,11 +290,15 @@ class PygameVisualizationEngine(IVisualizationEngine):
     def draw_input_overlay(self):
         if not self._waiting_user_input:
             return
-        
-        for key_id, node_id in self._input_options.items():
-            node = self.ctx.graph.graph.get_node(node_id)
-            (x, y) = self._render_manager.world_to_screen(node.x, node.y)
-            self._render_text_internal(str(key_id), x, y, Space.Screen, Color.Black)
+
+        waiting_agent = self.ctx.agent.get_agent(self._waiting_agent_name)
+        if waiting_agent.type == AgentType.AERIAL:
+            pass
+        elif waiting_agent.type == AgentType.BASIC:
+            for key_id, node_id in self._input_options.items():
+                node = self.ctx.graph.graph.get_node(node_id)
+                (x, y) = self._render_manager.world_to_screen(node.x, node.y)
+                self._render_text_internal(str(key_id), x, y, Space.Screen, Color.Black)
 
     def draw_hud(self):
         #FIXME: Add hud manager
@@ -355,8 +388,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         surface = self._get_target_surface(layer)
         self._pygame.draw.rect(surface, color, self._pygame.Rect(x, y, width, height))
 
-    def render_circle(self, x: float, y: float, radius: float, color: ColorType = Color.Black,
-                      perform_culling_test: bool=True):
+    def render_circle(self, x: float, y: float, radius: float, color: ColorType = Color.Black, width: int = 0,
+                      perform_culling_test: bool = True):
         if perform_culling_test and self._render_manager.check_circle_culled(x, y, radius):
             return
         
@@ -370,7 +403,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         
         layer = self._render_manager.current_drawing_artist.get_layer()
         surface = self._get_target_surface(layer)
-        self._pygame.draw.circle(surface, color, (x, y), radius)
+        self._pygame.draw.circle(surface, color, (x, y), radius, width)
 
     def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: ColorType = Color.Black,
                     width: int=1, is_aa: bool=False, perform_culling_test: bool=True, force_no_aa: bool = False):
@@ -459,15 +492,10 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self.handle_tick()
         self._pygame.display.flip()
 
-    def human_input(self, agent_name: str, state: Dict[str, Any]) -> int:
+    def human_input(self, agent_name: str, state: Dict[str, Any]) -> Union[int, Tuple[float, float, float]]:
         if self.ctx.is_terminated():
             return state["curr_pos"]
         self._toggle_waiting_user_input(True)
-        def get_neighbours(state: Dict[str, Any]) -> List[int]:
-            for (type, data) in state["sensor"].values():
-                if type == SensorType.NEIGHBOR:
-                    return data
-            return []
 
         prev_waiting_agent_name = self._waiting_agent_name
         if prev_waiting_agent_name is not None:
@@ -478,7 +506,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         waiting_agent_artist = self._agent_artists[agent_name]
         waiting_agent_artist.data['_is_waiting'] = True
 
-        options = get_neighbours(state)
+        waiting_agent = self.ctx.agent.get_agent(agent_name)
+        options = [waiting_agent.current_node_id] + list(self.ctx.graph.graph.get_neighbors(waiting_agent.current_node_id))
 
         self._input_options: dict[int, int] = {}
         for i in range(min(len(options), 10)):
@@ -494,17 +523,38 @@ class PygameVisualizationEngine(IVisualizationEngine):
             # still need to update the render
             self.update()
 
-            result = self._input_option_result
+            waiting_agent = self.ctx.agent.get_agent(self._waiting_agent_name)
+            if waiting_agent.type == AgentType.BASIC:
+                result = self._input_option_result
 
-            if result == -1:
-                self.end_handle_human_input()
-                self.ctx.terminate()
-                return state["curr_pos"]
-            
-            if result is not None:
-                self.end_handle_human_input()
-                return result                
-        return state["curr_pos"]
+                if result == -1:
+                    self.end_handle_human_input()
+                    self.ctx.terminate()
+                    return state["curr_pos"]
+
+                if result is not None:
+                    self.end_handle_human_input()
+                    return result
+
+            elif waiting_agent.type == AgentType.AERIAL:
+                if self._input_position_result == -1:
+                    self.end_handle_human_input()
+                    self.ctx.terminate()
+                    return (0.0, 0.0, 0.0)
+
+                if self._input_position_result is not None:
+                    result = self._input_position_result
+                    self.end_handle_human_input()
+                    return result
+            else:
+                raise RuntimeError(f"Unknown agent type {waiting_agent.type} for agent {agent_name}")
+        
+        if waiting_agent.type == AgentType.BASIC:
+            return state["curr_pos"]
+        elif waiting_agent.type == AgentType.AERIAL:
+            return (0.0, 0.0, 0.0)
+        else:
+            raise RuntimeError(f"Unknown agent type {waiting_agent.type} for agent {agent_name}")
 
     def end_handle_human_input(self):
         for agent_artist in self._agent_artists.values():
@@ -516,6 +566,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._input_overlay_artist.set_visible(False)
         self._toggle_waiting_user_input(False)
         self._input_option_result = None
+        self._input_position_result = None
         self._waiting_agent_name = None
         self._redraw_graph_artists()
 

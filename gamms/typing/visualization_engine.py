@@ -125,7 +125,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def human_input(self, agent_name: str, state: Dict[str, Any]) -> int:
+    def human_input(self, agent_name: str, state: Dict[str, Any]) -> Union[int, Tuple[float, float, float]]:
         """
         Process input from a human player or user.
 
@@ -144,11 +144,13 @@ class IVisualizationEngine(ABC):
 
         Returns:
             int: The target node id selected by the user.
+            Tuple[float, float, float]: The target position (x, y, z) selected by the user for aerial agents.
 
         Raises:
             ValueError: If the input `state` contains invalid or unsupported commands.
             KeyError: If required keys are missing from the `state` dictionary.
             TypeError: If the types of the provided input data do not match expected types.
+            RuntimeError: If the agent type is unknown or unsupported.
         """
         pass
 
@@ -169,7 +171,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_circle(self, x: float, y: float, radius: float, color: Tuple[Union[int, float], Union[int, float], Union[int, float]], perform_culling_test: bool):
+    def render_circle(self, x: float, y: float, radius: float, color: Tuple[Union[int, float], Union[int, float], Union[int, float]], width: int, perform_culling_test: bool):
         """
         Render a circle shape at the specified position with the given radius and color.
 
@@ -178,6 +180,7 @@ class IVisualizationEngine(ABC):
             y (float): The y-coordinate of the circle's center.
             radius (float): The radius of the circle.
             color (Tuple[Union[int, float], Union[int, float], Union[int, float]]): The color of the circle in RGB format.
+            width (int): The width of the circle's outline in pixels. If equal to 0, the circle is filled.
             perform_culling_test (bool): Whether to perform culling.
         """
         pass

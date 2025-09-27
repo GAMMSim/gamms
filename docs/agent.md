@@ -1,14 +1,5 @@
 # Agent Engine
 
-::: gamms.typing.IAgentEngine
+::: gamms.typing.agent_engine
     options:
-        show_source: false
-        heading_level: 4
-
-## Agent
----
-
-::: gamms.typing.IAgent
-    options:
-        show_source: false
-        heading_level: 4
+        members: true

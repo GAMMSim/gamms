@@ -1,0 +1,50 @@
+title = "gamms"
+
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gamms"
+version = "0.2.5"
+authors = [
+    {name = "Rohan Patil", email = "rpatil@ucsd.edu"},
+    {name = "Jai Malegaonkar", email = "jmalegaonkar@ucsd.edu"},
+    {name = "Andre Dion"},
+    {name = "Xiao Jiang"},
+]
+description = "GAMMS (Graph based Adversarial Multiagent Modelling Simulator) is a Python library designed for simulating large scale multi-agent scenarios on environments represented as graphs"
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = ["multi-agent", "simulation", "graphs", "adversarial"]
+license = "Apache-2.0"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent"
+]
+dependencies = [
+    "pygame",
+    "shapely",
+    "networkx",
+    "cbor2",
+    "aenum",
+    "osmnx"
+]
+
+[tool.setuptools.packages.find]
+include = ["gamms"]
+
+[project.optional-dependencies]
+docs = [
+    "mkdocs-material"
+]
+
+[project.urls]
+Homepage = "https://gammsim.github.io/gamms"
+Repository = "https://github.com/gammsim/gamms" 
+"Bug Tracker" = "https://github.com/gammsim/gamms/issues" 
