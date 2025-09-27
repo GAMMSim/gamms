@@ -23,7 +23,13 @@ Package dependecies:
 
 ## Installation
 
-Installation support is directly from the source code. The package is not available on PyPi yet. If you have git installed,
+Direct pip installation from PyPI:
+
+```bash
+pip install gamms
+```
+
+Installation support is directly from the source code. If you have git installed,
 
 ```bash
 pip install "git+https://github.com/GAMMSim/gamms.git"
