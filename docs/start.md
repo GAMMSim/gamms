@@ -10,7 +10,13 @@ Otherwise, visit the official Python download page to install a compatible versi
 
 Before installing **Gamms**, ensure that [pip](https://pypi.org/project/pip/) is installed. Most Python distributions include pip by default; if you need to install it separately, follow the instructions on the pip documentation page.
 
-Once pip is set up, use the appropriate commands below for your operating system.
+Now, you can install **Gamms** using pip.
+
+```sh
+pip install gamms
+```
+
+If you want to setup using source code, use the appropriate commands below for your operating system to install `git` and `wget` if you don't have them already.
 
 ### Installing Git
 
@@ -56,7 +62,7 @@ This command will create a subfolder named `venv` that contains your virtual env
 
 **Install Gamms** within the virtual environment:
 ```sh
-python -m pip install git+https://github.com/GAMMSim/gamms.git@dev
+python -m pip install git+https://github.com/GAMMSim/gamms.git
 ```
 
 **Verify your installation**:

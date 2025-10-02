@@ -19,23 +19,30 @@ Package dependecies:
 - networkx
 - cbor2
 - aenum
+- osmnx
 
 ## Installation
 
-Installation support is directly from the source code. The package is not available on PyPi yet. If you have git installed,
+Direct pip installation from PyPI:
 
 ```bash
-pip install "git+https://github.com/GAMMSim/gamms.git@dev"
+pip install gamms
+```
+
+Installation support is directly from the source code. If you have git installed,
+
+```bash
+pip install "git+https://github.com/GAMMSim/gamms.git"
 ```
 
 Another option is to download the source code locally and run the following command in the root directory of the project:
 
 ```bash
-python setup.py install
+pip install .
 ```
 
-Detailed installation and setup instructions are available in the [Installation Guide](https://gammsim.github.io/gamms/dev/start/#installation-and-setup).
+Detailed installation and setup instructions are available in the [Installation Guide](https://gammsim.github.io/gamms/stable/start/#installation-and-setup).
 
 # Documentation
 
-The documentation is available at [GAMMS Documentation](https://gammsim.github.io/gamms/dev/). The documentation is generated using [mkdocs-materials](https://squidfunk.github.io/mkdocs-material/) with mike for versioning. You can do a local build by cloning the repository and serving the documentation using mkdocs. For new users, [Tutorials](https://gammsim.github.io/gamms/dev/tutorials) is a good place to start.
+The documentation is available at [GAMMS Documentation](https://gammsim.github.io/gamms/stable/). The documentation is generated using [mkdocs-materials](https://squidfunk.github.io/mkdocs-material/) with mike for versioning. You can do a local build by cloning the repository and serving the documentation using mkdocs. For new users, [Tutorials](https://gammsim.github.io/gamms/stable/tutorials) is a good place to start.
