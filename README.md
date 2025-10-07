@@ -1,4 +1,4 @@
-# GAMMS v0.2.5
+# GAMMS v0.2.6
 
 GAMMS (Graph based Adversarial Multiagent Modelling Simulator) is a Python library designed for simulating large scale multi-agent scenarios on environments represented as graphs. The library is a framework which focuses on providing a flexible and extensible architecture to facilitate implementing interactions between agents and the environment as well as controlling the information flow between them. The library is geared towards easing development of high level scenario dynamics and testing agent behaviours rather than low level details like the actual physics of real world interactions. GAMMS tries to solve the following problems:
 
