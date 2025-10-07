@@ -18,7 +18,7 @@ from gamms.typing import (
     ColorType,
     AgentType
 )
-from typing import Dict, Any, List, Tuple, Union, cast
+from typing import Dict, Any, List, Tuple, Union, cast, Optional
 
 class PygameVisualizationEngine(IVisualizationEngine):
     def __init__(self, ctx: IContext, width: int = 1280, height: int = 720, simulation_time_constant: float = 2.0, **kwargs : Dict[str, Any]):
@@ -242,6 +242,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
                 self._redraw_graph_artists()
 
             if self._waiting_user_input:
+                if self._waiting_agent_name is None:
+                    continue
                 waiting_agent = self.ctx.agent.get_agent(self._waiting_agent_name)
                 if waiting_agent.type == AgentType.BASIC:
                     if event.type == self._pygame.KEYDOWN:
@@ -289,6 +291,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
     def draw_input_overlay(self):
         if not self._waiting_user_input:
+            return
+        
+        if self._waiting_agent_name is None:
             return
 
         waiting_agent = self.ctx.agent.get_agent(self._waiting_agent_name)
@@ -357,13 +362,17 @@ class PygameVisualizationEngine(IVisualizationEngine):
         else:
             return self._screen
 
-    def render_text(self, text: str, x: float, y: float, color: ColorType = Color.Black, perform_culling_test: bool=True):
-        text_size = self._default_font.size(text)
+    def render_text(self, text: str, x: float, y: float, color: ColorType = Color.Black, perform_culling_test: bool=True, font_size: Optional[int]=None):
+        if font_size is not None:
+            font = self._pygame.font.Font(None, font_size)
+        else:
+            font = self._default_font
+        text_size = font.size(text)
         if perform_culling_test and self._render_manager.check_rectangle_culled(x, y, text_size[0], text_size[1]):
             return
 
         (x, y) = self._render_manager.world_to_screen(x, y)
-        text_surface = self._default_font.render(text, True, color)
+        text_surface = font.render(text, True, color)
         text_rect = text_surface.get_rect(center=(x, y))
         text_rect.move_ip(text_size[0] / 2, text_size[1] / 2)
 

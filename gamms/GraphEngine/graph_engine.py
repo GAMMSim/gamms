@@ -214,8 +214,8 @@ class _sql_OSMEdge(OSMEdge):
 class SqliteGraph(IGraph):
     def __init__(self):
         # Create a random name for the SQLite database
-        self._dbfile = tempfile.NamedTemporaryFile(dir=".", suffix=".sqlite")
-        self._conn = sqlite3.connect(self._dbfile.name)
+        self._dbdir = tempfile.TemporaryDirectory(dir=".")
+        self._conn = sqlite3.connect(f"{self._dbdir.name}/graph.db", isolation_level=None)
         self._cursor = self._conn.cursor()
         # Enable foreign key constraints
         self._cursor.execute("PRAGMA foreign_keys = ON")
@@ -237,8 +237,8 @@ class SqliteGraph(IGraph):
         Destructor to close the database connection.
         """
         self._conn.close()
-        if self._dbfile:
-            self._dbfile.close()
+        if self._dbdir:
+            self._dbdir.cleanup()
     
     def add_node(self, node_data: Dict[str, Any]) -> None:
         """

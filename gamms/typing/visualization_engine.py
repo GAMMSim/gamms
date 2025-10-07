@@ -1,5 +1,5 @@
 from gamms.typing.artist import IArtist
-from typing import Dict, Any, List, Tuple, Union
+from typing import Dict, Any, List, Tuple, Union, Optional
 from abc import ABC, abstractmethod
 
 ColorType = Union[
@@ -247,7 +247,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_text(self, text: str, x: float, y: float, color: Tuple[Union[int, float], Union[int, float], Union[int, float]], perform_culling_test: bool):
+    def render_text(self, text: str, x: float, y: float, color: Tuple[Union[int, float], Union[int, float], Union[int, float]], perform_culling_test: bool, font_size: Optional[int]):
         """
         Render text at the specified position with the given content and color.
 
@@ -257,6 +257,7 @@ class IVisualizationEngine(ABC):
             y (float): The y-coordinate of the text's center position.
             color (Tuple[Union[int, float], Union[int, float], Union[int, float]]): The color of the text in RGB format.
             perform_culling_test (bool): Whether to perform culling.
+            font_size (int): The font size of the text.
         """
         pass
 
