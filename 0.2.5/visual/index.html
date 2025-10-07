@@ -789,6 +789,123 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#gamms.typing.IArtist" class="md-nav__link">
+    <span class="md-ellipsis">
+      IArtist
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gamms.typing.IArtist.layer_dirty" class="md-nav__link">
+    <span class="md-ellipsis">
+      layer_dirty
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gamms.typing.IArtist.draw" class="md-nav__link">
+    <span class="md-ellipsis">
+      draw
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gamms.typing.IArtist.get_artist_type" class="md-nav__link">
+    <span class="md-ellipsis">
+      get_artist_type
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gamms.typing.IArtist.get_drawer" class="md-nav__link">
+    <span class="md-ellipsis">
+      get_drawer
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gamms.typing.IArtist.get_layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      get_layer
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gamms.typing.IArtist.get_visible" class="md-nav__link">
+    <span class="md-ellipsis">
+      get_visible
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gamms.typing.IArtist.get_will_draw" class="md-nav__link">
+    <span class="md-ellipsis">
+      get_will_draw
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gamms.typing.IArtist.set_artist_type" class="md-nav__link">
+    <span class="md-ellipsis">
+      set_artist_type
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gamms.typing.IArtist.set_drawer" class="md-nav__link">
+    <span class="md-ellipsis">
+      set_drawer
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gamms.typing.IArtist.set_layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      set_layer
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gamms.typing.IArtist.set_visible" class="md-nav__link">
+    <span class="md-ellipsis">
+      set_visible
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gamms.typing.IArtist.set_will_draw" class="md-nav__link">
+    <span class="md-ellipsis">
+      set_will_draw
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -976,7 +1093,7 @@ visual components within the visualization.</p>
                 <code>artist</code>
             </td>
             <td>
-                  <code><span title="gamms.typing.artist.IArtist">IArtist</span></code>
+                  <code><a class="autorefs autorefs-internal" title="IArtist (&lt;code&gt;gamms.typing.artist.IArtist&lt;/code&gt;)" href="#gamms.typing.IArtist">IArtist</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -1935,7 +2052,7 @@ effectively hiding or deleting the element from the display.</p>
 
 
 <h4 id="gamms.typing.IVisualizationEngine.render_text" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">render_text</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">perform_culling_test</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">render_text</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">perform_culling_test</span><span class="p">,</span> <span class="n">font_size</span><span class="p">)</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
@@ -2034,6 +2151,22 @@ effectively hiding or deleting the element from the display.</p>
             <td>
               <div class="doc-md-description">
                 <p>Whether to perform culling.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>font_size</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The font size of the text.</p>
               </div>
             </td>
             <td>
@@ -2433,6 +2566,631 @@ is correctly closed.</p>
               <div class="doc-md-description">
                 <p>If there are issues during the cleanup process.</p>
               </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="gamms.typing.IArtist"></a>
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="abc.ABC">ABC</span></code></p>
+
+
+        <p>Interface for the artist.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="gamms.typing.IArtist.data">data</span></code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="typing.Dict">Dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>], <span title="typing.Any">Any</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The custom data associated with the artist. Default is an empty dictionary but users can set it to any type.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="gamms.typing.IArtist.layer_dirty" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">layer_dirty</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+      <small class="doc doc-label doc-label-writable"><code>writable</code></small>
+  </span>
+
+<a href="#gamms.typing.IArtist.layer_dirty" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Check if the layer is dirty.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>bool</code></td>            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True if the layer is dirty, False otherwise.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="gamms.typing.IArtist.draw" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">draw</span><span class="p">()</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+  </span>
+
+<a href="#gamms.typing.IArtist.draw" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Draw the artist immediately.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="gamms.typing.IArtist.get_artist_type" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_artist_type</span><span class="p">()</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+  </span>
+
+<a href="#gamms.typing.IArtist.get_artist_type" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get the type of the artist.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>ArtistType</code></td>            <td>
+                  <code><span title="gamms.typing.artist.ArtistType">ArtistType</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The current type of the artist.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="gamms.typing.IArtist.get_drawer" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_drawer</span><span class="p">()</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+  </span>
+
+<a href="#gamms.typing.IArtist.get_drawer" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get the drawer function of the artist.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="typing.Callable">Callable</span>[[<a class="autorefs autorefs-internal" title="IContext (&lt;code&gt;gamms.typing.context.IContext&lt;/code&gt;)" href="../context/#gamms.typing.IContext">IContext</a>, <span title="typing.Dict">Dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]], None]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Optional[Callable[[IContext, Dict[str, Any]], None]]: The current drawer function, or None if not set.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="gamms.typing.IArtist.get_layer" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_layer</span><span class="p">()</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+  </span>
+
+<a href="#gamms.typing.IArtist.get_layer" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get the layer of the artist.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>int</code></td>            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The current layer of the artist.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="gamms.typing.IArtist.get_visible" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_visible</span><span class="p">()</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+  </span>
+
+<a href="#gamms.typing.IArtist.get_visible" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get the visibility of the artist.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>bool</code></td>            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The current visibility state of the artist.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="gamms.typing.IArtist.get_will_draw" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_will_draw</span><span class="p">()</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+  </span>
+
+<a href="#gamms.typing.IArtist.get_will_draw" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get whether the artist will draw.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>bool</code></td>            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True if the artist will draw, False otherwise.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="gamms.typing.IArtist.set_artist_type" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">set_artist_type</span><span class="p">(</span><span class="n">artist_type</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+  </span>
+
+<a href="#gamms.typing.IArtist.set_artist_type" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Set the type of the artist.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>artist_type</code>
+            </td>
+            <td>
+                  <code><span title="gamms.typing.artist.ArtistType">ArtistType</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The artist type to set.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="gamms.typing.IArtist.set_drawer" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">set_drawer</span><span class="p">(</span><span class="n">drawer</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+  </span>
+
+<a href="#gamms.typing.IArtist.set_drawer" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Set the drawer function for the artist.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>drawer</code>
+            </td>
+            <td>
+                  <code><span title="typing.Callable">Callable</span>[[<a class="autorefs autorefs-internal" title="IContext (&lt;code&gt;gamms.typing.context.IContext&lt;/code&gt;)" href="../context/#gamms.typing.IContext">IContext</a>, <span title="typing.Dict">Dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]], None]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The drawer function to set.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="gamms.typing.IArtist.set_layer" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">set_layer</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+  </span>
+
+<a href="#gamms.typing.IArtist.set_layer" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Set the layer of the artist.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>layer</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The layer to set.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="gamms.typing.IArtist.set_visible" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">set_visible</span><span class="p">(</span><span class="n">visible</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+  </span>
+
+<a href="#gamms.typing.IArtist.set_visible" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Set the visibility of the artist.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>visible</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The visibility state to set.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="gamms.typing.IArtist.set_will_draw" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">set_will_draw</span><span class="p">(</span><span class="n">will_draw</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+  </span>
+
+<a href="#gamms.typing.IArtist.set_will_draw" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Set whether the artist will draw.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>will_draw</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The will_draw state to set.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
             </td>
           </tr>
       </tbody>
