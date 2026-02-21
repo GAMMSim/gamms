@@ -222,12 +222,12 @@ class SqliteGraph(IGraph):
         self._cursor.executescript(
             "PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;PRAGMA temp_store = MEMORY;"
         )
-        self.node_store = self._cursor.execute(
+        self._cursor.execute(
             "CREATE TABLE IF NOT EXISTS nodes (id INTEGER PRIMARY KEY, x REAL, y REAL)"
         )
         # Create index on node x,y for faster lookups
         self._cursor.execute("CREATE INDEX IF NOT EXISTS idx_nodes_xy ON nodes (x, y)")
-        self.edge_store = self._cursor.execute(
+        self._cursor.execute(
             "CREATE TABLE IF NOT EXISTS edges (id INTEGER PRIMARY KEY, source INTEGER, target INTEGER, length REAL, geom BLOB, FOREIGN KEY(source) REFERENCES nodes(id), FOREIGN KEY(target) REFERENCES nodes(id))"
         )
         # Create index on edge source,target for faster lookups
