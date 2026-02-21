@@ -217,8 +217,11 @@ class SqliteGraph(IGraph):
         self._dbdir = tempfile.TemporaryDirectory(dir=".")
         self._conn = sqlite3.connect(f"{self._dbdir.name}/graph.db", isolation_level=None)
         self._cursor = self._conn.cursor()
-        # Enable foreign key constraints
-        self._cursor.execute("PRAGMA foreign_keys = ON")
+        # Enable foreign key constraints and set journal mode to WAL for better concurrency
+        # Also set temp_store to MEMORY for faster temporary storage
+        self._cursor.executescript(
+            "PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;PRAGMA temp_store = MEMORY;"
+        )
         self.node_store = self._cursor.execute(
             "CREATE TABLE IF NOT EXISTS nodes (id INTEGER PRIMARY KEY, x REAL, y REAL)"
         )
@@ -266,8 +269,11 @@ class SqliteGraph(IGraph):
         linestring = edge_data.get('linestring', None)
         if linestring is None:
             # Create a LineString from the source and target node coordinates
+            com_val = self._call_commit
+            self._call_commit = False
             source_node = self.get_node(edge_data['source'])
             target_node = self.get_node(edge_data['target'])
+            self._call_commit = com_val
             linestring = ((source_node.x, source_node.y), (target_node.x, target_node.y))
         elif not isinstance(linestring, LineString):
             try:
@@ -440,24 +446,14 @@ class SqliteGraph(IGraph):
             }
             self.add_node(node_data)
         
+        self._conn.commit()  # Commit after adding all nodes to ensure they are available for edge insertion
+        self._call_commit = False  # Reset call_commit flag after manual commit
+        
         for u, v, data in G.edges(data=True): # type: ignore
             u = cast(int, u)
             v = cast(int, v)
             data = cast(Dict[str, Any], data)
             linestring = data.get('linestring', None)
-            if linestring is None:
-                # Create a LineString from the source and target node coordinates
-                source_node = self.get_node(u)
-                target_node = self.get_node(v)
-                linestring = ((source_node.x, source_node.y), (target_node.x, target_node.y))
-            elif not isinstance(linestring, LineString):
-                try:
-                    linestring = LineString(linestring)
-                    linestring = tuple(linestring.coords)
-                except Exception as e:
-                    raise ValueError(f"Invalid linestring data: {linestring}") from e
-            else:
-                linestring = tuple(linestring.coords)
             edge_data: Dict[str, Any] = {
                 'id': data.get('id', -1),
                 'source': u,
@@ -466,6 +462,9 @@ class SqliteGraph(IGraph):
                 'linestring': linestring
             }
             self.add_edge(edge_data)
+        
+        self._conn.commit()  # Commit after adding all edges
+        self._call_commit = False  # Reset call_commit flag after manual commit
     
     def get_neighbors(self, node_id: int) -> Iterator[int]:
         """
