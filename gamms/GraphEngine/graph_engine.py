@@ -512,4 +512,8 @@ class GraphEngine(IGraphEngine):
         return self.graph
     
     def terminate(self):
+        try:
+            del self._graph
+        except Exception as e:
+            print(f"Error during graph termination: {e}")
         return
