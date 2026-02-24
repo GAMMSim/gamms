@@ -51,8 +51,8 @@ red_team = [name for name in config.agent_config if config.agent_config[name]['m
 blue_team = [name for name in config.agent_config if config.agent_config[name]['meta']['team'] == 1]
 
 # Start position of the agents
-nodes = ctx.graph.graph.nodes
-node_keys = list(nodes.keys())
+node_keys = [nid for nid in ctx.graph.graph.get_nodes()]
+nodes = {nid: ctx.graph.graph.get_node(nid) for nid in node_keys}
 blue_territory = set()
 red_territory = set()
 for name in red_team:
