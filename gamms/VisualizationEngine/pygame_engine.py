@@ -1,9 +1,9 @@
 from gamms.AgentEngine.agent_engine import AerialAgent
 from gamms.VisualizationEngine import Color, Space, Shape, Artist, lazy
 from gamms.VisualizationEngine.render_manager import RenderManager
-from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
+from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData, LabelData
 from gamms.VisualizationEngine.default_drawers import (
-    render_circle, render_rectangle,
+    render_circle, render_rectangle, render_label,
     render_agent, render_graph, render_neighbor_sensor,
     render_map_sensor, render_agent_sensor, render_input_overlay,
     render_aerial_agent_sensor,
@@ -135,6 +135,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         return artist
 
+    def get_agent_visual(self, name: str) -> Optional[IArtist]:
+        return self._agent_artists.get(name)
+
     def set_sensor_visual(self, name: str, **kwargs: Dict[str, Any]) -> IArtist:
         sensor = self.ctx.sensor.get_sensor(name)
         sensor_type = sensor.type
@@ -169,6 +172,25 @@ class PygameVisualizationEngine(IVisualizationEngine):
         
         self.add_artist(f'sensor_{name}', artist)
 
+        return artist
+    
+    def set_label_visual(self, name, **kwargs):
+        label_data = LabelData(
+            name=name,
+            text=cast(str, kwargs.get('text', name)),
+            anchor=kwargs.get('anchor', None),
+            position=kwargs.get('position', None),
+            color=cast(Optional[ColorType], kwargs.get('color', None)),
+            size=cast(Optional[int], kwargs.get('size', None)),
+            visible=cast(bool, kwargs.get('visible', True)),
+            offset=cast(Tuple[float, float], kwargs.get('offset', (0.0, -15.0))),
+        )
+
+        artist = Artist(self.ctx, render_label, 20)
+        artist.data['label_data'] = label_data
+        artist.set_artist_type(ArtistType.LABEL)
+
+        self.add_artist(name, artist)
         return artist
     
     def add_artist(self, name: str, artist: Union[IArtist, Dict[str, Any]]) -> IArtist:

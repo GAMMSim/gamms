@@ -235,6 +235,9 @@ for name in blue_team:
 for name, vis_config in config.agent_vis_config.items():
     artist = ctx.visual.set_agent_visual(name, **vis_config)
 
+for name, vis_config in config.label_vis_config.items():
+    artist = ctx.visual.set_label_visual(name, **vis_config)
+
 for node_id in nodes:
     for red_agent in red_team:
         start = config.agent_config[red_agent]['start_node_id']

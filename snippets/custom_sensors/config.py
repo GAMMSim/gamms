@@ -54,16 +54,32 @@ for i in range(RED_TEAM_AGENTS, RED_TEAM_AGENTS + BLUE_TEAM_AGENTS):
 
 agent_vis_config = {}
 
+label_vis_config = {}
+
 for i in range(RED_TEAM_AGENTS):
     agent_vis_config[f'agent_{i}'] = {
         'color': (255, 0, 0), # color of the agent
         'size': 10, # size of the agent
+    }
+    label_vis_config[f'label_{i}'] = {
+        'text': f'Agent {i}',
+        'color': (255, 0, 0), # color of the label
+        'size': 12, # size of the label
+        'anchor': f'agent_{i}', # anchor the label to the agent
+        'offset': (0, -15), # offset of the label from the agent
     }
 
 for i in range(RED_TEAM_AGENTS, RED_TEAM_AGENTS + BLUE_TEAM_AGENTS):
     agent_vis_config[f'agent_{i}'] = {
         'color': (0, 0, 255), # color of the agent
         'size': 10, # size of the agent
+    }
+    label_vis_config[f'label_{i}'] = {
+        'text': f'Agent {i}',
+        'color': (0, 0, 255), # color of the label
+        'size': 12, # size of the label
+        'anchor': f'agent_{i}', # anchor the label to the agent
+        'offset': (0, -15), # offset of the label from the agent
     }
 
 sensor_vis_config = {}

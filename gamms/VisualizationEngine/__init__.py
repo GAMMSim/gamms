@@ -30,6 +30,7 @@ class Space(IntEnum):
 class Shape(Enum):
     Circle = auto()
     Rectangle = auto()
+    Label = auto()
 
 import sys
 import importlib.util

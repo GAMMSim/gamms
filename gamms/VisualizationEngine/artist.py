@@ -1,7 +1,7 @@
 from enum import Enum, auto
 
 from gamms.typing import IArtist, ArtistType, IContext
-from gamms.VisualizationEngine.default_drawers import render_circle, render_rectangle
+from gamms.VisualizationEngine.default_drawers import render_circle, render_rectangle, render_label
 from gamms.VisualizationEngine import Shape
 from typing import Callable, Union, Dict, Any
 
@@ -25,6 +25,8 @@ class Artist(IArtist):
                 self._drawer = render_circle
             elif drawer == Shape.Rectangle:
                 self._drawer = render_rectangle
+            elif drawer == Shape.Label:
+                self._drawer = render_label
             else:
                 raise ValueError("Unsupported shape type")
         else:

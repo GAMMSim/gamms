@@ -1,9 +1,9 @@
 from gamms.AgentEngine.agent_engine import AerialAgent
 from gamms.VisualizationEngine import Color
-from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
-from gamms.typing import IContext, OSMEdge, Node, ColorType, AgentType
+from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData, LabelData
+from gamms.typing import IContext, OSMEdge, Node, ColorType, AgentType, IArtist, IAgent
 
-from typing import Dict, Any, cast, List, Optional
+from typing import Dict, Any, Tuple, cast, List, Optional
 
 import math
 
@@ -37,6 +37,58 @@ def render_rectangle(ctx: IContext, data: Dict[str, Any]):
     height = data.get('height')
     color = data.get('color', Color.Cyan)
     ctx.visual.render_rectangle(x, y, width, height, color)
+
+def _get_agent_anchor_position(ctx: IContext, agent_visual: IArtist, agent: IAgent) -> Tuple[float, float]:
+    if agent_visual is not None:
+        agent_data = cast(Optional[AgentData], agent_visual.data.get('agent_data'))
+        if agent_data is not None and agent_data.current_position is not None:
+            return agent_data.current_position
+
+    # Fallback for first frame (before agent_data.current_position is populated).
+    if agent.type == AgentType.BASIC:
+        node = ctx.graph.graph.get_node(agent.current_node_id)
+        return node.x, node.y
+    elif agent.type == AgentType.AERIAL:
+        return agent.position[0], agent.position[1]
+    else:
+        raise ValueError(f"Unsupported agent type: {agent.type}")
+
+def render_label(ctx: IContext, data: Dict[str, Any]):
+    """
+    Render a label at the specified position with the specified text and color.
+
+    Args:
+        ctx (Context): The current simulation context.
+        data (dict): The data containing the label's position, text, and color.
+    """
+    label_data = cast(LabelData, data.get('label_data'))
+    if label_data.visible is False:
+        return
+    
+    color = cast(ColorType, label_data.color if label_data.color is not None else Color.Black)
+    size = cast(Optional[int], label_data.size)
+
+    agent = ctx.agent.get_agent(label_data.anchor) if label_data.anchor else None
+    offset = cast(Tuple[float, float], label_data.offset)
+
+    if agent is not None and label_data.anchor is not None:
+        agent_visual = ctx.visual.get_agent_visual(label_data.anchor)
+        if label_data.color is None:
+            color = Color.Black if agent_visual is None else cast(AgentData, agent_visual.data.get('agent_data')).color
+        if label_data.size is None:
+            size = None if agent_visual is None else cast(AgentData, agent_visual.data.get('agent_data')).size
+
+        x, y = _get_agent_anchor_position(ctx, agent_visual, agent)
+        x += offset[0]
+        y += offset[1]
+    elif label_data.position is not None:
+        x, y = label_data.position
+        x += offset[0]
+        y += offset[1]
+    else:
+        raise ValueError("Label must have either an anchor or a position")
+
+    ctx.visual.render_text(label_data.text, x, y, color, font_size=size)
 
 def render_agent(ctx: IContext, data: Dict[str, Any]):
     """
@@ -76,10 +128,10 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
             else:
                 position = (prev_position[0] + alpha * (target_position[0] - prev_position[0]),
                             prev_position[1] + alpha * (target_position[1] - prev_position[1]))
-
-            agent_data.current_position = position
         else:
             position = (target_node.x, target_node.y)
+
+        agent_data.current_position = position
 
         # Draw each agent as a triangle at its current position
         angle = math.radians(45)
@@ -100,6 +152,8 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
                         prev_position[1] + alpha * (target_position[1] - prev_position[1]))
         else:
             position = aerial_agent.position
+
+        agent_data.current_position = (position[0], position[1])
 
         quat = aerial_agent.quat
         x = quat[1]
