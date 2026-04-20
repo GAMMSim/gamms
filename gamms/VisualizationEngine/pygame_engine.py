@@ -42,7 +42,10 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._simulation_time = 0
         self._will_quit = False
         self._render_manager = RenderManager(ctx, 0, 0, 15, width, height)
-        self._surface_dict : Dict[int, self._pygame.Surface ] = {}
+        self._render_surface = self._pygame.Surface((width, height), self._pygame.SRCALPHA)
+        self._cache_surface = self._pygame.Surface((width, height), self._pygame.SRCALPHA)
+        self._artist_caches: Dict[str, Tuple[Any, Any]] = {}
+        self._is_caching: bool = False
         self._agent_artists: Dict[str, IArtist] = {}
         self._graph_artists: Dict[str, IArtist] = {}
 
@@ -50,13 +53,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._input_overlay_artist = self._set_input_overlay_artist(input_overlay_args)
     
     def create_layer(self, layer_id: int, width : int, height : int) -> int:
-        if layer_id not in self._surface_dict:
-            surface = self._pygame.Surface((width, height), self._pygame.SRCALPHA)
-            self._surface_dict[layer_id] = surface
-
-        # Order layers by ascending order
-        self._surface_dict = {id: self._surface_dict[id] for id in sorted(self._surface_dict.keys())}
-
         return layer_id
 
     def set_graph_visual(self, **kwargs: Dict[str, Any]) -> IArtist:
@@ -236,9 +232,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
                 self._render_manager.screen_width = event.w
                 self._render_manager.screen_height = event.h
                 self._screen = self._pygame.display.set_mode((event.w, event.h), self._pygame.RESIZABLE)
-                for layer_id in self._surface_dict.keys():
-                    self._surface_dict[layer_id] = self._pygame.Surface((event.w, event.h), self._pygame.SRCALPHA)
-
+                self._render_surface = self._pygame.Surface((event.w, event.h), self._pygame.SRCALPHA)
+                self._cache_surface = self._pygame.Surface((event.w, event.h), self._pygame.SRCALPHA)
+                self._artist_caches.clear()
                 self._redraw_graph_artists()
 
             if self._waiting_user_input:
@@ -281,11 +277,13 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
     def handle_single_draw(self):
         self._screen.fill(Color.White)
+        self._render_surface.fill((0, 0, 0, 0))
 
         # Note: Draw in layer order of back layer -> front layer
         # self._draw_grid()
-        
+
         self._render_manager.handle_render()
+        self._screen.blit(self._render_surface, (0, 0))
         self.draw_input_overlay()
         self.draw_hud()
 
@@ -342,9 +340,31 @@ class PygameVisualizationEngine(IVisualizationEngine):
             raise ValueError("Invalid coord_space value. Must be one of the values in the Space enum.")
         
     def _redraw_graph_artists(self):
-        for artist_name, graph_artist in self._graph_artists.items():
-            self.clear_layer(graph_artist.get_layer())
-            self._render_manager.render_single_artist(artist_name)
+        for artist_name in self._graph_artists:
+            self._rebuild_artist_cache(artist_name)
+
+    def _rebuild_artist_cache(self, name: str):
+        self._cache_surface.fill((0, 0, 0, 0))
+        self._is_caching = True
+        try:
+            self._render_manager.render_single_artist(name)
+        finally:
+            self._is_caching = False
+
+        rgb = self._pygame.surfarray.array3d(self._cache_surface)
+        alpha = self._pygame.surfarray.array_alpha(self._cache_surface)
+        self._artist_caches[name] = (rgb, alpha)
+
+    def render_cached_artist(self, name: str) -> None:
+        if name not in self._artist_caches:
+            self._rebuild_artist_cache(name)
+
+        rgb, alpha = self._artist_caches[name]
+        self._pygame.surfarray.blit_array(self._cache_surface, rgb)
+        alpha_view = self._pygame.surfarray.pixels_alpha(self._cache_surface)
+        alpha_view[:] = alpha
+        del alpha_view
+        self._render_surface.blit(self._cache_surface, (0, 0))
 
     def _toggle_waiting_simulation(self, waiting_simulation: bool):
         self._waiting_simulation = waiting_simulation
@@ -356,11 +376,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._waiting_user_input = waiting_user_input
         self._input_overlay_artist.data['_waiting_user_input'] = waiting_user_input
         
-    def _get_target_surface(self, layer: int):
-        if layer >= 0:
-            return self._surface_dict.get(layer, self._screen)
-        else:
-            return self._screen
+    def _get_target_surface(self):
+        return self._cache_surface if self._is_caching else self._render_surface
 
     def render_text(self, text: str, x: float, y: float, color: ColorType = Color.Black, perform_culling_test: bool=True, font_size: Optional[int]=None):
         if font_size is not None:
@@ -379,8 +396,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         if self._render_manager.current_drawing_artist is None:
             raise ValueError("No current drawing artist set.")
 
-        layer = self._render_manager.current_drawing_artist.get_layer()
-        surface = self._get_target_surface(layer)
+        surface = self._get_target_surface()
         surface.blit(text_surface, text_rect)
 
     def render_rectangle(self, x: float, y: float, width: float, height: float, color: ColorType = Color.Black,
@@ -393,8 +409,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         if self._render_manager.current_drawing_artist is None:
             raise ValueError("No current drawing artist set.")
 
-        layer = self._render_manager.current_drawing_artist.get_layer()
-        surface = self._get_target_surface(layer)
+        surface = self._get_target_surface()
         self._pygame.draw.rect(surface, color, self._pygame.Rect(x, y, width, height))
 
     def render_circle(self, x: float, y: float, radius: float, color: ColorType = Color.Black, width: int = 0,
@@ -409,9 +424,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         if self._render_manager.current_drawing_artist is None:
             raise ValueError("No current drawing artist set.")
-        
-        layer = self._render_manager.current_drawing_artist.get_layer()
-        surface = self._get_target_surface(layer)
+
+        surface = self._get_target_surface()
         self._pygame.draw.circle(surface, color, (x, y), radius, width)
 
     def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: ColorType = Color.Black,
@@ -425,8 +439,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         if self._render_manager.current_drawing_artist is None:
             raise ValueError("No current drawing artist set.")
 
-        layer = self._render_manager.current_drawing_artist.get_layer()
-        surface = self._get_target_surface(layer)
+        surface = self._get_target_surface()
         if is_aa:
             self._pygame.draw.aaline(surface, color, (start_x, start_y), (end_x, end_y))
         else:
@@ -442,8 +455,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         if self._render_manager.current_drawing_artist is None:
             raise ValueError("No current drawing artist set.")
 
-        layer = self._render_manager.current_drawing_artist.get_layer()
-        surface = self._get_target_surface(layer)
+        surface = self._get_target_surface()
         if is_aa:
             self._pygame.draw.aalines(surface, color, closed, points)
         else:
@@ -459,22 +471,17 @@ class PygameVisualizationEngine(IVisualizationEngine):
         if self._render_manager.current_drawing_artist is None:
             raise ValueError("No current drawing artist set.")
 
-        layer = self._render_manager.current_drawing_artist.get_layer()
-        surface = self._get_target_surface(layer)
+        surface = self._get_target_surface()
         self._pygame.draw.polygon(surface, color, points, width)
 
     def clear_layer(self, layer_id: int):
-        if layer_id in self._surface_dict:
-            self._surface_dict[layer_id].fill((0, 0, 0, 0))
+        return
 
     def fill_layer(self, layer_id: int, color: ColorType):
-        if layer_id in self._surface_dict:
-            self._surface_dict[layer_id].fill(color)
+        return
 
     def render_layer(self, layer_id: int):
-        if layer_id in self._surface_dict:
-            surface = self._surface_dict[layer_id]
-            self._screen.blit(surface, (0, 0))
+        return
 
     def _draw_grid(self):
         x_min = self._render_manager.camera_x - self._render_manager.camera_size * 4

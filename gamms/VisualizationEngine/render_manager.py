@@ -262,7 +262,6 @@ class RenderManager:
             for artist in self._artists.values():
                 artist.layer_dirty = False
 
-        rendered_layers: Set[int] = set()
         for layer, artist_name_list in self._layer_artists.items():
             for artist_name in artist_name_list:
                 artist = self._artists[artist_name]
@@ -270,9 +269,8 @@ class RenderManager:
                     continue
 
                 if not artist.get_will_draw():
-                    if artist.get_artist_type() == ArtistType.GRAPH and layer not in rendered_layers:
-                        self.ctx.visual.render_layer(layer)
-                        rendered_layers.add(layer)
+                    if artist.get_artist_type() == ArtistType.GRAPH:
+                        self.ctx.visual.render_cached_artist(artist_name)
                     continue
 
                 self._current_drawing_artist = artist

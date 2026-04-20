@@ -270,3 +270,16 @@ class IVisualizationEngine(ABC):
             layer_id (int): The layer number to render.
         """
         pass
+
+    @abstractmethod
+    def render_cached_artist(self, name: str) -> None:
+        """
+        Composite the cached pixels of the named artist onto the current
+        render target. Intended to be called by the render manager for
+        artists whose draw output is cached (currently graph artists).
+
+        Args:
+            name (str): The unique name of the artist whose cached output
+                should be rendered.
+        """
+        pass
