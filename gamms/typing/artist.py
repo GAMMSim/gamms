@@ -3,9 +3,13 @@ from abc import ABC, abstractmethod
 from enum import Enum, auto
 
 class ArtistType(Enum):
-    GENERAL = auto()
-    AGENT = auto()
-    GRAPH = auto()
+    STATIC = auto()
+    DYNAMIC = auto()
+
+
+class RenderMode(Enum):
+    CACHED = auto()
+    NON_CACHED = auto()
 
 
 class IArtist(ABC):
@@ -115,6 +119,26 @@ class IArtist(ABC):
 
         Args:
             artist_type (ArtistType): The artist type to set.
+        """
+        pass
+
+    @abstractmethod
+    def get_render_mode(self) -> RenderMode:
+        """
+        Get the render mode of the artist.
+
+        Returns:
+            RenderMode: The current render mode of the artist.
+        """
+        pass
+
+    @abstractmethod
+    def set_render_mode(self, render_mode: RenderMode) -> None:
+        """
+        Set the render mode of the artist.
+
+        Args:
+            render_mode (RenderMode): The render mode to set.
         """
         pass
 

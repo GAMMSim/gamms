@@ -1,4 +1,4 @@
-from gamms.typing import IArtist, ArtistType, IContext
+from gamms.typing import IArtist, ArtistType, RenderMode, IContext
 from gamms.VisualizationEngine.default_drawers import render_circle, render_rectangle
 from gamms.VisualizationEngine import Shape
 from typing import Callable, Union, Dict, Any
@@ -12,7 +12,8 @@ class Artist(IArtist):
         self._layer_dirty = False
         self._visible = True
         self._will_draw = True
-        self._artist_type = ArtistType.GENERAL
+        self._artist_type = ArtistType.DYNAMIC
+        self._render_mode = RenderMode.NON_CACHED
         if isinstance(drawer, Shape):
             if drawer == Shape.Circle:
                 self._drawer = render_circle
@@ -64,6 +65,12 @@ class Artist(IArtist):
 
     def set_artist_type(self, artist_type: ArtistType):
         self._artist_type = artist_type
+
+    def get_render_mode(self) -> RenderMode:
+        return self._render_mode
+
+    def set_render_mode(self, render_mode: RenderMode):
+        self._render_mode = render_mode
 
     def draw(self):
         try:

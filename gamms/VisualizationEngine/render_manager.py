@@ -1,4 +1,4 @@
-from gamms.typing import ArtistType, IContext, IArtist
+from gamms.typing import RenderMode, IContext, IArtist
 
 from typing import Set, Dict, List, Optional, Tuple
 
@@ -21,7 +21,7 @@ class RenderManager:
         self._artists: Dict[str, IArtist] = {}
         # This will call drawer on all artists in the respective layer
         self._layer_artists: Dict[int, List[str]] = {}
-        self._graph_layers: Set[int] = set()
+        self._cached_layers: Set[int] = set()
         self._current_drawing_artist: Optional[IArtist] = None
 
         self._default_origin = (0, 0)
@@ -208,8 +208,8 @@ class RenderManager:
         else:
             self._layer_artists[artist.get_layer()].append(name)
 
-        if artist.get_artist_type() == ArtistType.GRAPH:
-            self._graph_layers.add(artist.get_layer())
+        if artist.get_render_mode() == RenderMode.CACHED:
+            self._cached_layers.add(artist.get_layer())
 
     def remove_artist(self, name: str):
         """
@@ -228,15 +228,15 @@ class RenderManager:
 
     def rebuild_artist_layer(self):
         self._layer_artists.clear()
-        self._graph_layers.clear()
+        self._cached_layers.clear()
         for name, artist in self._artists.items():
             if artist.get_layer() not in self._layer_artists:
                 self._layer_artists[artist.get_layer()] = [name]
             else:
                 self._layer_artists[artist.get_layer()].append(name)
 
-            if artist.get_artist_type() == ArtistType.GRAPH:
-                self._graph_layers.add(artist.get_layer())
+            if artist.get_render_mode() == RenderMode.CACHED:
+                self._cached_layers.add(artist.get_layer())
 
         self._layer_artists = {k: self._layer_artists[k] for k in sorted(self._layer_artists.keys())}
 
@@ -270,7 +270,7 @@ class RenderManager:
                     continue
 
                 if not artist.get_will_draw():
-                    if artist.get_artist_type() == ArtistType.GRAPH and layer not in rendered_layers:
+                    if artist.get_render_mode() == RenderMode.CACHED and layer not in rendered_layers:
                         self.ctx.visual.render_layer(layer)
                         rendered_layers.add(layer)
                     continue
