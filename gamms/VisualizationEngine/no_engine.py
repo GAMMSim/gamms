@@ -87,3 +87,6 @@ class NoEngine(IVisualizationEngine):
 
     def get_culling_bounds(self) -> Tuple[float, float, float, float]:
         return (-math.inf, math.inf, -math.inf, math.inf)
+
+    def world_to_screen_scale(self, world_size: float) -> float:
+        return 0.0

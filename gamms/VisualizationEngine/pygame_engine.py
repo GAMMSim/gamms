@@ -482,6 +482,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
         rm = self._render_manager
         return (rm._bound_left, rm._bound_right, rm._bound_top, rm._bound_bottom)
 
+    def world_to_screen_scale(self, world_size: float) -> float:
+        return self._render_manager.world_to_screen_scale(world_size)
+
     def render_text(self, text: str, x: float, y: float, color: ColorType = Color.Black, perform_culling_test: bool=True, font_size: Optional[int]=None):
         if font_size is not None:
             font = self._pygame.font.Font(None, font_size)

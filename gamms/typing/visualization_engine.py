@@ -287,13 +287,33 @@ class IVisualizationEngine(ABC):
     @abstractmethod
     def get_culling_bounds(self) -> Tuple[float, float, float, float]:
         """
-        Return the current world-space culling bounds as
-        (left, right, top, bottom) where top is the minimum y value
-        and bottom is the maximum y value. Drawers can use this to
-        skip work for items outside the visible region (including any
-        temporary override set by strip redraw).
+        Return the current world-space culling bounds. Drawers can use this
+        to skip work for items outside the visible region, including any
+        temporary override set by strip redraw.
 
-        Engines without a viewport should return bounds covering the whole
-        plane (i.e. (-inf, inf, -inf, inf)).
+        Returns:
+            Tuple[float, float, float, float]: (left, right, top, bottom)
+                in world coordinates, where top is the minimum y value
+                and bottom is the maximum y value. Engines without a
+                viewport should return bounds covering the whole plane
+                (i.e. (-inf, inf, -inf, inf)).
+        """
+        pass
+
+    @abstractmethod
+    def world_to_screen_scale(self, world_size: float) -> float:
+        """
+        Convert a length in world units to its on-screen length in pixels at
+        the current camera zoom. Drawers can use this to make decisions that
+        depend on apparent on-screen size (for example, replacing a polyline
+        with a single straight segment when its endpoints are within a few
+        pixels of each other).
+
+        Args:
+            world_size (float): Length in world units to convert.
+
+        Returns:
+            float: The corresponding length in screen-space pixels. Engines
+                without a viewport may return 0.0.
         """
         pass

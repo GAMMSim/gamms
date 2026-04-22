@@ -8,6 +8,9 @@ from typing import Dict, Any, cast, List, Optional
 
 import math
 
+_SHORT_EDGE_PIXEL_THRESHOLD = 3.0
+_SKIP_EDGE_PIXEL_THRESHOLD = 1.0
+_SKIP_NODE_PIXEL_THRESHOLD = 1.0
 
 def render_circle(ctx: IContext, data: Dict[str, Any]):
     """
@@ -143,6 +146,24 @@ def render_aerial_agent(ctx: IContext, position: tuple[float, float], angle: flo
     ctx.visual.render_polygon(points, color)
 
 
+def _pixel_thresh_sq(ctx: IContext, pixel_thresh: float) -> float:
+    """
+    Return the squared world-space distance that corresponds to a given number of screen pixels at the current camera zoom.
+
+    Args:
+        ctx (IContext): The current simulation context.
+        pixel_thresh (float): Length in screen pixels to convert.
+    Returns:
+        float: The squared world-space distance. Returns 0.0 for engines without a viewport.
+    """
+    scale = ctx.visual.world_to_screen_scale(1.0)
+    if scale <= 0:
+        return 0.0
+    thresh_world = pixel_thresh / scale
+    return thresh_world * thresh_world
+
+
+
 def render_graph(ctx: IContext, data: Dict[str, Any]):
     """
     Render the graph by drawing its nodes and edges on the screen. This is the default rendering method for graphs.
@@ -174,13 +195,18 @@ def render_graph(ctx: IContext, data: Dict[str, Any]):
         edge_ids = idx.query_edges(left - pad, right + pad, top - pad, bottom + pad)
         node_ids = idx.query_nodes(left - pad, right + pad, top - pad, bottom + pad)
 
+    short_sq = _pixel_thresh_sq(ctx, _SHORT_EDGE_PIXEL_THRESHOLD)
+    skip_sq = _pixel_thresh_sq(ctx, _SKIP_EDGE_PIXEL_THRESHOLD)
+
     for edge_id in edge_ids:
         edge = graph.get_edge(edge_id)
-        _render_graph_edge(ctx, graph_data, edge, edge_color)
+        _render_graph_edge(ctx, graph_data, edge, edge_color, short_sq, skip_sq)
 
-    for node_id in node_ids:
-        node = graph.get_node(node_id)
-        _render_graph_node(ctx, node, node_color, node_size, draw_id)
+    node_pixel_radius = ctx.visual.world_to_screen_scale(node_size)
+    if node_pixel_radius >= _SKIP_NODE_PIXEL_THRESHOLD:
+        for node_id in node_ids:
+            node = graph.get_node(node_id)
+            _render_graph_node(ctx, node, node_color, node_size, draw_id)
 
 def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
     """
@@ -213,8 +239,10 @@ def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
     draw_id = graph_data.draw_id
     target_node_id_set = set(input_options.values())
 
-    for node in target_node_id_set:
-        _render_graph_node(ctx, graph.get_node(node), node_color, node_size, draw_id)
+    node_pixel_radius = ctx.visual.world_to_screen_scale(node_size)
+    if node_pixel_radius >= _SKIP_NODE_PIXEL_THRESHOLD:
+        for node in target_node_id_set:
+            _render_graph_node(ctx, graph.get_node(node), node_color, node_size, draw_id)
 
     active_edges: List[OSMEdge] = []
     for edge_id in graph.get_edges():
@@ -222,27 +250,53 @@ def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
         if edge.source == current_waiting_agent.current_node_id and edge.target in target_node_id_set:
             active_edges.append(edge)
 
+    short_sq = _pixel_thresh_sq(ctx, _SHORT_EDGE_PIXEL_THRESHOLD)
+    skip_sq = _pixel_thresh_sq(ctx, _SKIP_EDGE_PIXEL_THRESHOLD)
     for edge in active_edges:
-        _render_graph_edge(ctx, graph_data, edge, edge_color)
+        _render_graph_edge(ctx, graph_data, edge, edge_color, short_sq, skip_sq)
 
-def _render_graph_edge(ctx: IContext, graph_data: GraphData, edge: OSMEdge, color: ColorType):
-    """Draw an edge as a curve or straight line based on the linestring."""
+def _render_graph_edge(ctx: IContext, graph_data: GraphData, edge: OSMEdge, color: ColorType,
+                       short_edge_thresh_sq: float = 0.0,
+                       skip_edge_thresh_sq: float = 0.0):
+    """Draw an edge as a curve or straight line based on the linestring.
+
+    The squared world-space distance between the edge's endpoints drives
+    three mutually exclusive paths:
+
+    * endpoints within sqrt(skip_edge_thresh_sq) world units -> drop
+      the edge entirely (sub-pixel on screen).
+    * linestring edge within sqrt(short_edge_thresh_sq) world units ->
+      draw as a single straight segment, skipping Shapely deserialization
+      and the multi-segment renderer call.
+    * otherwise -> draw the full linestring.
+    """
+    source = ctx.graph.graph.get_node(edge.source)
+    target = ctx.graph.graph.get_node(edge.target)
+
+    dx = target.x - source.x
+    dy = target.y - source.y
+    d_sq = dx * dx + dy * dy
+
+    if skip_edge_thresh_sq > 0.0 and d_sq <= skip_edge_thresh_sq:
+        return
+
     if edge.linestring:
+        if short_edge_thresh_sq > 0.0 and d_sq <= short_edge_thresh_sq:
+            ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2,
+                                   perform_culling_test=False, is_aa=False)
+            return
+
         cache = graph_data.render_cache
         line_points: Optional[List] = None
         if cache is not None:
             line_points = cache.edge_line_points.get(edge.id)
         if line_points is None:
-            source = ctx.graph.graph.get_node(edge.source)
-            target = ctx.graph.graph.get_node(edge.target)
             line_points = ([(source.x, source.y)] + [(x, y) for (x, y) in edge.linestring.coords] +
                            [(target.x, target.y)])
             if cache is not None:
                 cache.edge_line_points[edge.id] = line_points
         ctx.visual.render_linestring(line_points, color, is_aa=True, perform_culling_test=False)
     else:
-        source = ctx.graph.graph.get_node(edge.source)
-        target = ctx.graph.graph.get_node(edge.target)
         ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2, perform_culling_test=False, is_aa=False)
 
 
