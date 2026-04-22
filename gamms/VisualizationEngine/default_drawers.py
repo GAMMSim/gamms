@@ -1,6 +1,7 @@
 from gamms.AgentEngine.agent_engine import AerialAgent
 from gamms.VisualizationEngine import Color
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
+from gamms.VisualizationEngine.graph_render_cache import GraphRenderCache
 from gamms.typing import IContext, OSMEdge, Node, ColorType, AgentType
 
 from typing import Dict, Any, cast, List, Optional
@@ -156,12 +157,29 @@ def render_graph(ctx: IContext, data: Dict[str, Any]):
     edge_color = graph_data.edge_color
     draw_id = graph_data.draw_id
 
-    for edge_id in ctx.graph.graph.get_edges():
-        edge = ctx.graph.graph.get_edge(edge_id)
+    graph = ctx.graph.graph
+
+    cache = graph_data.render_cache
+    if cache is None:
+        cache = GraphRenderCache.build(graph)
+        graph_data.render_cache = cache
+
+    idx = cache.spatial_index
+    if idx is None:
+        edge_ids = graph.get_edges()
+        node_ids = graph.get_nodes()
+    else:
+        left, right, top, bottom = ctx.visual.get_culling_bounds()
+        pad = max(node_size, 1.0)
+        edge_ids = idx.query_edges(left - pad, right + pad, top - pad, bottom + pad)
+        node_ids = idx.query_nodes(left - pad, right + pad, top - pad, bottom + pad)
+
+    for edge_id in edge_ids:
+        edge = graph.get_edge(edge_id)
         _render_graph_edge(ctx, graph_data, edge, edge_color)
-        
-    for node_id in ctx.graph.graph.get_nodes():
-        node = ctx.graph.graph.get_node(node_id)
+
+    for node_id in node_ids:
+        node = graph.get_node(node_id)
         _render_graph_node(ctx, node, node_color, node_size, draw_id)
 
 def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
@@ -209,20 +227,22 @@ def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
 
 def _render_graph_edge(ctx: IContext, graph_data: GraphData, edge: OSMEdge, color: ColorType):
     """Draw an edge as a curve or straight line based on the linestring."""
-    source = ctx.graph.graph.get_node(edge.source)
-    target = ctx.graph.graph.get_node(edge.target)
-
     if edge.linestring:
-        edge_line_points = graph_data.edge_line_points
-        if edge.id not in edge_line_points:
-            # linestring[1:-1]
-            linestring = ([(source.x, source.y)] + [(x, y) for (x, y) in edge.linestring.coords] +
-                            [(target.x, target.y)])
-            edge_line_points[edge.id] = linestring
-
-        line_points = edge_line_points[edge.id]
+        cache = graph_data.render_cache
+        line_points: Optional[List] = None
+        if cache is not None:
+            line_points = cache.edge_line_points.get(edge.id)
+        if line_points is None:
+            source = ctx.graph.graph.get_node(edge.source)
+            target = ctx.graph.graph.get_node(edge.target)
+            line_points = ([(source.x, source.y)] + [(x, y) for (x, y) in edge.linestring.coords] +
+                           [(target.x, target.y)])
+            if cache is not None:
+                cache.edge_line_points[edge.id] = line_points
         ctx.visual.render_linestring(line_points, color, is_aa=True, perform_culling_test=False)
     else:
+        source = ctx.graph.graph.get_node(edge.source)
+        target = ctx.graph.graph.get_node(edge.target)
         ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2, perform_culling_test=False, is_aa=False)
 
 

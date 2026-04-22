@@ -11,6 +11,8 @@ from gamms.VisualizationEngine import Color
 
 from typing import Dict, Any, List, Tuple, Callable, cast, Union
 
+import math
+
 class NoEngine(IVisualizationEngine):
     def __init__(self, ctx: IContext, **kwargs: Dict[str, Any]) -> None:
         self.ctx = ctx
@@ -82,3 +84,6 @@ class NoEngine(IVisualizationEngine):
 
     def render_cached_artist(self, name: str) -> None:
         return
+
+    def get_culling_bounds(self) -> Tuple[float, float, float, float]:
+        return (-math.inf, math.inf, -math.inf, math.inf)

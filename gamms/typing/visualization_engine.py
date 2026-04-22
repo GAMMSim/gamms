@@ -283,3 +283,17 @@ class IVisualizationEngine(ABC):
                 should be rendered.
         """
         pass
+
+    @abstractmethod
+    def get_culling_bounds(self) -> Tuple[float, float, float, float]:
+        """
+        Return the current world-space culling bounds as
+        (left, right, top, bottom) where top is the minimum y value
+        and bottom is the maximum y value. Drawers can use this to
+        skip work for items outside the visible region (including any
+        temporary override set by strip redraw).
+
+        Engines without a viewport should return bounds covering the whole
+        plane (i.e. (-inf, inf, -inf, inf)).
+        """
+        pass

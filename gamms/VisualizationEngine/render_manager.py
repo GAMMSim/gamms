@@ -33,6 +33,15 @@ class RenderManager:
         self._bound_top = -self.camera_size_y + self.camera_y
         self._bound_bottom = self.camera_size_y + self.camera_y
 
+    def set_culling_bounds(self, left: float, right: float, top: float, bottom: float) -> None:
+        self._bound_left = left
+        self._bound_right = right
+        self._bound_top = top
+        self._bound_bottom = bottom
+
+    def reset_culling_bounds(self) -> None:
+        self._update_bounds()
+
     def set_origin(self, x: float, y: float, graph_width: float, graph_height: float):
         self.camera_x = int(x)
         self.camera_y = int(y)

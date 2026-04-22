@@ -18,7 +18,22 @@ from gamms.typing import (
     ColorType,
     AgentType
 )
-from typing import Dict, Any, List, Tuple, Union, cast, Optional
+from typing import Dict, Any, List, NamedTuple, Tuple, Union, cast, Optional
+
+
+class _ArtistCache(NamedTuple):
+    rgb: Any
+    alpha: Any
+    camera_x: float
+    camera_y: float
+    camera_size: float
+    screen_width: int
+    screen_height: int
+
+
+_CACHE_ZOOM_MIN = 0.8
+_CACHE_ZOOM_MAX = 1.2
+
 
 class PygameVisualizationEngine(IVisualizationEngine):
     def __init__(self, ctx: IContext, width: int = 1280, height: int = 720, simulation_time_constant: float = 2.0, **kwargs : Dict[str, Any]):
@@ -44,7 +59,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._render_manager = RenderManager(ctx, 0, 0, 15, width, height)
         self._render_surface = self._pygame.Surface((width, height), self._pygame.SRCALPHA)
         self._cache_surface = self._pygame.Surface((width, height), self._pygame.SRCALPHA)
-        self._artist_caches: Dict[str, Tuple[Any, Any]] = {}
+        self._artist_caches: Dict[str, _ArtistCache] = {}
         self._is_caching: bool = False
         self._agent_artists: Dict[str, IArtist] = {}
         self._graph_artists: Dict[str, IArtist] = {}
@@ -200,19 +215,15 @@ class PygameVisualizationEngine(IVisualizationEngine):
         scroll_speed = self._render_manager.camera_size / 2
         if pressed_keys[self._pygame.K_a] or pressed_keys[self._pygame.K_LEFT]:
             self._render_manager.camera_x -= (scroll_speed * self._clock.get_time() / 1000)
-            self._redraw_graph_artists()
 
         if pressed_keys[self._pygame.K_d] or pressed_keys[self._pygame.K_RIGHT]:
             self._render_manager.camera_x += (scroll_speed * self._clock.get_time() / 1000)
-            self._redraw_graph_artists()
 
         if pressed_keys[self._pygame.K_w] or pressed_keys[self._pygame.K_UP]:
             self._render_manager.camera_y += (scroll_speed * self._clock.get_time() / 1000)
-            self._redraw_graph_artists()
 
         if pressed_keys[self._pygame.K_s] or pressed_keys[self._pygame.K_DOWN]:
             self._render_manager.camera_y -= (scroll_speed * self._clock.get_time() / 1000)
-            self._redraw_graph_artists()
         
         for event in self._pygame.event.get():
             if event.type == self._pygame.MOUSEWHEEL:
@@ -221,8 +232,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
                         self._render_manager.camera_size /= 1.05
                 else:
                     self._render_manager.camera_size *= 1.05
-                    
-                self._redraw_graph_artists()
 
             if event.type == self._pygame.QUIT:
                 self._will_quit = True
@@ -351,20 +360,110 @@ class PygameVisualizationEngine(IVisualizationEngine):
         finally:
             self._is_caching = False
 
-        rgb = self._pygame.surfarray.array3d(self._cache_surface)
-        alpha = self._pygame.surfarray.array_alpha(self._cache_surface)
-        self._artist_caches[name] = (rgb, alpha)
+        rm = self._render_manager
+        self._artist_caches[name] = _ArtistCache(
+            rgb=self._pygame.surfarray.array3d(self._cache_surface),
+            alpha=self._pygame.surfarray.array_alpha(self._cache_surface),
+            camera_x=rm.camera_x,
+            camera_y=rm.camera_y,
+            camera_size=rm.camera_size,
+            screen_width=rm.screen_width,
+            screen_height=rm.screen_height,
+        )
 
     def render_cached_artist(self, name: str) -> None:
-        if name not in self._artist_caches:
-            self._rebuild_artist_cache(name)
+        rm = self._render_manager
+        cache = self._artist_caches.get(name)
 
-        rgb, alpha = self._artist_caches[name]
-        self._pygame.surfarray.blit_array(self._cache_surface, rgb)
+        if (cache is None
+            or cache.screen_width != rm.screen_width
+            or cache.screen_height != rm.screen_height):
+            self._rebuild_artist_cache(name)
+            cache = self._artist_caches[name]
+
+        zoom_ratio = cache.camera_size / rm.camera_size
+        if zoom_ratio < _CACHE_ZOOM_MIN or zoom_ratio > _CACHE_ZOOM_MAX:
+            self._rebuild_artist_cache(name)
+            cache = self._artist_caches[name]
+            zoom_ratio = 1.0
+
+        dx_px = int(round(rm.world_to_screen_scale(rm.camera_x - cache.camera_x)))
+        dy_px = int(round(rm.world_to_screen_scale(rm.camera_y - cache.camera_y)))
+
+        if (abs(dx_px) >= rm.screen_width // 4
+            or abs(dy_px) >= rm.screen_height // 4):
+            self._rebuild_artist_cache(name)
+            cache = self._artist_caches[name]
+            dx_px = 0
+            dy_px = 0
+            zoom_ratio = 1.0
+
+        self._pygame.surfarray.blit_array(self._cache_surface, cache.rgb)
         alpha_view = self._pygame.surfarray.pixels_alpha(self._cache_surface)
-        alpha_view[:] = alpha
+        alpha_view[:] = cache.alpha
         del alpha_view
-        self._render_surface.blit(self._cache_surface, (0, 0))
+
+        if zoom_ratio == 1.0:
+            self._render_surface.blit(self._cache_surface, (-dx_px, dy_px))
+            cover_x0 = -dx_px
+            cover_y0 = dy_px
+            cover_w = rm.screen_width
+            cover_h = rm.screen_height
+        else:
+            W = rm.screen_width
+            H = rm.screen_height
+            scaled_w = max(1, int(round(W * zoom_ratio)))
+            scaled_h = max(1, int(round(H * zoom_ratio)))
+            scaled = self._pygame.transform.smoothscale(
+                self._cache_surface, (scaled_w, scaled_h)
+            )
+            offset_x = -dx_px + (W - scaled_w) // 2
+            offset_y = dy_px + (H - scaled_h) // 2
+            self._render_surface.blit(scaled, (offset_x, offset_y))
+            cover_x0 = offset_x
+            cover_y0 = offset_y
+            cover_w = scaled_w
+            cover_h = scaled_h
+
+        self._redraw_strips(name, cover_x0, cover_y0, cover_w, cover_h)
+
+    def _redraw_strips(self, name: str, cover_x0: int, cover_y0: int, cover_w: int, cover_h: int) -> None:
+        rm = self._render_manager
+        W = rm.screen_width
+        H = rm.screen_height
+
+        cx_min = max(0, cover_x0)
+        cy_min = max(0, cover_y0)
+        cx_max = min(W, cover_x0 + cover_w)
+        cy_max = min(H, cover_y0 + cover_h)
+
+        strips: List[Tuple[int, int, int, int]] = []
+        if cy_min > 0:
+            strips.append((0, 0, W, cy_min))
+        if cy_max < H:
+            strips.append((0, cy_max, W, H - cy_max))
+        middle_h = max(0, cy_max - cy_min)
+        if middle_h > 0:
+            if cx_min > 0:
+                strips.append((0, cy_min, cx_min, middle_h))
+            if cx_max < W:
+                strips.append((cx_max, cy_min, W - cx_max, middle_h))
+
+        if not strips:
+            return
+
+        for sx, sy, sw, sh in strips:
+            if sw <= 0 or sh <= 0:
+                continue
+            wl, wb = rm.screen_to_world(sx, sy)
+            wr, wt = rm.screen_to_world(sx + sw, sy + sh)
+            rm.set_culling_bounds(wl, wr, wt, wb)
+            self._render_surface.set_clip(self._pygame.Rect(sx, sy, sw, sh))
+            try:
+                self._render_manager.render_single_artist(name)
+            finally:
+                self._render_surface.set_clip(None)
+                rm.reset_culling_bounds()
 
     def _toggle_waiting_simulation(self, waiting_simulation: bool):
         self._waiting_simulation = waiting_simulation
@@ -378,6 +477,10 @@ class PygameVisualizationEngine(IVisualizationEngine):
         
     def _get_target_surface(self):
         return self._cache_surface if self._is_caching else self._render_surface
+
+    def get_culling_bounds(self) -> Tuple[float, float, float, float]:
+        rm = self._render_manager
+        return (rm._bound_left, rm._bound_right, rm._bound_top, rm._bound_bottom)
 
     def render_text(self, text: str, x: float, y: float, color: ColorType = Color.Black, perform_culling_test: bool=True, font_size: Optional[int]=None):
         if font_size is not None:
