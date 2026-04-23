@@ -153,15 +153,15 @@ def _pixel_thresh_sq(ctx: IContext, pixel_thresh: float) -> float:
     Args:
         ctx (IContext): The current simulation context.
         pixel_thresh (float): Length in screen pixels to convert.
+
     Returns:
-        float: The squared world-space distance. Returns 0.0 for engines without a viewport.
+        float: The squared world-space distance. Returns 0.0 if the engine has no viewport.
     """
     scale = ctx.visual.world_to_screen_scale(1.0)
     if scale <= 0:
         return 0.0
     thresh_world = pixel_thresh / scale
     return thresh_world * thresh_world
-
 
 
 def render_graph(ctx: IContext, data: Dict[str, Any]):
@@ -258,7 +258,8 @@ def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
 def _render_graph_edge(ctx: IContext, graph_data: GraphData, edge: OSMEdge, color: ColorType,
                        short_edge_thresh_sq: float = 0.0,
                        skip_edge_thresh_sq: float = 0.0):
-    """Draw an edge as a curve or straight line based on the linestring.
+    """
+    Draw an edge as a curve or straight line based on the linestring.
 
     The squared world-space distance between the edge's endpoints drives
     three mutually exclusive paths:
