@@ -12,7 +12,6 @@ from gamms.typing import (
     IVisualizationEngine,
     IArtist,
     ArtistType,
-    RenderMode,
     IContext,
     SensorType,
     OpCodes,
@@ -92,7 +91,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         artist.data['graph_data'] = graph_data
         artist.set_will_draw(False)
         artist.set_artist_type(ArtistType.STATIC)
-        artist.set_render_mode(RenderMode.CACHED)
 
         #Add data for node ID and Color
         self.add_artist('graph', artist)
@@ -115,7 +113,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         artist.data['graph_data'] = graph_data
         artist.set_visible(False)
         artist.set_artist_type(ArtistType.DYNAMIC)
-        artist.set_render_mode(RenderMode.NON_CACHED)
 
         self.add_artist('input_overlay', artist)        
         
@@ -132,7 +129,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         artist = Artist(self.ctx, render_agent, 20)
         artist.data['agent_data'] = agent_data
         artist.set_artist_type(ArtistType.DYNAMIC)
-        artist.set_render_mode(RenderMode.NON_CACHED)
         artist.data['_alpha'] = 1.0
 
         self.add_artist(name, artist)
@@ -170,7 +166,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         artist = Artist(self.ctx, drawer, layer)
         artist.data.update(data)
         artist.set_artist_type(ArtistType.DYNAMIC)
-        artist.set_render_mode(RenderMode.NON_CACHED)
         
         self.add_artist(f'sensor_{name}', artist)
 

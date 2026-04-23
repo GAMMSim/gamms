@@ -1,4 +1,4 @@
-from gamms.typing import RenderMode, IContext, IArtist
+from gamms.typing import ArtistType, IContext, IArtist
 
 from typing import Set, Dict, List, Optional, Tuple
 
@@ -21,7 +21,7 @@ class RenderManager:
         self._artists: Dict[str, IArtist] = {}
         # This will call drawer on all artists in the respective layer
         self._layer_artists: Dict[int, List[str]] = {}
-        self._cached_layers: Set[int] = set()
+        self._static_layers: Set[int] = set()
         self._current_drawing_artist: Optional[IArtist] = None
 
         self._default_origin = (0, 0)
@@ -208,8 +208,8 @@ class RenderManager:
         else:
             self._layer_artists[artist.get_layer()].append(name)
 
-        if artist.get_render_mode() == RenderMode.CACHED:
-            self._cached_layers.add(artist.get_layer())
+        if artist.get_artist_type() == ArtistType.STATIC:
+            self._static_layers.add(artist.get_layer())
 
     def remove_artist(self, name: str):
         """
@@ -228,15 +228,15 @@ class RenderManager:
 
     def rebuild_artist_layer(self):
         self._layer_artists.clear()
-        self._cached_layers.clear()
+        self._static_layers.clear()
         for name, artist in self._artists.items():
             if artist.get_layer() not in self._layer_artists:
                 self._layer_artists[artist.get_layer()] = [name]
             else:
                 self._layer_artists[artist.get_layer()].append(name)
 
-            if artist.get_render_mode() == RenderMode.CACHED:
-                self._cached_layers.add(artist.get_layer())
+            if artist.get_artist_type() == ArtistType.STATIC:
+                self._static_layers.add(artist.get_layer())
 
         self._layer_artists = {k: self._layer_artists[k] for k in sorted(self._layer_artists.keys())}
 
@@ -246,6 +246,7 @@ class RenderManager:
             self.ctx.logger.warning(f"Artist {artist_name} not found.")
             return
 
+        artist.set_render_mode("NON_CACHED")
         self._current_drawing_artist = artist
         artist.draw()
         self._current_drawing_artist = None
@@ -270,11 +271,13 @@ class RenderManager:
                     continue
 
                 if not artist.get_will_draw():
-                    if artist.get_render_mode() == RenderMode.CACHED and layer not in rendered_layers:
+                    if artist.get_artist_type() == ArtistType.STATIC and layer not in rendered_layers:
+                        artist.set_render_mode("CACHED")
                         self.ctx.visual.render_layer(layer)
                         rendered_layers.add(layer)
                     continue
 
+                artist.set_render_mode("NON_CACHED")
                 self._current_drawing_artist = artist
                 artist.draw()
                 self._current_drawing_artist = None
