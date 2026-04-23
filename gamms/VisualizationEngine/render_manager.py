@@ -1,3 +1,4 @@
+from gamms.VisualizationEngine import RenderMode
 from gamms.typing import ArtistType, IContext, IArtist
 
 from typing import Set, Dict, List, Optional, Tuple
@@ -246,7 +247,7 @@ class RenderManager:
             self.ctx.logger.warning(f"Artist {artist_name} not found.")
             return
 
-        artist.set_render_mode("NON_CACHED")
+        artist.set_render_mode(RenderMode.NON_CACHED)
         self._current_drawing_artist = artist
         artist.draw()
         self._current_drawing_artist = None
@@ -272,12 +273,12 @@ class RenderManager:
 
                 if not artist.get_will_draw():
                     if artist.get_artist_type() == ArtistType.STATIC and layer not in rendered_layers:
-                        artist.set_render_mode("CACHED")
+                        artist.set_render_mode(RenderMode.CACHED)
                         self.ctx.visual.render_layer(layer)
                         rendered_layers.add(layer)
                     continue
 
-                artist.set_render_mode("NON_CACHED")
+                artist.set_render_mode(RenderMode.NON_CACHED)
                 self._current_drawing_artist = artist
                 artist.draw()
                 self._current_drawing_artist = None

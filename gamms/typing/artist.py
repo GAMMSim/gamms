@@ -1,4 +1,4 @@
-from typing import Dict, Any, Callable, Literal, Union, Optional
+from typing import Dict, Any, Callable, Union, Optional
 from abc import ABC, abstractmethod
 from enum import Enum, auto
 
@@ -114,26 +114,6 @@ class IArtist(ABC):
 
         Args:
             artist_type (ArtistType): The artist type to set.
-        """
-        pass
-
-    @abstractmethod
-    def get_render_mode(self) -> Literal["CACHED", "NON_CACHED"]:
-        """
-        Get the cache state of the artist.
-
-        Returns:
-            Literal["CACHED", "NON_CACHED"]: The current cache state of the artist.
-        """
-        pass
-
-    @abstractmethod
-    def set_render_mode(self, render_mode: Literal["CACHED", "NON_CACHED"]) -> None:
-        """
-        Set the cache state of the artist.
-
-        Args:
-            render_mode (Literal["CACHED", "NON_CACHED"]): The cache state to set.
         """
         pass
 
