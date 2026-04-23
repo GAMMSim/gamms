@@ -82,9 +82,6 @@ class NoEngine(IVisualizationEngine):
     def render_layer(self, layer_id: int) -> None:
         return
 
-    def render_cached_artist(self, name: str) -> None:
-        return
-
     def get_culling_bounds(self) -> Tuple[float, float, float, float]:
         return (-math.inf, math.inf, -math.inf, math.inf)
 

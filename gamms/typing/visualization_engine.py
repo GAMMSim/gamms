@@ -272,19 +272,6 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_cached_artist(self, name: str) -> None:
-        """
-        Composite the cached pixels of the named artist onto the current
-        render target. Intended to be called by the render manager for
-        artists whose draw output is cached (currently graph artists).
-
-        Args:
-            name (str): The unique name of the artist whose cached output
-                should be rendered.
-        """
-        pass
-
-    @abstractmethod
     def get_culling_bounds(self) -> Tuple[float, float, float, float]:
         """
         Return the current world-space culling bounds. Drawers can use this

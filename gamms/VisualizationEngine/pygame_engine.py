@@ -57,6 +57,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._simulation_time = 0
         self._will_quit = False
         self._render_manager = RenderManager(ctx, 0, 0, 15, width, height)
+        self._render_manager.set_cached_artist_handler(self._blit_artist_cache)
         self._render_surface = self._pygame.Surface((width, height), self._pygame.SRCALPHA)
         self._cache_surface = self._pygame.Surface((width, height), self._pygame.SRCALPHA)
         self._artist_caches: Dict[str, _ArtistCache] = {}
@@ -371,7 +372,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
             screen_height=rm.screen_height,
         )
 
-    def render_cached_artist(self, name: str) -> None:
+    def _blit_artist_cache(self, name: str) -> None:
         rm = self._render_manager
         cache = self._artist_caches.get(name)
 

@@ -1,6 +1,6 @@
 from gamms.typing import ArtistType, IContext, IArtist
 
-from typing import Set, Dict, List, Optional, Tuple
+from typing import Callable, Set, Dict, List, Optional, Tuple
 
 
 class RenderManager:
@@ -23,9 +23,21 @@ class RenderManager:
         self._layer_artists: Dict[int, List[str]] = {}
         self._graph_layers: Set[int] = set()
         self._current_drawing_artist: Optional[IArtist] = None
+        self._cached_artist_handler: Optional[Callable[[str], None]] = None
 
         self._default_origin = (0, 0)
         self._surface_size = 0
+
+    def set_cached_artist_handler(self, handler: Optional[Callable[[str], None]]) -> None:
+        """
+        Register a callable invoked for artists with will_draw=False so the
+        engine can composite their cached output. Passing None clears the hook.
+
+        Args:
+            handler (Optional[Callable[[str], None]]): Callable taking the
+            artist name, or None to clear any previously registered hook.
+        """
+        self._cached_artist_handler = handler
 
     def _update_bounds(self):
         self._bound_left = -self.camera_size + self.camera_x
@@ -278,8 +290,9 @@ class RenderManager:
                     continue
 
                 if not artist.get_will_draw():
-                    if artist.get_artist_type() == ArtistType.GRAPH:
-                        self.ctx.visual.render_cached_artist(artist_name)
+                    if (artist.get_artist_type() == ArtistType.GRAPH
+                            and self._cached_artist_handler is not None):
+                        self._cached_artist_handler(artist_name)
                     continue
 
                 self._current_drawing_artist = artist
