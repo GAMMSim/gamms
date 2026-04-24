@@ -289,24 +289,28 @@ def _render_graph_edge(ctx: IContext, graph_data: GraphData, edge: OSMEdge, colo
     if skip_edge_thresh_sq > 0.0 and d_sq <= skip_edge_thresh_sq:
         return
 
-    if edge.linestring:
-        if short_edge_thresh_sq > 0.0 and d_sq <= short_edge_thresh_sq:
+    if short_edge_thresh_sq > 0.0 and d_sq <= short_edge_thresh_sq:
+        ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2,
+                               perform_culling_test=False, is_aa=False)
+        return
+
+    cache = graph_data.render_cache
+    line_points: Optional[List] = None
+    if cache is not None:
+        line_points = cache.edge_line_points.get(edge.id)
+
+    if line_points is None:
+        linestring = edge.linestring
+        if not linestring:
             ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2,
                                    perform_culling_test=False, is_aa=False)
             return
-
-        cache = graph_data.render_cache
-        line_points: Optional[List] = None
+        line_points = ([(source.x, source.y)] + [(x, y) for (x, y) in linestring.coords] +
+                       [(target.x, target.y)])
         if cache is not None:
-            line_points = cache.edge_line_points.get(edge.id)
-        if line_points is None:
-            line_points = ([(source.x, source.y)] + [(x, y) for (x, y) in edge.linestring.coords] +
-                           [(target.x, target.y)])
-            if cache is not None:
-                cache.edge_line_points[edge.id] = line_points
-        ctx.visual.render_linestring(line_points, color, is_aa=True, perform_culling_test=False)
-    else:
-        ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2, perform_culling_test=False, is_aa=False)
+            cache.edge_line_points[edge.id] = line_points
+
+    ctx.visual.render_linestring(line_points, color, is_aa=True, perform_culling_test=False)
 
 
 def _render_graph_node(ctx: IContext, node: Node, color: ColorType, radius: float, draw_id: bool):
