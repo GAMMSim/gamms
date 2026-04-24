@@ -18,7 +18,7 @@ from gamms.typing import (
     ColorType,
     AgentType
 )
-from typing import Dict, Any, List, Tuple, Union, cast, Optional
+from typing import Dict, Any, List, Tuple, Union, cast, Optional, Iterator, Set
 
 class PygameVisualizationEngine(IVisualizationEngine):
     def __init__(self, ctx: IContext, width: int = 1280, height: int = 720, simulation_time_constant: float = 2.0, **kwargs : Dict[str, Any]):
@@ -43,8 +43,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._will_quit = False
         self._render_manager = RenderManager(ctx, 0, 0, 15, width, height)
         self._surface_dict : Dict[int, self._pygame.Surface ] = {}
-        self._agent_artists: Dict[str, IArtist] = {}
-        self._graph_artists: Dict[str, IArtist] = {}
+        self._static_artists: Dict[str, IArtist] = {}
+        self._dynamic_artists: Dict[str, IArtist] = {}
+        self._dynamic_agent_artist_names: Set[str] = set()
 
         input_overlay_args = kwargs.get('input_overlay', {})
         self._input_overlay_artist = self._set_input_overlay_artist(input_overlay_args)
@@ -89,13 +90,13 @@ class PygameVisualizationEngine(IVisualizationEngine):
         artist = Artist(self.ctx, render_graph, 10)
         artist.data['graph_data'] = graph_data
         artist.set_will_draw(False)
-        artist.set_artist_type(ArtistType.GRAPH)
+        artist.set_artist_type(ArtistType.STATIC)
 
         #Add data for node ID and Color
         self.add_artist('graph', artist)
 
-        # Trigger the redraw of the graph artists after it has been added
-        self._redraw_graph_artists()
+        # Trigger the redraw of static artists after it has been added.
+        self._redraw_static_artists()
 
         return artist
 
@@ -111,6 +112,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         artist.data['_waiting_user_input'] = False
         artist.data['graph_data'] = graph_data
         artist.set_visible(False)
+        artist.set_artist_type(ArtistType.DYNAMIC)
 
         self.add_artist('input_overlay', artist)        
         
@@ -126,7 +128,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         artist = Artist(self.ctx, render_agent, 20)
         artist.data['agent_data'] = agent_data
-        artist.set_artist_type(ArtistType.AGENT)
+        artist.set_artist_type(ArtistType.DYNAMIC)
         artist.data['_alpha'] = 1.0
 
         self.add_artist(name, artist)
@@ -163,6 +165,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         layer = cast(int, kwargs.pop('layer', 30))
         artist = Artist(self.ctx, drawer, layer)
         artist.data.update(data)
+        artist.set_artist_type(ArtistType.DYNAMIC)
         
         self.add_artist(f'sensor_{name}', artist)
 
@@ -187,16 +190,25 @@ class PygameVisualizationEngine(IVisualizationEngine):
             artist_to_add = Artist(self.ctx, drawer, layer)
             artist_to_add.data = artist
 
-        layer = artist_to_add.get_layer()
-        if artist_to_add.get_artist_type() == ArtistType.AGENT:
-            self._agent_artists[name] = artist_to_add
-        elif artist_to_add.get_artist_type() == ArtistType.GRAPH:
-            self._graph_artists[name] = artist_to_add
+        if artist_to_add.get_artist_type() == ArtistType.STATIC:
+            self._static_artists[name] = artist_to_add
+            self._dynamic_artists.pop(name, None)
+            self._dynamic_agent_artist_names.discard(name)
+        elif artist_to_add.get_artist_type() == ArtistType.DYNAMIC:
+            self._dynamic_artists[name] = artist_to_add
+            self._static_artists.pop(name, None)
+            if 'agent_data' in artist_to_add.data:
+                self._dynamic_agent_artist_names.add(name)
+            else:
+                self._dynamic_agent_artist_names.discard(name)
             
         self._render_manager.add_artist(name, artist_to_add)
         return artist_to_add
 
     def remove_artist(self, name: str):
+        self._static_artists.pop(name, None)
+        self._dynamic_artists.pop(name, None)
+        self._dynamic_agent_artist_names.discard(name)
         self._render_manager.remove_artist(name)
 
     def handle_input(self):
@@ -204,19 +216,19 @@ class PygameVisualizationEngine(IVisualizationEngine):
         scroll_speed = self._render_manager.camera_size / 2
         if pressed_keys[self._pygame.K_a] or pressed_keys[self._pygame.K_LEFT]:
             self._render_manager.camera_x -= (scroll_speed * self._clock.get_time() / 1000)
-            self._redraw_graph_artists()
+            self._redraw_static_artists()
 
         if pressed_keys[self._pygame.K_d] or pressed_keys[self._pygame.K_RIGHT]:
             self._render_manager.camera_x += (scroll_speed * self._clock.get_time() / 1000)
-            self._redraw_graph_artists()
+            self._redraw_static_artists()
 
         if pressed_keys[self._pygame.K_w] or pressed_keys[self._pygame.K_UP]:
             self._render_manager.camera_y += (scroll_speed * self._clock.get_time() / 1000)
-            self._redraw_graph_artists()
+            self._redraw_static_artists()
 
         if pressed_keys[self._pygame.K_s] or pressed_keys[self._pygame.K_DOWN]:
             self._render_manager.camera_y -= (scroll_speed * self._clock.get_time() / 1000)
-            self._redraw_graph_artists()
+            self._redraw_static_artists()
         
         for event in self._pygame.event.get():
             if event.type == self._pygame.MOUSEWHEEL:
@@ -226,7 +238,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
                 else:
                     self._render_manager.camera_size *= 1.05
                     
-                self._redraw_graph_artists()
+                self._redraw_static_artists()
 
             if event.type == self._pygame.QUIT:
                 self._will_quit = True
@@ -239,7 +251,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
                 for layer_id in self._surface_dict.keys():
                     self._surface_dict[layer_id] = self._pygame.Surface((event.w, event.h), self._pygame.SRCALPHA)
 
-                self._redraw_graph_artists()
+                self._redraw_static_artists()
 
             if self._waiting_user_input:
                 if self._waiting_agent_name is None:
@@ -276,7 +288,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
                 self._simulation_time += self._clock.get_time() / 1000
                 alpha = self._simulation_time / self._sim_time_constant
                 alpha = self._pygame.math.clamp(alpha, 0, 1)
-                for agent_artist in self._agent_artists.values():
+                for agent_artist in self._iter_agent_artists():
                     agent_artist.data['_alpha'] = alpha
 
     def handle_single_draw(self):
@@ -341,14 +353,38 @@ class PygameVisualizationEngine(IVisualizationEngine):
         else:
             raise ValueError("Invalid coord_space value. Must be one of the values in the Space enum.")
         
-    def _redraw_graph_artists(self):
-        for artist_name, graph_artist in self._graph_artists.items():
-            self.clear_layer(graph_artist.get_layer())
+    def _redraw_static_artists(self):
+        for artist_name, static_artist in self._static_artists.items():
+            self.clear_layer(static_artist.get_layer())
             self._render_manager.render_single_artist(artist_name)
+
+    def _iter_agent_artists(self) -> Iterator[IArtist]:
+        stale_names: List[str] = []
+        for name in self._dynamic_agent_artist_names:
+            artist = self._dynamic_artists.get(name)
+            if artist is None or 'agent_data' not in artist.data:
+                stale_names.append(name)
+                continue
+
+            yield artist
+
+        for name in stale_names:
+            self._dynamic_agent_artist_names.discard(name)
+
+    def _get_agent_artist(self, agent_name: str) -> IArtist:
+        if agent_name not in self._dynamic_agent_artist_names:
+            raise KeyError(f"Agent artist {agent_name} not found")
+
+        artist = self._dynamic_artists.get(agent_name)
+        if artist is None or 'agent_data' not in artist.data:
+            self._dynamic_agent_artist_names.discard(agent_name)
+            raise KeyError(f"Agent artist {agent_name} not found")
+
+        return artist
 
     def _toggle_waiting_simulation(self, waiting_simulation: bool):
         self._waiting_simulation = waiting_simulation
-        for agent_artist in self._agent_artists.values():
+        for agent_artist in self._iter_agent_artists():
             agent_artist.data['_alpha'] = 0.0
             agent_artist.data['_waiting_simulation'] = waiting_simulation
 
@@ -508,11 +544,11 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         prev_waiting_agent_name = self._waiting_agent_name
         if prev_waiting_agent_name is not None:
-            prev_waiting_agent_artist = self._agent_artists[prev_waiting_agent_name]
+            prev_waiting_agent_artist = self._get_agent_artist(prev_waiting_agent_name)
             prev_waiting_agent_artist.data['_is_waiting'] = False
 
         self._waiting_agent_name = agent_name
-        waiting_agent_artist = self._agent_artists[agent_name]
+        waiting_agent_artist = self._get_agent_artist(agent_name)
         waiting_agent_artist.data['_is_waiting'] = True
 
         waiting_agent = self.ctx.agent.get_agent(agent_name)
@@ -526,7 +562,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._input_overlay_artist.data['_input_options'] = self._input_options
 
         self._input_overlay_artist.set_visible(True)
-        self._redraw_graph_artists()
+        self._redraw_static_artists()
 
         while self._waiting_user_input:
             # still need to update the render
@@ -566,7 +602,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
             raise RuntimeError(f"Unknown agent type {waiting_agent.type} for agent {agent_name}")
 
     def end_handle_human_input(self):
-        for agent_artist in self._agent_artists.values():
+        for agent_artist in self._iter_agent_artists():
             agent_artist.data['_is_waiting'] = False
 
         self._input_overlay_artist.data['_waiting_agent_name'] = None
@@ -577,7 +613,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self._input_option_result = None
         self._input_position_result = None
         self._waiting_agent_name = None
-        self._redraw_graph_artists()
+        self._redraw_static_artists()
 
     def simulate(self):
         if self.ctx.record.record():

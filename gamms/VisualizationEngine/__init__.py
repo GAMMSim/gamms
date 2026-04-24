@@ -45,6 +45,6 @@ def lazy(fullname: str):
     loader.exec_module(module)
     return module
 
-from .artist import Artist
+from .artist import Artist, RenderMode
 from .no_engine import NoEngine
 from .pygame_engine import PygameVisualizationEngine
