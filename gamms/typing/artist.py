@@ -3,9 +3,8 @@ from abc import ABC, abstractmethod
 from enum import Enum, auto
 
 class ArtistType(Enum):
-    GENERAL = auto()
-    AGENT = auto()
-    GRAPH = auto()
+    STATIC = auto()
+    DYNAMIC = auto()
 
 
 class IArtist(ABC):
