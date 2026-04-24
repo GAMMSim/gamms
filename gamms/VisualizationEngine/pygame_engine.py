@@ -479,12 +479,13 @@ class PygameVisualizationEngine(IVisualizationEngine):
     def _get_target_surface(self):
         return self._cache_surface if self._is_caching else self._render_surface
 
-    def get_culling_bounds(self) -> Tuple[float, float, float, float]:
+    def get_viewport(self) -> Optional[Tuple[float, float, float, float, float]]:
         rm = self._render_manager
-        return (rm._bound_left, rm._bound_right, rm._bound_top, rm._bound_bottom)
-
-    def world_to_screen_scale(self, world_size: float) -> float:
-        return self._render_manager.world_to_screen_scale(world_size)
+        if rm.screen_width <= 0 or rm.screen_height <= 0 or rm.camera_size <= 0:
+            self.ctx.logger.warning("Invalid viewport state")
+            return None
+        scale = rm.world_to_screen_scale(1.0)
+        return (rm.bound_left, rm.bound_right, rm.bound_top, rm.bound_bottom, scale)
 
     def render_text(self, text: str, x: float, y: float, color: ColorType = Color.Black, perform_culling_test: bool=True, font_size: Optional[int]=None):
         if font_size is not None:

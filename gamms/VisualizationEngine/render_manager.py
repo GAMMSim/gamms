@@ -129,6 +129,22 @@ class RenderManager:
     @property
     def current_drawing_artist(self):
         return self._current_drawing_artist
+    
+    @property
+    def bound_left(self):
+        return self._bound_left
+    
+    @property
+    def bound_right(self):
+        return self._bound_right
+    
+    @property
+    def bound_top(self):
+        return self._bound_top
+    
+    @property
+    def bound_bottom(self):
+        return self._bound_bottom
 
     def world_to_screen_scale(self, world_size: float) -> float:
         """

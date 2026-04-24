@@ -146,18 +146,17 @@ def render_aerial_agent(ctx: IContext, position: tuple[float, float], angle: flo
     ctx.visual.render_polygon(points, color)
 
 
-def _pixel_thresh_sq(ctx: IContext, pixel_thresh: float) -> float:
+def _pixel_thresh_sq(pixel_thresh: float, scale: float) -> float:
     """
     Return the squared world-space distance that corresponds to a given number of screen pixels at the current camera zoom.
 
     Args:
-        ctx (IContext): The current simulation context.
         pixel_thresh (float): Length in screen pixels to convert.
+        scale (float): Pixels-per-world-unit factor from the current viewport.
 
     Returns:
-        float: The squared world-space distance. Returns 0.0 if the engine has no viewport.
+        float: The squared world-space distance. Returns 0.0 if scale is non-positive.
     """
-    scale = ctx.visual.world_to_screen_scale(1.0)
     if scale <= 0:
         return 0.0
     thresh_world = pixel_thresh / scale
@@ -180,6 +179,11 @@ def render_graph(ctx: IContext, data: Dict[str, Any]):
 
     graph = ctx.graph.graph
 
+    viewport = ctx.visual.get_viewport()
+    if viewport is None:
+        return
+    left, right, top, bottom, scale = viewport
+
     cache = graph_data.render_cache
     if cache is None:
         cache = GraphRenderCache.build(graph)
@@ -190,19 +194,18 @@ def render_graph(ctx: IContext, data: Dict[str, Any]):
         edge_ids = graph.get_edges()
         node_ids = graph.get_nodes()
     else:
-        left, right, top, bottom = ctx.visual.get_culling_bounds()
         pad = max(node_size, 1.0)
         edge_ids = idx.query_edges(left - pad, right + pad, top - pad, bottom + pad)
         node_ids = idx.query_nodes(left - pad, right + pad, top - pad, bottom + pad)
 
-    short_sq = _pixel_thresh_sq(ctx, _SHORT_EDGE_PIXEL_THRESHOLD)
-    skip_sq = _pixel_thresh_sq(ctx, _SKIP_EDGE_PIXEL_THRESHOLD)
+    short_sq = _pixel_thresh_sq(_SHORT_EDGE_PIXEL_THRESHOLD, scale)
+    skip_sq = _pixel_thresh_sq(_SKIP_EDGE_PIXEL_THRESHOLD, scale)
 
     for edge_id in edge_ids:
         edge = graph.get_edge(edge_id)
         _render_graph_edge(ctx, graph_data, edge, edge_color, short_sq, skip_sq)
 
-    node_pixel_radius = ctx.visual.world_to_screen_scale(node_size)
+    node_pixel_radius = node_size * scale
     if node_pixel_radius >= _SKIP_NODE_PIXEL_THRESHOLD:
         for node_id in node_ids:
             node = graph.get_node(node_id)
@@ -239,7 +242,12 @@ def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
     draw_id = graph_data.draw_id
     target_node_id_set = set(input_options.values())
 
-    node_pixel_radius = ctx.visual.world_to_screen_scale(node_size)
+    viewport = ctx.visual.get_viewport()
+    if viewport is None:
+        return
+    _, _, _, _, scale = viewport
+
+    node_pixel_radius = node_size * scale
     if node_pixel_radius >= _SKIP_NODE_PIXEL_THRESHOLD:
         for node in target_node_id_set:
             _render_graph_node(ctx, graph.get_node(node), node_color, node_size, draw_id)
@@ -250,8 +258,8 @@ def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
         if edge.source == current_waiting_agent.current_node_id and edge.target in target_node_id_set:
             active_edges.append(edge)
 
-    short_sq = _pixel_thresh_sq(ctx, _SHORT_EDGE_PIXEL_THRESHOLD)
-    skip_sq = _pixel_thresh_sq(ctx, _SKIP_EDGE_PIXEL_THRESHOLD)
+    short_sq = _pixel_thresh_sq(_SHORT_EDGE_PIXEL_THRESHOLD, scale)
+    skip_sq = _pixel_thresh_sq(_SKIP_EDGE_PIXEL_THRESHOLD, scale)
     for edge in active_edges:
         _render_graph_edge(ctx, graph_data, edge, edge_color, short_sq, skip_sq)
 
