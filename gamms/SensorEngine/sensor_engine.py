@@ -9,9 +9,48 @@ from gamms.typing import(
     IAerialAgent
 )
 
-from typing import Any, Dict, Optional, Callable, Tuple, List, Union, cast
+from gamms.SensorEngine.occlusion import segment_blocked_by_polygon
+
+from typing import Any, Dict, Iterable, Iterator, Optional, Callable, Tuple, List, Union, cast
 from aenum import extend_enum
 import math
+
+
+def _iter_polygon_records(ctx: IContext) -> Iterator[Dict[str, Any]]:
+    """Yield polygon records from the graph engine's polygon store, if any."""
+    graph_engine = ctx.graph
+    if graph_engine is None:
+        return
+    get_polygons = getattr(graph_engine, "get_polygons", None)
+    get_polygon = getattr(graph_engine, "get_polygon", None)
+    if not callable(get_polygons) or not callable(get_polygon):
+        return
+    try:
+        ids = list(get_polygons())
+    except RuntimeError:
+        return
+    for pid in ids:
+        try:
+            yield get_polygon(pid)
+        except KeyError:
+            continue
+
+
+def _is_segment_occluded(
+    ctx: IContext,
+    a: Tuple[float, float, float],
+    b: Tuple[float, float, float],
+    polygons: Optional[Iterable[Dict[str, Any]]] = None,
+) -> bool:
+    """True if any polygon on the graph engine blocks the segment a-b."""
+    if polygons is None:
+        polygons = _iter_polygon_records(ctx)
+    for poly in polygons:
+        if segment_blocked_by_polygon(
+            a, b, poly["coords"], poly.get("base", 0.0), poly["height"]
+        ):
+            return True
+    return False
 
 class NeighborSensor(ISensor):
     def __init__(self, ctx: IContext, sensor_id: str, sensor_type: SensorType):
@@ -450,9 +489,149 @@ class AerialAgentSensor(ISensor):
     def update(self, data: Dict[str, Any]) -> None:
         pass
 
+class OccludedMapSensor(MapSensor):
+    """:class:`MapSensor` variant that drops nodes/edges occluded by polygons.
+
+    Sensor rays originate from the sensing position (the current node, or the
+    aerial agent's 3D position when an aerial owner is set). A node is kept
+    only if the ray to it is not blocked by any polygon prism registered with
+    the graph engine. Edges are kept only if both endpoints survive.
+
+    ``observer_height`` controls the z-coordinate of the sensor origin when
+    the owner is a ground agent (default 1.6m, eye height).
+    """
+
+    def __init__(
+        self,
+        ctx: IContext,
+        sensor_id: str,
+        sensor_type: SensorType,
+        sensor_range: float,
+        fov: float,
+        orientation: Tuple[float, float] = (1.0, 0.0),
+        observer_height: float = 1.6,
+    ) -> None:
+        super().__init__(ctx, sensor_id, sensor_type, sensor_range, fov, orientation)
+        self.observer_height = observer_height
+
+    def _origin(self, current_node: Node) -> Tuple[float, float, float]:
+        if self._owner is not None:
+            agent = self.ctx.agent.get_agent(self._owner)
+            if getattr(agent, "type", None) == AgentType.AERIAL:
+                return cast(IAerialAgent, agent).position
+        return (current_node.x, current_node.y, self.observer_height)
+
+    def sense(self, node_id: int) -> None:
+        super().sense(node_id)
+        polygons = list(_iter_polygon_records(self.ctx))
+        if not polygons:
+            return
+        current_node = self.ctx.graph.graph.get_node(node_id)
+        origin = self._origin(current_node)
+        nodes = self._data.get('nodes', {})
+        edges = self._data.get('edges', [])
+        visible_nodes: Dict[int, Node] = {}
+        for nid, node in nodes.items():
+            target = (node.x, node.y, self.observer_height)
+            if not _is_segment_occluded(self.ctx, origin, target, polygons):
+                visible_nodes[nid] = node
+        visible_edges: List[OSMEdge] = []
+        for edge in edges:
+            if edge.source in visible_nodes and edge.target in visible_nodes:
+                visible_edges.append(edge)
+        self._data = {'nodes': visible_nodes, 'edges': visible_edges}
+
+
+class OccludedAgentSensor(AgentSensor):
+    """:class:`AgentSensor` variant that drops agents hidden behind polygons."""
+
+    def __init__(
+        self,
+        ctx: IContext,
+        sensor_id: str,
+        sensor_type: SensorType,
+        sensor_range: float,
+        fov: float = 2 * math.pi,
+        orientation: Tuple[float, float] = (1.0, 0.0),
+        owner: Optional[str] = None,
+        observer_height: float = 1.6,
+    ) -> None:
+        super().__init__(ctx, sensor_id, sensor_type, sensor_range, fov, orientation, owner)
+        self.observer_height = observer_height
+
+    def _origin(self, current_node: Node) -> Tuple[float, float, float]:
+        if self._owner is not None:
+            agent = self.ctx.agent.get_agent(self._owner)
+            if getattr(agent, "type", None) == AgentType.AERIAL:
+                return cast(IAerialAgent, agent).position
+        return (current_node.x, current_node.y, self.observer_height)
+
+    def sense(self, node_id: int) -> None:
+        super().sense(node_id)
+        polygons = list(_iter_polygon_records(self.ctx))
+        if not polygons:
+            return
+        current_node = self.ctx.graph.graph.get_node(node_id)
+        origin = self._origin(current_node)
+        sensed = self._data
+        kept: Dict[str, int] = {}
+        for agent_name, agent_node_id in sensed.items():
+            agent_node = self.ctx.graph.graph.get_node(agent_node_id)
+            target = (agent_node.x, agent_node.y, self.observer_height)
+            if not _is_segment_occluded(self.ctx, origin, target, polygons):
+                kept[agent_name] = agent_node_id
+        self._data = kept
+
+
+class OccludedAerialSensor(AerialSensor):
+    """:class:`AerialSensor` variant that drops occluded ground nodes/edges."""
+
+    def sense(self, node_id: int) -> None:
+        super().sense(node_id)
+        polygons = list(_iter_polygon_records(self.ctx))
+        if not polygons:
+            return
+        if self._owner is None:
+            return
+        agent = cast(IAerialAgent, self.ctx.agent.get_agent(self._owner))
+        origin = agent.position
+        nodes = self._data.get('nodes', {})
+        edges = self._data.get('edges', [])
+        visible_nodes: Dict[int, Node] = {}
+        for nid, node in nodes.items():
+            target = (node.x, node.y, 0.0)
+            if not _is_segment_occluded(self.ctx, origin, target, polygons):
+                visible_nodes[nid] = node
+        visible_edges: List[OSMEdge] = []
+        for edge in edges:
+            if edge.source in visible_nodes and edge.target in visible_nodes:
+                visible_edges.append(edge)
+        self._data = {'nodes': visible_nodes, 'edges': visible_edges}
+
+
+class OccludedAerialAgentSensor(AerialAgentSensor):
+    """:class:`AerialAgentSensor` variant that drops occluded agents."""
+
+    def sense(self, node_id: int) -> None:
+        super().sense(node_id)
+        polygons = list(_iter_polygon_records(self.ctx))
+        if not polygons:
+            return
+        if self._owner is None:
+            return
+        agent = cast(IAerialAgent, self.ctx.agent.get_agent(self._owner))
+        origin = agent.position
+        kept: Dict[str, Tuple[AgentType, Tuple[float, float, float]]] = {}
+        for name, (atype, pos) in self._data.items():
+            target = (pos[0], pos[1], pos[2])
+            if not _is_segment_occluded(self.ctx, origin, target, polygons):
+                kept[name] = (atype, pos)
+        self._data = kept
+
+
 class SensorEngine(ISensorEngine):
     def __init__(self, ctx: IContext):
-        self.ctx = ctx  
+        self.ctx = ctx
         self.sensors: Dict[str, ISensor] = {}
 
     def create_sensor(self, sensor_id: str, sensor_type: SensorType, **kwargs: Dict[str, Any]) -> ISensor:
@@ -521,6 +700,62 @@ class SensorEngine(ISensorEngine):
                 sensor_range=cast(float, kwargs.get('sensor_range', 100.0)),
                 fov=cast(float, kwargs.get('fov', 2 * math.pi)),
                 quat=kwargs.get('quat', (1.0, 0.0, 0.0, 0.0))
+            )
+        elif sensor_type == SensorType.OCCLUDED_MAP:
+            sensor = OccludedMapSensor(
+                self.ctx, sensor_id, sensor_type,
+                sensor_range=float('inf'),
+                fov=2 * math.pi,
+                observer_height=cast(float, kwargs.get('observer_height', 1.6)),
+            )
+        elif sensor_type == SensorType.OCCLUDED_RANGE:
+            sensor = OccludedMapSensor(
+                self.ctx, sensor_id, sensor_type,
+                sensor_range=cast(float, kwargs.get('sensor_range', 30.0)),
+                fov=2 * math.pi,
+                observer_height=cast(float, kwargs.get('observer_height', 1.6)),
+            )
+        elif sensor_type == SensorType.OCCLUDED_ARC:
+            sensor = OccludedMapSensor(
+                self.ctx, sensor_id, sensor_type,
+                sensor_range=cast(float, kwargs.get('sensor_range', 30.0)),
+                fov=cast(float, kwargs.get('fov', 2 * math.pi)),
+                observer_height=cast(float, kwargs.get('observer_height', 1.6)),
+            )
+        elif sensor_type == SensorType.OCCLUDED_AGENT:
+            sensor = OccludedAgentSensor(
+                self.ctx, sensor_id, sensor_type,
+                sensor_range=float('inf'),
+                fov=cast(float, kwargs.get('fov', 2 * math.pi)),
+                observer_height=cast(float, kwargs.get('observer_height', 1.6)),
+            )
+        elif sensor_type == SensorType.OCCLUDED_AGENT_RANGE:
+            sensor = OccludedAgentSensor(
+                self.ctx, sensor_id, sensor_type,
+                sensor_range=cast(float, kwargs.get('sensor_range', 30.0)),
+                fov=2 * math.pi,
+                observer_height=cast(float, kwargs.get('observer_height', 1.6)),
+            )
+        elif sensor_type == SensorType.OCCLUDED_AGENT_ARC:
+            sensor = OccludedAgentSensor(
+                self.ctx, sensor_id, sensor_type,
+                sensor_range=cast(float, kwargs.get('sensor_range', 30.0)),
+                fov=cast(float, kwargs.get('fov', 2 * math.pi)),
+                observer_height=cast(float, kwargs.get('observer_height', 1.6)),
+            )
+        elif sensor_type == SensorType.OCCLUDED_AERIAL:
+            sensor = OccludedAerialSensor(
+                self.ctx, sensor_id,
+                sensor_range=cast(float, kwargs.get('sensor_range', 100.0)),
+                fov=cast(float, kwargs.get('fov', math.pi/3)),
+                quat=kwargs.get('quat', (math.sqrt(0.5), 0.0, math.sqrt(0.5), 0.0)),
+            )
+        elif sensor_type == SensorType.OCCLUDED_AERIAL_AGENT:
+            sensor = OccludedAerialAgentSensor(
+                self.ctx, sensor_id,
+                sensor_range=cast(float, kwargs.get('sensor_range', 100.0)),
+                fov=cast(float, kwargs.get('fov', 2 * math.pi)),
+                quat=kwargs.get('quat', (1.0, 0.0, 0.0, 0.0)),
             )
         else:
             raise ValueError("Invalid sensor type")
