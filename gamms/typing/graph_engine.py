@@ -273,12 +273,77 @@ class IGraphEngine(ABC):
 
         Args:
             G (nx.Graph): The NetworkX graph to attach.
-        
+
         Returns:
             IGraph: The graph instance created from the NetworkX graph.
 
         Raises:
             ValueError: If the provided graph is invalid or cannot be attached.
+        """
+        pass
+
+    @abstractmethod
+    def add_polygon(
+        self,
+        polygon_id: int,
+        coords: Any,
+        height: float = 6.0,
+        base: float = 0.0,
+        category: str = "building",
+        attributes: Dict[str, Any] = None,
+    ) -> None:
+        """
+        Add a polygonal occluder (e.g., building or foliage) to the graph
+        engine's polygon store.
+
+        Each polygon is treated as a 3D prism with vertical trapezoidal faces
+        between ``base`` and ``base + height``.
+
+        Args:
+            polygon_id (int): Unique identifier for the polygon.
+            coords (Any): An iterable of ``(x, y)`` tuples describing the
+                polygon's exterior ring (closed or open).
+            height (float): Default height (in metres). Falls back to a
+                two-storey approximation when not provided.
+            base (float): Z-coordinate of the polygon's base.
+            category (str): Free-form classification of the polygon, e.g.
+                ``"building"``, ``"foliage"``, ``"obstacle"``.
+            attributes (Dict[str, Any]): Optional extra metadata.
+
+        Raises:
+            ValueError: If the polygon already exists or the coordinates are invalid.
+        """
+        pass
+
+    @abstractmethod
+    def get_polygon(self, polygon_id: int) -> Dict[str, Any]:
+        """
+        Retrieve a stored polygon by id.
+
+        Returns:
+            Dict[str, Any]: A dict with ``id``, ``coords``, ``height``,
+                ``base``, ``category`` and ``attributes`` entries.
+
+        Raises:
+            KeyError: If the polygon does not exist.
+        """
+        pass
+
+    @abstractmethod
+    def get_polygons(self) -> Iterator[int]:
+        """
+        Iterate over the IDs of all polygons currently registered with the
+        engine.
+        """
+        pass
+
+    @abstractmethod
+    def remove_polygon(self, polygon_id: int) -> None:
+        """
+        Remove the polygon with the given identifier from the polygon store.
+
+        Args:
+            polygon_id (int): Unique identifier for the polygon to remove.
         """
         pass
 

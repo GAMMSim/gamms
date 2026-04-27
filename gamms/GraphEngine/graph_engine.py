@@ -1,8 +1,9 @@
 import networkx as nx
-from typing import Dict, Any, Iterator, cast, Union, Set, overload
+from typing import Dict, Any, Iterator, cast, Union, Set, overload, Optional
 from enum import Enum
 from gamms.typing import Node, OSMEdge, IGraph, IGraphEngine, IContext
 from gamms.typing.graph_engine import Engine
+from gamms.typing.memory_engine import IStore, StoreType
 import pickle
 from shapely.geometry import LineString
 
@@ -12,6 +13,22 @@ import sqlite3
 
 import tempfile
 import cbor2
+
+
+POLYGON_STORE_NAME = "graph_polygons"
+POLYGON_MAP_NAME = "polygons"
+DEFAULT_BUILDING_HEIGHT = 6.0  # ~2-storey building (metres)
+
+
+def _normalize_polygon_coords(coords: Any) -> list:
+    pts = [tuple(c) for c in coords]
+    if len(pts) < 3:
+        raise ValueError("Polygon must have at least 3 vertices.")
+    if pts[0] == pts[-1]:
+        pts = pts[:-1]
+    if len(pts) < 3:
+        raise ValueError("Polygon must have at least 3 distinct vertices.")
+    return pts
 
 
 _mem_Node = dataclass()(Node)
@@ -488,11 +505,71 @@ class GraphEngine(IGraphEngine):
         else:
             raise ValueError(f"Unsupported engine type: {engine}")
         self.ctx = ctx
-    
+        self._polygon_store: Optional[IStore] = None
+
     @property
     def graph(self) -> IGraph:
         return self._graph
-    
+
+    def _get_polygon_store(self) -> IStore:
+        """Lazily create the polygon store on the memory engine."""
+        if self._polygon_store is not None:
+            return self._polygon_store
+        ictx = getattr(self.ctx, "ictx", None)
+        if ictx is None or ictx.memory is None:
+            raise RuntimeError(
+                "Polygon store requires a memory engine. Initialise the context "
+                "via gamms.create_context() to enable it."
+            )
+        memory_engine = ictx.memory
+        if POLYGON_STORE_NAME in memory_engine.list_stores():
+            store = memory_engine.get_store(POLYGON_STORE_NAME)
+        else:
+            store = memory_engine.create_store(StoreType.MEMORY, POLYGON_STORE_NAME)
+        if not store.has_map(POLYGON_MAP_NAME):
+            store.create_map(POLYGON_MAP_NAME, value_type=dict)
+        self._polygon_store = store
+        return store
+
+    @property
+    def polygon_store(self) -> IStore:
+        return self._get_polygon_store()
+
+    def add_polygon(
+        self,
+        polygon_id: int,
+        coords: Any,
+        height: float = DEFAULT_BUILDING_HEIGHT,
+        base: float = 0.0,
+        category: str = "building",
+        attributes: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        store = self._get_polygon_store()
+        coords_list = _normalize_polygon_coords(coords)
+        if height <= 0:
+            raise ValueError("Polygon height must be positive.")
+        record = {
+            "id": polygon_id,
+            "coords": coords_list,
+            "height": float(height),
+            "base": float(base),
+            "category": category,
+            "attributes": attributes or {},
+        }
+        store.insert_data(POLYGON_MAP_NAME, polygon_id, record)
+
+    def get_polygon(self, polygon_id: int) -> Dict[str, Any]:
+        store = self._get_polygon_store()
+        return store.get_data(POLYGON_MAP_NAME, polygon_id)
+
+    def get_polygons(self) -> Iterator[int]:
+        store = self._get_polygon_store()
+        return store.keys(POLYGON_MAP_NAME)
+
+    def remove_polygon(self, polygon_id: int) -> None:
+        store = self._get_polygon_store()
+        store.delete_data(POLYGON_MAP_NAME, polygon_id)
+
     def attach_networkx_graph(self, G: nx.Graph) -> IGraph:
         """
         Attaches a NetworkX graph to the Graph object.
@@ -509,7 +586,7 @@ class GraphEngine(IGraphEngine):
         """
         self._graph.load(path)
         return self.graph
-    
+
     def terminate(self):
         try:
             del self._graph
