@@ -3,10 +3,10 @@ import gamms
 import math
 
 # Visualization
-vis_engine = gamms.visual.Engine.PYGAME
+vis_engine = gamms.visual.Engine.NO_VIS
 
 # The path to the graph file
-location = "West Point, New York, USA"
+location = "La Jolla, CA, USA"
 resolution = 10.0
 graph_path = 'graph.pkl'
 
