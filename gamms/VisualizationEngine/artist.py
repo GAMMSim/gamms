@@ -1,7 +1,7 @@
 from enum import Enum, auto
 
 from gamms.typing import IArtist, ArtistType, IContext
-from gamms.VisualizationEngine.default_drawers import render_circle, render_rectangle, render_label
+from gamms.VisualizationEngine.default_drawers import render_circle, render_rectangle
 from gamms.VisualizationEngine import Shape
 from typing import Callable, Union, Dict, Any
 
