@@ -25,8 +25,6 @@ class Artist(IArtist):
                 self._drawer = render_circle
             elif drawer == Shape.Rectangle:
                 self._drawer = render_rectangle
-            elif drawer == Shape.Label:
-                self._drawer = render_label
             else:
                 raise ValueError("Unsupported shape type")
         else:
