@@ -63,10 +63,10 @@ for i in range(RED_TEAM_AGENTS):
     }
     label_vis_config[f'label_{i}'] = {
         'text': f'Agent {i}',
-        'color': (255, 0, 0), # color of the label
-        'size': 12, # size of the label
         'anchor': f'agent_{i}', # anchor the label to the agent
         'offset': (0, -15), # offset of the label from the agent
+        'color': (255, 0, 0), # color of the label (optional as it will default to anchor agent color if not provided)
+        'size': 12, # size of the label (optional as it will default to anchor agent size if not provided)
     }
 
 for i in range(RED_TEAM_AGENTS, RED_TEAM_AGENTS + BLUE_TEAM_AGENTS):
@@ -76,10 +76,10 @@ for i in range(RED_TEAM_AGENTS, RED_TEAM_AGENTS + BLUE_TEAM_AGENTS):
     }
     label_vis_config[f'label_{i}'] = {
         'text': f'Agent {i}',
-        'color': (0, 0, 255), # color of the label
-        'size': 12, # size of the label
         'anchor': f'agent_{i}', # anchor the label to the agent
         'offset': (0, -15), # offset of the label from the agent
+        'color': (0, 0, 255), # color of the label (optional as it will default to anchor agent color if not provided)
+        'size': 12, # size of the label (optional as it will default to anchor agent size if not provided)
     }
 
 sensor_vis_config = {}
