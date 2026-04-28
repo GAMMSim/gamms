@@ -182,7 +182,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         return artist
     
-    def set_label_visual(self, name, **kwargs):
+    def set_label_visual(self, name: str, **kwargs: Dict[str, Any]) -> IArtist:
         label_data = LabelData(
             name=name,
             text=cast(str, kwargs.get('text', name)),

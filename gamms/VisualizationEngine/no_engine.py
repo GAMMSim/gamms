@@ -23,8 +23,9 @@ class NoEngine(IVisualizationEngine):
         dummy = cast(Callable[[IContext, Dict[str, Any]], None], lambda ctx, data: None)
         return Artist(self.ctx , dummy, layer=20)
     
-    def get_agent_visual(self, name: str) -> Union[IArtist, None]:
-        return None
+    def get_agent_visual(self, name: str) -> IArtist:
+        dummy = cast(Callable[[IContext, Dict[str, Any]], None], lambda ctx, data: None)
+        return Artist(self.ctx , dummy, layer=20)
     
     def set_sensor_visual(self, name: str, **kwargs: Dict[str, Any]) -> IArtist:
         dummy = cast(Callable[[IContext, Dict[str, Any]], None], lambda ctx, data: None)

@@ -71,7 +71,7 @@ class IVisualizationEngine(ABC):
             name (str): Agent name.
 
         Returns:
-            Optional[IArtist]: Agent artist object, or None if unavailable.
+            IArtist: Returns Agent artist object.
         """
         pass
 

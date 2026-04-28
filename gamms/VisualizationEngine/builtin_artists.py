@@ -78,7 +78,7 @@ class LabelData:
         anchor (Optional[str]): The anchor object for the label.
         position (Optional[Tuple[float, float]]): The position of the label (used if anchor is None).
         color (Optional[ColorType]): The color of the label text.
-        size (Optional[float]): The font size of the label text.
+        size (Optional[int]): The font size of the label text.
         offset (Tuple[float, float]): The offset of the label.
         visible (bool): Whether the label is visible."""
     name: str
