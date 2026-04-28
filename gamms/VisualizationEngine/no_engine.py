@@ -32,7 +32,7 @@ class NoEngine(IVisualizationEngine):
     
     def set_label_visual(self, name: str, **kwargs: Dict[str, Any]) -> IArtist:
         dummy = cast(Callable[[IContext, Dict[str, Any]], None], lambda ctx, data: None)
-        return Artist(self.ctx , dummy, layer=50)
+        return Artist(self.ctx , dummy, layer=20)
     
     def add_artist(self, name: str, artist: Union[IArtist, Dict[str, Any]]) -> IArtist:
         if isinstance(artist, dict):
