@@ -135,8 +135,16 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         return artist
 
-    def get_agent_visual(self, name: str) -> Optional[IArtist]:
-        return self._agent_artists.get(name)
+    def get_agent_visual(self, name: str) -> IArtist:
+        if name not in self._dynamic_agent_artist_names:
+            raise KeyError(f"Agent artist {name} not found")
+
+        artist = self._dynamic_artists.get(name)
+        if artist is None or 'agent_data' not in artist.data:
+            self._dynamic_agent_artist_names.discard(name)
+            raise KeyError(f"Agent artist {name} not found")
+
+        return artist
 
     def set_sensor_visual(self, name: str, **kwargs: Dict[str, Any]) -> IArtist:
         sensor = self.ctx.sensor.get_sensor(name)
@@ -188,7 +196,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         artist = Artist(self.ctx, render_label, 20)
         artist.data['label_data'] = label_data
-        artist.set_artist_type(ArtistType.LABEL)
+        artist.set_artist_type(ArtistType.DYNAMIC)
 
         self.add_artist(name, artist)
         return artist
@@ -393,17 +401,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
         for name in stale_names:
             self._dynamic_agent_artist_names.discard(name)
 
-    def _get_agent_artist(self, agent_name: str) -> IArtist:
-        if agent_name not in self._dynamic_agent_artist_names:
-            raise KeyError(f"Agent artist {agent_name} not found")
-
-        artist = self._dynamic_artists.get(agent_name)
-        if artist is None or 'agent_data' not in artist.data:
-            self._dynamic_agent_artist_names.discard(agent_name)
-            raise KeyError(f"Agent artist {agent_name} not found")
-
-        return artist
-
     def _toggle_waiting_simulation(self, waiting_simulation: bool):
         self._waiting_simulation = waiting_simulation
         for agent_artist in self._iter_agent_artists():
@@ -566,11 +563,11 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         prev_waiting_agent_name = self._waiting_agent_name
         if prev_waiting_agent_name is not None:
-            prev_waiting_agent_artist = self._get_agent_artist(prev_waiting_agent_name)
+            prev_waiting_agent_artist = self.get_agent_visual(prev_waiting_agent_name)
             prev_waiting_agent_artist.data['_is_waiting'] = False
 
         self._waiting_agent_name = agent_name
-        waiting_agent_artist = self._get_agent_artist(agent_name)
+        waiting_agent_artist = self.get_agent_visual(agent_name)
         waiting_agent_artist.data['_is_waiting'] = True
 
         waiting_agent = self.ctx.agent.get_agent(agent_name)

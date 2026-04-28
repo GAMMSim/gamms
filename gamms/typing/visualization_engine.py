@@ -59,7 +59,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def get_agent_visual(self, name: str) -> Optional[IArtist]:
+    def get_agent_visual(self, name: str) -> IArtist:
         """
         Get the visualization artist for an agent if available.
 
