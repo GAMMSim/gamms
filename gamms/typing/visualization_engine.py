@@ -59,23 +59,6 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def get_agent_visual(self, name: str) -> IArtist:
-        """
-        Get the visualization artist for an agent if available.
-
-        The returned artist contains render-time data such as interpolated
-        position and can be used by other drawers (for example labels) to stay
-        synced with what is currently being rendered.
-
-        Args:
-            name (str): Agent name.
-
-        Returns:
-            IArtist: Returns Agent artist object.
-        """
-        pass
-
-    @abstractmethod
     def set_sensor_visual(self, name: str, **kwargs: Dict[str, Any]) -> IArtist:
         """
         Configure the visual representation of a specific sensor.
@@ -94,28 +77,6 @@ class IVisualizationEngine(ABC):
         Raises:
             KeyError: If the sensor with the specified name does not exist.
             ValueError: If the sensor type is not supported for default visualization.        
-        """
-        pass
-
-    @abstractmethod
-    def set_label_visual(self, name: str, **kwargs: Dict[str, Any]) -> IArtist:
-        """
-        Configure the visual representation of a specific label.
-
-        This method sets up visual parameters for an individual label, allowing
-        customization of how the label is displayed within the visualization.
-
-        Args:
-            name (str): The unique name identifier of the label to configure.
-            **kwargs: Arbitrary keyword arguments representing visual settings.
-                Possible keys include:
-                - `text` (str): The text content of the label.
-                - `anchor` (str): The name of the agent or sensor to which the label should be anchored to.
-                - `position` (Tuple[float, float]): The optional absolute (x, y) coordinate for the label's position in the visualization.
-                - `color` (str): The color to represent the label.
-                - `size` (float): The size of the label in the visualization.
-                - `visible` (bool): Whether the label is visible in the visualization.
-                - `offset` (Tuple[float, float]): The (x, y) offset for the label's position relative to its attached element.
         """
         pass
 

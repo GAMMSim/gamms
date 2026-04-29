@@ -73,18 +73,12 @@ class GraphData:
 class LabelData:
     """Contains all necessary data for drawing a label.
     Attributes:
-        name (str): The name of the label.
         text (str): The text of the label.
-        anchor (Optional[str]): The anchor object for the label.
-        position (Optional[Tuple[float, float]]): The position of the label (used if anchor is None).
         color (Optional[ColorType]): The color of the label text.
         size (Optional[int]): The font size of the label text.
         offset (Tuple[float, float]): The offset of the label.
         visible (bool): Whether the label is visible."""
-    name: str
     text: str
-    anchor: Optional[str] = None  
-    position: Optional[Tuple[float, float]] = None  # used if anchor is None
     color: Optional[ColorType] = None
     size: Optional[int] = None
     offset: Tuple[float, float] = (0.0, 0.0)
