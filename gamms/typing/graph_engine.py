@@ -244,6 +244,77 @@ class IGraph(ABC):
         """
         pass
 
+    @abstractmethod
+    def add_polygon(
+        self,
+        polygon_id: int,
+        coords: Any,
+        height: float = 6.0,
+        base: float = 0.0,
+        category: str = "building",
+        attributes: Dict[str, Any] = None,
+    ) -> None:
+        """
+        Add a polygonal occluder to the graph's polygon store.
+
+        Each polygon is treated as a 3D prism with vertical trapezoidal faces
+        between ``base`` and ``base + height``.
+
+        Args:
+            polygon_id: Unique identifier for the polygon.
+            coords: Iterable of ``(x, y)`` tuples describing the exterior ring.
+            height: Polygon height (must be positive).
+            base: z-coordinate of the polygon base.
+            category: Free-form classification (e.g. "building", "foliage").
+            attributes: Optional metadata dict.
+
+        Raises:
+            ValueError: If the polygon already exists or coordinates are invalid.
+        """
+        pass
+
+    @abstractmethod
+    def get_polygon(self, polygon_id: int) -> Dict[str, Any]:
+        """
+        Retrieve a polygon record by id.
+
+        Returns:
+            Dict[str, Any]: A dict with ``id``, ``coords``, ``height``,
+                ``base``, ``category``, ``attributes`` entries.
+
+        Raises:
+            KeyError: If the polygon does not exist.
+        """
+        pass
+
+    @abstractmethod
+    @overload
+    def get_polygons(self) -> Iterator[int]:
+        """
+        Iterate over the IDs of all polygons currently registered with the graph.
+        """
+        pass
+
+    @abstractmethod
+    @overload
+    def get_polygons(self, d: float, x: float, y: float) -> Iterator[int]:
+        """
+        Iterate over polygon IDs whose bounding box overlaps the square of
+        side ``2d`` centered on ``(x, y)``.
+
+        If ``d`` is non-negative, returns only polygons within range. May
+        return polygons whose bbox extends slightly past the range; will
+        always return polygons whose footprint touches the range.
+        """
+        pass
+
+    @abstractmethod
+    def remove_polygon(self, polygon_id: int) -> None:
+        """
+        Remove the polygon with the given identifier from the polygon store.
+        """
+        pass
+
 
 class IGraphEngine(ABC):
     """
@@ -330,10 +401,20 @@ class IGraphEngine(ABC):
         pass
 
     @abstractmethod
+    @overload
     def get_polygons(self) -> Iterator[int]:
         """
         Iterate over the IDs of all polygons currently registered with the
         engine.
+        """
+        pass
+
+    @abstractmethod
+    @overload
+    def get_polygons(self, d: float, x: float, y: float) -> Iterator[int]:
+        """
+        Iterate over polygon IDs whose bounding box overlaps the square of
+        side ``2d`` centered on ``(x, y)``.
         """
         pass
 
