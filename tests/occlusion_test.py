@@ -151,6 +151,26 @@ class OccludedSensorTest(unittest.TestCase):
         # avoid the wall; node 1 should still be visible.
         self.assertIn(1, sensor.data['nodes'])
 
+    def test_occluded_range_ignores_polygons_outside_range(self):
+        # A polygon far outside the sensor range must not affect the result.
+        self._add_blocking_wall()  # the relevant occluder near the agent
+        # An unrelated polygon way off to the side, well outside any sensor range.
+        self.ctx.graph.add_polygon(
+            99,
+            coords=[(500, 500), (510, 500), (510, 510), (500, 510)],
+            height=20.0,
+        )
+        sensor = self.ctx.sensor.create_sensor(
+            'occluded_filtered',
+            gamms.typing.SensorType.OCCLUDED_RANGE,
+            sensor_range=20.0,
+        )
+        sensor.sense(0)
+        # Occlusion behaviour must match the wall-only case: node 1 hidden,
+        # node 2 visible. The far polygon doesn't sneak in.
+        self.assertNotIn(1, sensor.data['nodes'])
+        self.assertIn(2, sensor.data['nodes'])
+
     def test_occluded_aerial_loses_node_when_low(self):
         self._add_blocking_wall()
         aerial = self.ctx.agent.create_agent(
