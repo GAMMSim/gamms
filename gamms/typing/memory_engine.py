@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import Any, Iterator, List, Optional, Type
-from enum import Enum
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Type
+from enum import IntEnum
 
 
-class StoreType(Enum):
+class StoreType(IntEnum):
     """
     Enumeration of supported store backends.
 
@@ -12,13 +12,11 @@ class StoreType(Enum):
         FILESYSTEM: Filesystem-backed store (kept for compatibility with the
             previous artefact-style API). Not used by the structured
             map/table backends.
-        REMOTE: Reserved for future remote stores (e.g., HTTP/REST).
         DATABASE: SQLite-backed store with on-disk persistence.
     """
     MEMORY = 0
     FILESYSTEM = 1
-    REMOTE = 2
-    DATABASE = 3
+    DATABASE = 2
 
 
 class IPathLike(ABC):
@@ -49,43 +47,58 @@ class IStore(ABC):
     """
     Abstract base class representing a structured storage instance.
 
-    A store is a named collection of "maps" (think tables / hashmaps). Each
-    map stores key/value pairs and can optionally be typed.
+    Primarily this is so that there is an abstraction over storage type
+    Based on individual implementations, there can be a variety in implementation
 
-    The store also exposes legacy ``save``/``load``/``delete`` methods that
-    operate on the entire store (used for whole-store snapshots).
+    The objective is that there are multiple places where basic storage operations are needed
+    but want it to be agnostic to the underlying storage implementation. The base API is not
+    supposed to be optimal way to access it.
     """
 
-    @property
     @abstractmethod
     def name(self) -> str:
         """The unique name of this store."""
         pass
 
+    @abstractmethod
+    def path(self) -> IPathLike:
+        """The path to the store."""
+        pass
+
     @property
     @abstractmethod
-    def store_type(self) -> StoreType:
+    def type(self) -> StoreType:
         """The backend type of this store."""
         pass
 
     @abstractmethod
-    def create_map(self, map_name: str, value_type: Optional[Type] = None) -> None:
+    def create_map(self, map_name: str, struct: Dict[str, Type], primary_key: str) -> None:
         """
         Create a new key/value map within the store.
 
         Args:
             map_name: Unique name of the map within this store.
-            value_type: Optional Python type associated with the values stored
-                in the map. Implementations may ignore this hint.
+            struct: Defines the schema for the map.
+            primary_key: The key to use as the primary key for the map. It needs to be unique within the map.
 
         Raises:
             ValueError: If a map with the given name already exists.
+            TypeError: If there is unsupported strutures in the schema.
+            IndexError: If the primary key is not found in the schema or is not indexable
         """
         pass
 
     @abstractmethod
-    def has_map(self, map_name: str) -> bool:
-        """Return True if a map with the given name exists."""
+    def delete_map(self, map_name: str) -> None:
+        """
+        Delete a map from the store.
+
+        Args:
+            map_name: Name of the map to delete.
+
+        Raises:
+            KeyError: If the map does not exist.
+        """
         pass
 
     @abstractmethod
@@ -94,66 +107,78 @@ class IStore(ABC):
         pass
 
     @abstractmethod
-    def insert_data(self, map_name: str, key: Any, value: Any) -> None:
+    def insert_data(self, map_name: str, struct: Dict[str, Any]) -> None:
         """
         Insert a key/value pair into a map.
 
         Args:
             map_name: Name of the target map.
-            key: Key under which to store the value.
-            value: Value to store.
+            struct: A dictionary containing the key-value pairs to insert.
 
         Raises:
             KeyError: If the map does not exist.
-            ValueError: If the key already exists in the map.
+            IndexError: If there is an issue with the primary key.
+            ValueError: If there is an issue with struct insertion
         """
         pass
 
     @abstractmethod
-    def get_data(self, map_name: str, key: Any) -> Any:
-        """Retrieve the value associated with ``key`` in the named map."""
+    def get_data(self, map_name: str, key: Any) -> Tuple[Tuple[str, Any], ...]:
+        """
+        Retrieve the value associated with the key
+
+        Args:
+            map_name: Name of the target map.
+            key: The key for which to retrieve the value.
+
+        Raises:
+            KeyError: If the map does not exist.
+            IndexError: If the key is not found in the map.
+        """
         pass
 
     @abstractmethod
-    def update_data(self, map_name: str, key: Any, value: Any) -> None:
-        """Update an existing key with a new value (raises if missing)."""
+    def update_data(self, map_name: str, struct: Dict[str, Any]) -> None:
+        """
+        Update an entry in the map
+
+        Args:
+            map_name: Name of the target map.
+            struct: A dictionary containing the key-value pairs to update.
+
+        Raises:
+            KeyError: If the map does not exist.
+            IndexError: If there is an issue with the primary key.
+            ValueError: If there is an issue with struct insertion
+        """
         pass
 
     @abstractmethod
     def delete_data(self, map_name: str, key: Any) -> None:
-        """Delete a key from a map (raises if missing)."""
-        pass
-
-    @abstractmethod
-    def has_data(self, map_name: str, key: Any) -> bool:
-        """Return True if the key exists in the map."""
-        pass
-
-    @abstractmethod
-    def keys(self, map_name: str) -> Iterator[Any]:
-        """Iterate over all keys in the named map."""
-        pass
-
-    @abstractmethod
-    def items(self, map_name: str) -> Iterator[Any]:
-        """Iterate over all (key, value) pairs in the named map."""
-        pass
-
-    @abstractmethod
-    def save(self, obj: Any = None) -> None:
         """
-        Persist the store (or an artefact). Behaviour depends on the backend.
+        Delete a key from a map
+
+        Args:
+            map_name: Name of the target map.
+            key: The key to delete.
+
+        Raises:
+            KeyError: If the map does not exist.
+            IndexError: If the key is not found in the map.
         """
         pass
 
     @abstractmethod
-    def load(self) -> Any:
-        """Load and return the contents of the store from its backing medium."""
-        pass
+    def query_keys(self, map_name: str) -> Iterator[Any]:
+        """
+        Query all keys in a map.
 
-    @abstractmethod
-    def delete(self) -> None:
-        """Delete the underlying storage of this store."""
+        Args:
+            map_name: Name of the target map.
+
+        Raises:
+            KeyError: If the map does not exist.
+        """
         pass
 
 
@@ -204,25 +229,10 @@ class IMemoryEngine(ABC):
         pass
 
     @abstractmethod
-    def list_stores(self) -> List[str]:
-        """Return the names of all stores managed by this engine."""
-        pass
-
-    @abstractmethod
-    def load_store(
-        self,
-        store_type: StoreType,
-        name: str,
-        path: IPathLike,
-    ) -> IStore:
+    def list_stores(self) -> Iterator[str]:
         """
-        Load an existing store from the backing medium and register it.
+        Return the names of all stores.
         """
-        pass
-
-    @abstractmethod
-    def save_store(self, name: str, path: Optional[IPathLike] = None) -> None:
-        """Persist the named store to its backing medium."""
         pass
 
     @abstractmethod

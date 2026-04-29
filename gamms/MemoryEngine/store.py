@@ -274,7 +274,3 @@ class SqliteStore(IStore):
             self._conn.close()
         except Exception:
             pass
-
-
-# Backwards-compatible alias for callers that expected the old generic ``Store``.
-Store = MemoryStore
