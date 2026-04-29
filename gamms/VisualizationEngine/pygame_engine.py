@@ -1,7 +1,7 @@
 from gamms.AgentEngine.agent_engine import AerialAgent
 from gamms.VisualizationEngine import Color, Space, Shape, Artist, lazy
 from gamms.VisualizationEngine.render_manager import RenderManager
-from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
+from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData, LabelData
 from gamms.VisualizationEngine.default_drawers import (
     render_circle, render_rectangle,
     render_agent, render_graph, render_neighbor_sensor,
@@ -131,8 +131,16 @@ class PygameVisualizationEngine(IVisualizationEngine):
         artist.set_artist_type(ArtistType.DYNAMIC)
         artist.data['_alpha'] = 1.0
 
-        self.add_artist(name, artist)
+        if 'label_data' in kwargs:
+            artist.data['label_data'] = LabelData(
+                text=cast(str, kwargs['label_data'].get('text', name)),
+                color=cast(Optional[ColorType], kwargs['label_data'].get('color', None)),
+                size=cast(Optional[int], kwargs['label_data'].get('size', None)),
+                offset=cast(Tuple[float, float], kwargs['label_data'].get('offset', (0.0, -15.0))),
+                visible=cast(bool, kwargs['label_data'].get('visible', True)),
+            )
 
+        self.add_artist(name, artist)
         return artist
 
     def set_sensor_visual(self, name: str, **kwargs: Dict[str, Any]) -> IArtist:

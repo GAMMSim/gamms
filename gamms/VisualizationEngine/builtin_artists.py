@@ -68,3 +68,18 @@ class GraphData:
     edge_color: ColorType
     draw_id: bool
     edge_line_points: Dict[int, List[Tuple[float, float]]] = field(default_factory=dict)
+
+@dataclass
+class LabelData:
+    """Contains all necessary data for drawing a label.
+    Attributes:
+        text (str): The text of the label.
+        color (Optional[ColorType]): The color of the label text.
+        size (Optional[int]): The font size of the label text.
+        offset (Tuple[float, float]): The offset of the label.
+        visible (bool): Whether the label is visible."""
+    text: str
+    color: Optional[ColorType] = None
+    size: Optional[int] = None
+    offset: Tuple[float, float] = (0.0, 0.0)
+    visible: bool = True

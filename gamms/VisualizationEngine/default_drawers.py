@@ -1,6 +1,6 @@
 from gamms.AgentEngine.agent_engine import AerialAgent
 from gamms.VisualizationEngine import Color
-from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
+from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData, LabelData
 from gamms.typing import IContext, OSMEdge, Node, ColorType, AgentType
 
 from typing import Dict, Any, cast, List, Optional
@@ -38,6 +38,26 @@ def render_rectangle(ctx: IContext, data: Dict[str, Any]):
     color = data.get('color', Color.Cyan)
     ctx.visual.render_rectangle(x, y, width, height, color)
 
+def render_label(ctx: IContext, label_data: LabelData, anchor_x: float, anchor_y: float, anchor_color: Optional[ColorType], anchor_size: Optional[int]):
+    """
+    Render a label with the specified text at the specified position.
+
+    Args:
+        ctx (Context): The current simulation context.
+        label_data (LabelData): The data containing the label's text, color, size, and offset.
+        anchor_x (float): The x-coordinate of the anchor point for the label.
+        anchor_y (float): The y-coordinate of the anchor point for the label.
+        anchor_color (Optional[ColorType]): The color of the anchor, used as a fallback if label_data.color is not provided.
+        anchor_size (Optional[int]): The size of the anchor, used as a fallback if label_data.size is not provided.
+    """
+    if label_data.visible is False:
+        return
+    color = cast(ColorType, label_data.color if label_data.color is not None else anchor_color if anchor_color is not None else Color.Black)
+    size = cast(Optional[int], label_data.size if label_data.size is not None else anchor_size)
+    x = anchor_x + label_data.offset[0]
+    y = anchor_y + label_data.offset[1]
+    ctx.visual.render_text(label_data.text, x, y, color, font_size=size)
+
 def render_agent(ctx: IContext, data: Dict[str, Any]):
     """
     Render an agent as a triangle at its current position on the screen. This is the default rendering method for agents.
@@ -47,6 +67,7 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
         data (dict): The data containing the agent's information.
     """
     agent_data = cast(AgentData, data.get('agent_data'))
+    label_data = cast(Optional[LabelData], data.get('label_data'))
     size = agent_data.size
     color = agent_data.color
     is_waiting = data.get('_is_waiting', False)
@@ -76,10 +97,10 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
             else:
                 position = (prev_position[0] + alpha * (target_position[0] - prev_position[0]),
                             prev_position[1] + alpha * (target_position[1] - prev_position[1]))
-
-            agent_data.current_position = position
         else:
             position = (target_node.x, target_node.y)
+
+        agent_data.current_position = position
 
         # Draw each agent as a triangle at its current position
         angle = math.radians(45)
@@ -101,6 +122,8 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
         else:
             position = aerial_agent.position
 
+        agent_data.current_position = (position[0], position[1])
+
         quat = aerial_agent.quat
         x = quat[1]
         y = quat[2]
@@ -112,6 +135,9 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
 
     else:
         raise ValueError(f"Unsupported agent type: {agent.type}")
+    
+    if label_data is not None:
+        render_label(ctx, label_data, agent_data.current_position[0], agent_data.current_position[1], color, size)
 
 
 def render_aerial_agent(ctx: IContext, position: tuple[float, float], angle: float, size: float, color: ColorType):
