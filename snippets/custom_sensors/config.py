@@ -54,8 +54,6 @@ for i in range(RED_TEAM_AGENTS, RED_TEAM_AGENTS + BLUE_TEAM_AGENTS):
 
 agent_vis_config = {}
 
-label_vis_config = {}
-
 for i in range(RED_TEAM_AGENTS):
     agent_vis_config[f'agent_{i}'] = {
         'color': (255, 0, 0), # color of the agent

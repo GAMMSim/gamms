@@ -38,7 +38,7 @@ def render_rectangle(ctx: IContext, data: Dict[str, Any]):
     color = data.get('color', Color.Cyan)
     ctx.visual.render_rectangle(x, y, width, height, color)
 
-def render_label_text(ctx: IContext, label_data: LabelData, anchor_x: float, anchor_y: float, anchor_color: Optional[ColorType], anchor_size: Optional[int]):
+def render_label(ctx: IContext, label_data: LabelData, anchor_x: float, anchor_y: float, anchor_color: Optional[ColorType], anchor_size: Optional[int]):
     """
     Render a label with the specified text at the specified position.
 
@@ -137,7 +137,7 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
         raise ValueError(f"Unsupported agent type: {agent.type}")
     
     if label_data is not None:
-        render_label_text(ctx, label_data, agent_data.current_position[0], agent_data.current_position[1], color, size)
+        render_label(ctx, label_data, agent_data.current_position[0], agent_data.current_position[1], color, size)
 
 
 def render_aerial_agent(ctx: IContext, position: tuple[float, float], angle: float, size: float, color: ColorType):
