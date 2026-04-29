@@ -1,5 +1,13 @@
 from gamms.AgentEngine.agent_engine import AerialAgent
-from gamms.VisualizationEngine import Color, Space, Shape, Artist, lazy
+from gamms.VisualizationEngine import (
+    Color,
+    Space,
+    Shape,
+    Artist,
+    lazy,
+    CACHE_ZOOM_MIN,
+    CACHE_ZOOM_MAX,
+)
 from gamms.VisualizationEngine.render_manager import RenderManager
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
 from gamms.VisualizationEngine.default_drawers import (
@@ -29,10 +37,6 @@ class _ArtistCache(NamedTuple):
     camera_size: float
     screen_width: int
     screen_height: int
-
-
-_CACHE_ZOOM_MIN = 0.8
-_CACHE_ZOOM_MAX = 1.2
 
 
 class PygameVisualizationEngine(IVisualizationEngine):
@@ -396,7 +400,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
             cache = self._artist_caches[name]
 
         zoom_ratio = cache.camera_size / rm.camera_size
-        if zoom_ratio < _CACHE_ZOOM_MIN or zoom_ratio > _CACHE_ZOOM_MAX:
+        if zoom_ratio < CACHE_ZOOM_MIN or zoom_ratio > CACHE_ZOOM_MAX:
             self._rebuild_artist_cache(name)
             cache = self._artist_caches[name]
             zoom_ratio = 1.0

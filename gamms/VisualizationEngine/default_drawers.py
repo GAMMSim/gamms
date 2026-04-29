@@ -1,5 +1,10 @@
 from gamms.AgentEngine.agent_engine import AerialAgent
-from gamms.VisualizationEngine import Color
+from gamms.VisualizationEngine import (
+    Color,
+    SHORT_EDGE_PIXEL_THRESHOLD,
+    SKIP_EDGE_PIXEL_THRESHOLD,
+    SKIP_NODE_PIXEL_THRESHOLD,
+)
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
 from gamms.VisualizationEngine.graph_render_cache import GraphRenderCache
 from gamms.typing import IContext, OSMEdge, Node, ColorType, AgentType
@@ -7,10 +12,6 @@ from gamms.typing import IContext, OSMEdge, Node, ColorType, AgentType
 from typing import Dict, Any, cast, List, Optional
 
 import math
-
-_SHORT_EDGE_PIXEL_THRESHOLD = 3.0
-_SKIP_EDGE_PIXEL_THRESHOLD = 1.0
-_SKIP_NODE_PIXEL_THRESHOLD = 1.0
 
 def render_circle(ctx: IContext, data: Dict[str, Any]):
     """
@@ -198,15 +199,15 @@ def render_graph(ctx: IContext, data: Dict[str, Any]):
         edge_ids = idx.query_edges(left - pad, right + pad, top - pad, bottom + pad)
         node_ids = idx.query_nodes(left - pad, right + pad, top - pad, bottom + pad)
 
-    short_sq = _pixel_thresh_sq(_SHORT_EDGE_PIXEL_THRESHOLD, scale)
-    skip_sq = _pixel_thresh_sq(_SKIP_EDGE_PIXEL_THRESHOLD, scale)
+    short_sq = _pixel_thresh_sq(SHORT_EDGE_PIXEL_THRESHOLD, scale)
+    skip_sq = _pixel_thresh_sq(SKIP_EDGE_PIXEL_THRESHOLD, scale)
 
     for edge_id in edge_ids:
         edge = graph.get_edge(edge_id)
         _render_graph_edge(ctx, graph_data, edge, edge_color, short_sq, skip_sq)
 
     node_pixel_radius = node_size * scale
-    if node_pixel_radius >= _SKIP_NODE_PIXEL_THRESHOLD:
+    if node_pixel_radius >= SKIP_NODE_PIXEL_THRESHOLD:
         for node_id in node_ids:
             node = graph.get_node(node_id)
             _render_graph_node(ctx, node, node_color, node_size, draw_id)
@@ -248,7 +249,7 @@ def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
     _, _, _, _, scale = viewport
 
     node_pixel_radius = node_size * scale
-    if node_pixel_radius >= _SKIP_NODE_PIXEL_THRESHOLD:
+    if node_pixel_radius >= SKIP_NODE_PIXEL_THRESHOLD:
         for node in target_node_id_set:
             _render_graph_node(ctx, graph.get_node(node), node_color, node_size, draw_id)
 
@@ -258,8 +259,8 @@ def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
         if edge.source == current_waiting_agent.current_node_id and edge.target in target_node_id_set:
             active_edges.append(edge)
 
-    short_sq = _pixel_thresh_sq(_SHORT_EDGE_PIXEL_THRESHOLD, scale)
-    skip_sq = _pixel_thresh_sq(_SKIP_EDGE_PIXEL_THRESHOLD, scale)
+    short_sq = _pixel_thresh_sq(SHORT_EDGE_PIXEL_THRESHOLD, scale)
+    skip_sq = _pixel_thresh_sq(SKIP_EDGE_PIXEL_THRESHOLD, scale)
     for edge in active_edges:
         _render_graph_edge(ctx, graph_data, edge, edge_color, short_sq, skip_sq)
 
