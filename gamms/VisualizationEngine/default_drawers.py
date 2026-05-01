@@ -339,10 +339,29 @@ def render_map_sensor(ctx: IContext, data: Dict[str, Any]):
 
     edge_color = data.get('edge_color', Color.Cyan)
     sensed_edges = sensor_data.get('edges', [])
-    
+
+    viewport = ctx.visual.get_viewport()
+    if viewport is None:
+        return
+    _, _, _, _, scale = viewport
+    short_sq = _pixel_thresh_sq(SHORT_EDGE_PIXEL_THRESHOLD, scale)
+    skip_sq = _pixel_thresh_sq(SKIP_EDGE_PIXEL_THRESHOLD, scale)
+
     for edge in sensed_edges:
         source = ctx.graph.graph.get_node(edge.source)
         target = ctx.graph.graph.get_node(edge.target)
+
+        dx = target.x - source.x
+        dy = target.y - source.y
+        d_sq = dx * dx + dy * dy
+
+        if skip_sq > 0.0 and d_sq <= skip_sq:
+            continue
+
+        if short_sq > 0.0 and d_sq <= short_sq:
+            ctx.visual.render_line(source.x, source.y, target.x, target.y, edge_color, 4,
+                                   perform_culling_test=False, is_aa=False)
+            continue
 
         if edge.linestring:
             # linestring[1:-1]
