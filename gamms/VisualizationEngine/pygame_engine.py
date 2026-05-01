@@ -5,7 +5,6 @@ from gamms.VisualizationEngine import (
     Shape,
     Artist,
     lazy,
-    CACHE_ZOOM_MIN,
     CACHE_ZOOM_MAX,
 )
 from gamms.VisualizationEngine.render_manager import RenderManager
@@ -400,7 +399,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
             cache = self._artist_caches[name]
 
         zoom_ratio = cache.camera_size / rm.camera_size
-        if zoom_ratio < CACHE_ZOOM_MIN or zoom_ratio > CACHE_ZOOM_MAX:
+        if zoom_ratio < 1.0 or zoom_ratio > CACHE_ZOOM_MAX:
             self._rebuild_artist_cache(name)
             cache = self._artist_caches[name]
             zoom_ratio = 1.0
@@ -432,7 +431,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
             H = rm.screen_height
             scaled_w = max(1, int(round(W * zoom_ratio)))
             scaled_h = max(1, int(round(H * zoom_ratio)))
-            scaled = self._pygame.transform.smoothscale(
+            scaled = self._pygame.transform.scale(
                 self._cache_surface, (scaled_w, scaled_h)
             )
             offset_x = -dx_px + (W - scaled_w) // 2
