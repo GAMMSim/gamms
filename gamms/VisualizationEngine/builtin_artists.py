@@ -1,9 +1,8 @@
 from dataclasses import dataclass, field
 
-from typing import Tuple, Optional
+from typing import Tuple, List, Dict, Optional
 
 from gamms.typing import ColorType
-from gamms.VisualizationEngine.graph_render_cache import GraphRenderCache
 
 @dataclass
 class Circle:
@@ -68,4 +67,4 @@ class GraphData:
     node_size: float
     edge_color: ColorType
     draw_id: bool
-    render_cache: Optional[GraphRenderCache] = field(default=None)
+    edge_line_points: Dict[int, List[Tuple[float, float]]] = field(default_factory=dict)

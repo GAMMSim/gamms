@@ -6,7 +6,6 @@ from gamms.VisualizationEngine import (
     SKIP_NODE_PIXEL_THRESHOLD,
 )
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
-from gamms.VisualizationEngine.graph_render_cache import GraphRenderCache
 from gamms.typing import IContext, OSMEdge, Node, ColorType, AgentType
 
 from typing import Dict, Any, cast, List, Optional
@@ -183,32 +182,18 @@ def render_graph(ctx: IContext, data: Dict[str, Any]):
     viewport = ctx.visual.get_viewport()
     if viewport is None:
         return
-    left, right, top, bottom, scale = viewport
-
-    cache = graph_data.render_cache
-    if cache is None:
-        cache = GraphRenderCache.build(graph)
-        graph_data.render_cache = cache
-
-    idx = cache.spatial_index
-    if idx is None:
-        edge_ids = graph.get_edges()
-        node_ids = graph.get_nodes()
-    else:
-        pad = max(node_size, 1.0)
-        edge_ids = idx.query_edges(left - pad, right + pad, top - pad, bottom + pad)
-        node_ids = idx.query_nodes(left - pad, right + pad, top - pad, bottom + pad)
+    _, _, _, _, scale = viewport
 
     short_sq = _pixel_thresh_sq(SHORT_EDGE_PIXEL_THRESHOLD, scale)
     skip_sq = _pixel_thresh_sq(SKIP_EDGE_PIXEL_THRESHOLD, scale)
 
-    for edge_id in edge_ids:
+    for edge_id in graph.get_edges():
         edge = graph.get_edge(edge_id)
         _render_graph_edge(ctx, graph_data, edge, edge_color, short_sq, skip_sq)
 
     node_pixel_radius = node_size * scale
     if node_pixel_radius >= SKIP_NODE_PIXEL_THRESHOLD:
-        for node_id in node_ids:
+        for node_id in graph.get_nodes():
             node = graph.get_node(node_id)
             _render_graph_node(ctx, node, node_color, node_size, draw_id)
 
@@ -295,10 +280,8 @@ def _render_graph_edge(ctx: IContext, graph_data: GraphData, edge: OSMEdge, colo
                                perform_culling_test=False, is_aa=False)
         return
 
-    cache = graph_data.render_cache
-    line_points: Optional[List] = None
-    if cache is not None:
-        line_points = cache.edge_line_points.get(edge.id)
+    edge_line_points = graph_data.edge_line_points
+    line_points = edge_line_points.get(edge.id)
 
     if line_points is None:
         linestring = edge.linestring
@@ -308,8 +291,7 @@ def _render_graph_edge(ctx: IContext, graph_data: GraphData, edge: OSMEdge, colo
             return
         line_points = ([(source.x, source.y)] + [(x, y) for (x, y) in linestring.coords] +
                        [(target.x, target.y)])
-        if cache is not None:
-            cache.edge_line_points[edge.id] = line_points
+        edge_line_points[edge.id] = line_points
 
     ctx.visual.render_linestring(line_points, color, is_aa=True, perform_culling_test=False)
 
