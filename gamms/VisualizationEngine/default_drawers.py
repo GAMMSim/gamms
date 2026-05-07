@@ -67,16 +67,38 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
             prev_node = ctx.graph.graph.get_node(agent.prev_node_id)
             prev_position = (prev_node.x, prev_node.y)
             target_position = (target_node.x, target_node.y)
+            neighbors = set(ctx.graph.graph.get_neighbors(agent.prev_node_id))
             current_edge = None
-            for edge_id in ctx.graph.graph.get_edges():
-                edge = ctx.graph.graph.get_edge(edge_id)
-                if edge.source == agent.prev_node_id and edge.target == agent.current_node_id:
-                    current_edge = edge
+            if agent.current_node_id in neighbors:
+                # find the forward edge from prev -> current
+                for edge_id in ctx.graph.graph.get_edges():
+                    edge = ctx.graph.graph.get_edge(edge_id)
+                    if edge.source == agent.prev_node_id and edge.target == agent.current_node_id:
+                        current_edge = edge
+                        break
 
             alpha = cast(float, data.get('_alpha'))
             if current_edge is not None:
-                point = current_edge.linestring.interpolate(alpha, True)
-                position = (point.x, point.y)
+                viewport = ctx.visual.get_viewport()
+                if viewport is None:
+                    return
+                
+                _, _, _, _, scale = viewport
+                dx = target_position[0] - prev_position[0]
+                dy = target_position[1] - prev_position[1]
+                d_sq = dx * dx + dy * dy
+                short_sq = _pixel_thresh_sq(SHORT_EDGE_PIXEL_THRESHOLD, scale)
+                skip_sq = _pixel_thresh_sq(SKIP_EDGE_PIXEL_THRESHOLD, scale)
+
+                if skip_sq > 0.0 and d_sq <= skip_sq:
+                    position = (prev_position[0] + alpha * (target_position[0] - prev_position[0]),
+                                prev_position[1] + alpha * (target_position[1] - prev_position[1]))
+                elif short_sq > 0.0 and d_sq <= short_sq:
+                    position = (prev_position[0] + alpha * (target_position[0] - prev_position[0]),
+                                prev_position[1] + alpha * (target_position[1] - prev_position[1]))
+                else:
+                    point = current_edge.linestring.interpolate(alpha, True)
+                    position = (point.x, point.y)
             else:
                 position = (prev_position[0] + alpha * (target_position[0] - prev_position[0]),
                             prev_position[1] + alpha * (target_position[1] - prev_position[1]))
