@@ -31,12 +31,12 @@ class RenderManager:
 
     def set_cached_artist_handler(self, handler: Optional[Callable[[str], None]]) -> None:
         """
-        Register a callable invoked for artists with will_draw=False so the
-        engine can composite their cached output. Passing None clears the hook.
+        Register a callable invoked for cached static artists so the engine
+        can composite their cached output. Passing None clears the hook.
 
         Args:
             handler (Optional[Callable[[str], None]]): Callable taking the
-            artist name, or None to clear any previously registered hook.
+            static artist name, or None to clear any previously registered hook.
         """
         self._cached_artist_handler = handler
 
