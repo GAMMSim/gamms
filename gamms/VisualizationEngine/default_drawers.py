@@ -71,7 +71,11 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
             current_edge = None
             if agent.current_node_id in neighbors:
                 # find the forward edge from prev -> current
-                for edge_id in ctx.graph.graph.get_edges():
+                midpoint_x = (prev_position[0] + target_position[0]) / 2
+                midpoint_y = (prev_position[1] + target_position[1]) / 2
+                max_dist = math.sqrt((target_position[0] - prev_position[0])**2 + 
+                                    (target_position[1] - prev_position[1])**2) / 2 + 1.0
+                for edge_id in ctx.graph.graph.get_edges(max_dist, midpoint_x, midpoint_y):
                     edge = ctx.graph.graph.get_edge(edge_id)
                     if edge.source == agent.prev_node_id and edge.target == agent.current_node_id:
                         current_edge = edge
