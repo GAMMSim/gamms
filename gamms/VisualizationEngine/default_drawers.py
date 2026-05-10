@@ -67,19 +67,26 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
             prev_node = ctx.graph.graph.get_node(agent.prev_node_id)
             prev_position = (prev_node.x, prev_node.y)
             target_position = (target_node.x, target_node.y)
-            neighbors = set(ctx.graph.graph.get_neighbors(agent.prev_node_id))
             current_edge = None
-            if agent.current_node_id in neighbors:
-                # find the forward edge from prev -> current
-                midpoint_x = (prev_position[0] + target_position[0]) / 2
-                midpoint_y = (prev_position[1] + target_position[1]) / 2
-                max_dist = math.sqrt((target_position[0] - prev_position[0])**2 + 
-                                    (target_position[1] - prev_position[1])**2) / 2 + 1.0
-                for edge_id in ctx.graph.graph.get_edges(max_dist, midpoint_x, midpoint_y):
-                    edge = ctx.graph.graph.get_edge(edge_id)
-                    if edge.source == agent.prev_node_id and edge.target == agent.current_node_id:
-                        current_edge = edge
-                        break
+            cache_key = (agent.prev_node_id, agent.current_node_id)
+            cached_edge_entry = data.get('_current_edge_cache')
+            if cached_edge_entry is not None:
+                cached_edge_key, cached_edge = cached_edge_entry
+                if cached_edge_key == cache_key:
+                    current_edge = cached_edge
+            else:
+                neighbors = set(ctx.graph.graph.get_neighbors(agent.prev_node_id))
+                if agent.current_node_id in neighbors:
+                    midpoint_x = (prev_position[0] + target_position[0]) / 2
+                    midpoint_y = (prev_position[1] + target_position[1]) / 2
+                    max_dist = math.sqrt((target_position[0] - prev_position[0])**2 +
+                                         (target_position[1] - prev_position[1])**2) / 2 + 1.0
+                    for edge_id in ctx.graph.graph.get_edges(max_dist, midpoint_x, midpoint_y):
+                        edge = ctx.graph.graph.get_edge(edge_id)
+                        if edge.source == agent.prev_node_id and edge.target == agent.current_node_id:
+                            current_edge = edge
+                            data['_current_edge_cache'] = (cache_key, edge)
+                            break
 
             alpha = cast(float, data.get('_alpha'))
             if current_edge is not None:
@@ -110,6 +117,7 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
             agent_data.current_position = position
         else:
             position = (target_node.x, target_node.y)
+            data.pop('_current_edge_cache', None)
 
         # Draw each agent as a triangle at its current position
         angle = math.radians(45)
