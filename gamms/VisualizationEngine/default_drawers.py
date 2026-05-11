@@ -67,23 +67,58 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
             prev_node = ctx.graph.graph.get_node(agent.prev_node_id)
             prev_position = (prev_node.x, prev_node.y)
             target_position = (target_node.x, target_node.y)
-            current_edge = None
-            for edge_id in ctx.graph.graph.get_edges():
-                edge = ctx.graph.graph.get_edge(edge_id)
-                if edge.source == agent.prev_node_id and edge.target == agent.current_node_id:
-                    current_edge = edge
-
             alpha = cast(float, data.get('_alpha'))
-            if current_edge is not None:
-                point = current_edge.linestring.interpolate(alpha, True)
-                position = (point.x, point.y)
-            else:
-                position = (prev_position[0] + alpha * (target_position[0] - prev_position[0]),
-                            prev_position[1] + alpha * (target_position[1] - prev_position[1]))
 
-            agent_data.current_position = position
+            viewport = ctx.visual.get_viewport()
+            if viewport is None:
+                return
+            
+            _, _, _, _, scale = viewport
+            dx = target_position[0] - prev_position[0]
+            dy = target_position[1] - prev_position[1]
+            d_sq = dx * dx + dy * dy
+            short_sq = _pixel_thresh_sq(SHORT_EDGE_PIXEL_THRESHOLD, scale)
+            skip_sq = _pixel_thresh_sq(SKIP_EDGE_PIXEL_THRESHOLD, scale)
+
+            if skip_sq > 0.0 and d_sq <= skip_sq:
+                position = ((1 - alpha) * prev_position[0] + alpha * target_position[0],
+                            (1 - alpha) * prev_position[1] + alpha * target_position[1])
+            elif short_sq > 0.0 and d_sq <= short_sq:
+                position = ((1 - alpha) * prev_position[0] + alpha * target_position[0],
+                            (1 - alpha) * prev_position[1] + alpha * target_position[1])
+            else:
+                current_edge = None
+                cache_key = (agent.prev_node_id, agent.current_node_id)
+                cached_edge_entry = data.get('_current_edge_cache')
+                if cached_edge_entry is not None:
+                    cached_edge_key, cached_edge = cached_edge_entry
+                    if cached_edge_key == cache_key:
+                        current_edge = cached_edge
+                else:
+                    neighbors = set(ctx.graph.graph.get_neighbors(agent.prev_node_id))
+                    if agent.current_node_id in neighbors:
+                        midpoint_x = (prev_position[0] + target_position[0]) / 2
+                        midpoint_y = (prev_position[1] + target_position[1]) / 2
+                        max_dist = math.sqrt((target_position[0] - prev_position[0])**2 +
+                                             (target_position[1] - prev_position[1])**2) / 2 + 1.0
+                        for edge_id in ctx.graph.graph.get_edges(max_dist, midpoint_x, midpoint_y):
+                            edge = ctx.graph.graph.get_edge(edge_id)
+                            if edge.source == agent.prev_node_id and edge.target == agent.current_node_id:
+                                current_edge = edge
+                                data['_current_edge_cache'] = (cache_key, edge)
+                                break
+
+                if current_edge is not None:
+                    point = current_edge.linestring.interpolate(alpha, True)
+                    position = (point.x, point.y)
+                else:
+                    position = ((1 - alpha) * prev_position[0] + alpha * target_position[0],
+                                (1 - alpha) * prev_position[1] + alpha * target_position[1])
         else:
             position = (target_node.x, target_node.y)
+            data.pop('_current_edge_cache', None)
+        
+        agent_data.current_position = position
 
         # Draw each agent as a triangle at its current position
         angle = math.radians(45)
