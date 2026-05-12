@@ -10,14 +10,11 @@ class RenderManager:
 
         self._screen_width = screen_width
         self._screen_height = screen_height
-        self._aspect_ratio = self._screen_width / self._screen_height
 
         self._camera_x = int(camera_x)
         self._camera_y = int(camera_y)
         self._camera_size = camera_size
-        self._camera_size_y = camera_size / self.aspect_ratio
-
-        self._update_bounds()
+        self._update_projection()
 
         self._artists: Dict[str, IArtist] = {}
         # This will call drawer on all artists in the respective layer
@@ -45,6 +42,11 @@ class RenderManager:
         self._bound_right = self.camera_size + self.camera_x
         self._bound_top = -self.camera_size_y + self.camera_y
         self._bound_bottom = self.camera_size_y + self.camera_y
+
+    def _update_projection(self):
+        self._aspect_ratio = self._screen_width / self._screen_height
+        self._camera_size_y = self._camera_size / self._aspect_ratio
+        self._update_bounds()
 
     def set_culling_bounds(self, left: float, right: float, top: float, bottom: float) -> None:
         self._bound_left = left
@@ -92,8 +94,7 @@ class RenderManager:
     @camera_size.setter
     def camera_size(self, value: float):
         self._camera_size = value
-        self._camera_size_y = self.camera_size / self.aspect_ratio
-        self._update_bounds()
+        self._update_projection()
     
     @property
     def camera_size_y(self):
@@ -112,7 +113,7 @@ class RenderManager:
     @screen_width.setter
     def screen_width(self, value: int):
         self._screen_width = value
-        self._aspect_ratio = self._screen_width / self._screen_height
+        self._update_projection()
     
     @property
     def screen_height(self):
@@ -121,7 +122,12 @@ class RenderManager:
     @screen_height.setter
     def screen_height(self, value: int):
         self._screen_height = value
-        self._aspect_ratio = self._screen_width / self._screen_height
+        self._update_projection()
+
+    def set_screen_size(self, width: int, height: int) -> None:
+        self._screen_width = width
+        self._screen_height = height
+        self._update_projection()
     
     @property
     def aspect_ratio(self):

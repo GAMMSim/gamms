@@ -255,8 +255,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
                 self._input_option_result = -1
                 self._input_position_result = -1
             if event.type == self._pygame.VIDEORESIZE:
-                self._render_manager.screen_width = event.w
-                self._render_manager.screen_height = event.h
+                self._render_manager.set_screen_size(event.w, event.h)
                 self._screen = self._pygame.display.set_mode((event.w, event.h), self._pygame.RESIZABLE)
                 self._render_surface = self._pygame.Surface((event.w, event.h), self._pygame.SRCALPHA)
                 self._cache_surface = self._pygame.Surface((event.w, event.h), self._pygame.SRCALPHA)
