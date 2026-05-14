@@ -21,21 +21,21 @@ class RenderManager:
         self._layer_artists: Dict[int, List[str]] = {}
         self._static_layers: Set[int] = set()
         self._current_drawing_artist: Optional[IArtist] = None
-        self._cached_artist_handler: Optional[Callable[[str], None]] = None
+        self._cached_layer_handler: Optional[Callable[[int, List[str]], None]] = None
 
         self._default_origin = (0, 0)
         self._surface_size = 0
 
-    def set_cached_artist_handler(self, handler: Optional[Callable[[str], None]]) -> None:
+    def set_cached_layer_handler(self, handler: Optional[Callable[[int, List[str]], None]]) -> None:
         """
-        Register a callable invoked for cached static artists so the engine
-        can composite their cached output. Passing None clears the hook.
+        Register a callable invoked once per layer for cached static artists.
+        Passing None clears the hook.
 
         Args:
-            handler (Optional[Callable[[str], None]]): Callable taking the
-            static artist name, or None to clear any previously registered hook.
+            handler (Optional[Callable[[int, List[str]], None]]): Callable taking
+            the layer id and static artist names, or None to clear any hook.
         """
-        self._cached_artist_handler = handler
+        self._cached_layer_handler = handler
 
     def _update_bounds(self):
         self._bound_left = -self.camera_size + self.camera_x
@@ -270,6 +270,9 @@ class RenderManager:
         else:
             print(f"Warning: Artist {name} not found.")
 
+    def get_artist(self, name: str) -> Optional[IArtist]:
+        return self._artists.get(name)
+
     def rebuild_artist_layer(self):
         self._layer_artists.clear()
         self._static_layers.clear()
@@ -308,17 +311,26 @@ class RenderManager:
                 artist.layer_dirty = False
 
         for layer, artist_name_list in self._layer_artists.items():
+            cached_static_names: List[str] = []
+            non_cached_artists: List[IArtist] = []
             for artist_name in artist_name_list:
                 artist = self._artists[artist_name]
                 if not artist.get_visible():
                     continue
 
                 if (artist.get_artist_type() == ArtistType.STATIC
-                        and self._cached_artist_handler is not None):
-                    artist.set_render_mode(RenderMode.CACHED)
-                    self._cached_artist_handler(artist_name)
-                    continue
+                        and self._cached_layer_handler is not None):
+                    cached_static_names.append(artist_name)
+                else:
+                    non_cached_artists.append(artist)
 
+            if cached_static_names:
+                for artist_name in cached_static_names:
+                    self._artists[artist_name].set_render_mode(RenderMode.CACHED)
+                assert self._cached_layer_handler is not None
+                self._cached_layer_handler(layer, cached_static_names)
+
+            for artist in non_cached_artists:
                 artist.set_render_mode(RenderMode.NON_CACHED)
                 self._current_drawing_artist = artist
                 artist.draw()
