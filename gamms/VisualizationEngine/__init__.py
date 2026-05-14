@@ -31,6 +31,13 @@ class Shape(Enum):
     Circle = auto()
     Rectangle = auto()
 
+
+SHORT_EDGE_PIXEL_THRESHOLD = 3.0
+SKIP_EDGE_PIXEL_THRESHOLD = 1.0
+SKIP_NODE_PIXEL_THRESHOLD = 1.0
+CACHE_ZOOM_MAX = 1.2
+
+
 import sys
 import importlib.util
 

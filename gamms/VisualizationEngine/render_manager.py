@@ -1,7 +1,7 @@
 from gamms.VisualizationEngine import RenderMode
 from gamms.typing import ArtistType, IContext, IArtist
 
-from typing import Set, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 
 class RenderManager:
@@ -10,29 +10,53 @@ class RenderManager:
 
         self._screen_width = screen_width
         self._screen_height = screen_height
-        self._aspect_ratio = self._screen_width / self._screen_height
 
         self._camera_x = int(camera_x)
         self._camera_y = int(camera_y)
         self._camera_size = camera_size
-        self._camera_size_y = camera_size / self.aspect_ratio
-
-        self._update_bounds()
+        self._update_projection()
 
         self._artists: Dict[str, IArtist] = {}
         # This will call drawer on all artists in the respective layer
         self._layer_artists: Dict[int, List[str]] = {}
-        self._static_layers: Set[int] = set()
         self._current_drawing_artist: Optional[IArtist] = None
+        self._cached_layer_handler: Optional[Callable[[int, List[str]], None]] = None
 
         self._default_origin = (0, 0)
         self._surface_size = 0
+
+    def set_cached_layer_handler(self, handler: Optional[Callable[[int, List[str]], None]]) -> None:
+        """
+        Register a callable invoked once per layer for cached static artists.
+        Passing None clears the hook.
+
+        Args:
+            handler (Optional[Callable[[int, List[str]], None]]): Callable taking
+            the layer id and static artist names, or None to clear any hook.
+        """
+        self._cached_layer_handler = handler
 
     def _update_bounds(self):
         self._bound_left = -self.camera_size + self.camera_x
         self._bound_right = self.camera_size + self.camera_x
         self._bound_top = -self.camera_size_y + self.camera_y
         self._bound_bottom = self.camera_size_y + self.camera_y
+
+    def _update_projection(self):
+        self._screen_width = max(1, self._screen_width)
+        self._screen_height = max(1, self._screen_height)
+        self._aspect_ratio = self._screen_width / self._screen_height
+        self._camera_size_y = self._camera_size / self._aspect_ratio
+        self._update_bounds()
+
+    def set_culling_bounds(self, left: float, right: float, top: float, bottom: float) -> None:
+        self._bound_left = left
+        self._bound_right = right
+        self._bound_top = top
+        self._bound_bottom = bottom
+
+    def reset_culling_bounds(self) -> None:
+        self._update_bounds()
 
     def set_origin(self, x: float, y: float, graph_width: float, graph_height: float):
         self.camera_x = int(x)
@@ -71,8 +95,7 @@ class RenderManager:
     @camera_size.setter
     def camera_size(self, value: float):
         self._camera_size = value
-        self._camera_size_y = self.camera_size / self.aspect_ratio
-        self._update_bounds()
+        self._update_projection()
     
     @property
     def camera_size_y(self):
@@ -91,7 +114,7 @@ class RenderManager:
     @screen_width.setter
     def screen_width(self, value: int):
         self._screen_width = value
-        self._aspect_ratio = self._screen_width / self._screen_height
+        self._update_projection()
     
     @property
     def screen_height(self):
@@ -100,7 +123,12 @@ class RenderManager:
     @screen_height.setter
     def screen_height(self, value: int):
         self._screen_height = value
-        self._aspect_ratio = self._screen_width / self._screen_height
+        self._update_projection()
+
+    def set_screen_size(self, width: int, height: int) -> None:
+        self._screen_width = width
+        self._screen_height = height
+        self._update_projection()
     
     @property
     def aspect_ratio(self):
@@ -109,6 +137,22 @@ class RenderManager:
     @property
     def current_drawing_artist(self):
         return self._current_drawing_artist
+    
+    @property
+    def bound_left(self):
+        return self._bound_left
+    
+    @property
+    def bound_right(self):
+        return self._bound_right
+    
+    @property
+    def bound_top(self):
+        return self._bound_top
+    
+    @property
+    def bound_bottom(self):
+        return self._bound_bottom
 
     def world_to_screen_scale(self, world_size: float) -> float:
         """
@@ -209,9 +253,6 @@ class RenderManager:
         else:
             self._layer_artists[artist.get_layer()].append(name)
 
-        if artist.get_artist_type() == ArtistType.STATIC:
-            self._static_layers.add(artist.get_layer())
-
     def remove_artist(self, name: str):
         """
         Remove an artist from the render manager.
@@ -227,17 +268,16 @@ class RenderManager:
         else:
             print(f"Warning: Artist {name} not found.")
 
+    def get_artist(self, name: str) -> Optional[IArtist]:
+        return self._artists.get(name)
+
     def rebuild_artist_layer(self):
         self._layer_artists.clear()
-        self._static_layers.clear()
         for name, artist in self._artists.items():
             if artist.get_layer() not in self._layer_artists:
                 self._layer_artists[artist.get_layer()] = [name]
             else:
                 self._layer_artists[artist.get_layer()].append(name)
-
-            if artist.get_artist_type() == ArtistType.STATIC:
-                self._static_layers.add(artist.get_layer())
 
         self._layer_artists = {k: self._layer_artists[k] for k in sorted(self._layer_artists.keys())}
 
@@ -264,20 +304,27 @@ class RenderManager:
             for artist in self._artists.values():
                 artist.layer_dirty = False
 
-        rendered_layers: Set[int] = set()
         for layer, artist_name_list in self._layer_artists.items():
+            cached_static_names: List[str] = []
+            non_cached_artists: List[IArtist] = []
             for artist_name in artist_name_list:
                 artist = self._artists[artist_name]
                 if not artist.get_visible():
                     continue
 
-                if not artist.get_will_draw():
-                    if artist.get_artist_type() == ArtistType.STATIC and layer not in rendered_layers:
-                        artist.set_render_mode(RenderMode.CACHED)
-                        self.ctx.visual.render_layer(layer)
-                        rendered_layers.add(layer)
-                    continue
+                if (artist.get_artist_type() == ArtistType.STATIC
+                        and self._cached_layer_handler is not None):
+                    cached_static_names.append(artist_name)
+                else:
+                    non_cached_artists.append(artist)
 
+            if cached_static_names:
+                for artist_name in cached_static_names:
+                    self._artists[artist_name].set_render_mode(RenderMode.CACHED)
+                assert self._cached_layer_handler is not None
+                self._cached_layer_handler(layer, cached_static_names)
+
+            for artist in non_cached_artists:
                 artist.set_render_mode(RenderMode.NON_CACHED)
                 self._current_drawing_artist = artist
                 artist.draw()
