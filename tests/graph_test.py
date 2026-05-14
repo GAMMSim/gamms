@@ -48,7 +48,7 @@ class GraphTest(unittest.TestCase):
         with self.assertRaises(KeyError):
             self.ctx.graph.graph.add_edge({'id': 3, 'source': 1, 'target': 4, 'length': 1, 'linestring': LineString([(0, 0), (1, 1)])})
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(KeyError):
             self.ctx.graph.graph.add_edge({'id': 1, 'source': 1, 'target': 2})
 
 
