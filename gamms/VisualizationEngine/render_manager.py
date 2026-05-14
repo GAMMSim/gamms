@@ -44,7 +44,9 @@ class RenderManager:
         self._bound_bottom = self.camera_size_y + self.camera_y
 
     def _update_projection(self):
-        self._aspect_ratio = self._screen_width / self._screen_height
+        screen_width = max(1, self._screen_width)
+        screen_height = max(1, self._screen_height)
+        self._aspect_ratio = screen_width / screen_height
         self._camera_size_y = self._camera_size / self._aspect_ratio
         self._update_bounds()
 
