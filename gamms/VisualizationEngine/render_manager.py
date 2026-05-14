@@ -313,11 +313,10 @@ class RenderManager:
                 if not artist.get_visible():
                     continue
 
-                if not artist.get_will_draw():
-                    if (artist.get_artist_type() == ArtistType.STATIC
-                            and self._cached_artist_handler is not None):
-                        artist.set_render_mode(RenderMode.CACHED)
-                        self._cached_artist_handler(artist_name)
+                if (artist.get_artist_type() == ArtistType.STATIC
+                        and self._cached_artist_handler is not None):
+                    artist.set_render_mode(RenderMode.CACHED)
+                    self._cached_artist_handler(artist_name)
                     continue
 
                 artist.set_render_mode(RenderMode.NON_CACHED)

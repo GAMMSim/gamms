@@ -104,7 +104,6 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         artist = Artist(self.ctx, render_graph, 10)
         artist.data['graph_data'] = graph_data
-        artist.set_will_draw(False)
         artist.set_artist_type(ArtistType.STATIC)
 
         #Add data for node ID and Color

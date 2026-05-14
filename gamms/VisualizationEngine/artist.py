@@ -17,7 +17,6 @@ class Artist(IArtist):
         self._layer = layer
         self._layer_dirty = False
         self._visible = True
-        self._will_draw = True
         self._artist_type = ArtistType.DYNAMIC
         self._render_mode: RenderMode = RenderMode.NON_CACHED
         if isinstance(drawer, Shape):
@@ -59,12 +58,6 @@ class Artist(IArtist):
 
     def get_drawer(self) -> Callable[[IContext, Dict[str, Any]], None]:
         return self._drawer
-
-    def get_will_draw(self) -> bool:
-        return self._will_draw
-
-    def set_will_draw(self, will_draw: bool):
-        self._will_draw = will_draw
 
     def get_artist_type(self) -> ArtistType:
         return self._artist_type
