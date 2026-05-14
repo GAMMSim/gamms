@@ -94,7 +94,8 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
                     cached_edge_key, cached_edge = cached_edge_entry
                     if cached_edge_key == cache_key:
                         current_edge = cached_edge
-                else:
+
+                if current_edge is None:
                     neighbors = set(ctx.graph.graph.get_neighbors(agent.prev_node_id))
                     if agent.current_node_id in neighbors:
                         midpoint_x = (prev_position[0] + target_position[0]) / 2
