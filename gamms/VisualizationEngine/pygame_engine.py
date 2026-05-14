@@ -30,7 +30,7 @@ from typing import Dict, Any, List, NamedTuple, Tuple, Union, cast, Optional, It
 
 class _LayerCache(NamedTuple):
     surface: Any
-    artist_names: Set[str]
+    artist_names: Tuple[str, ...]
     camera_x: float
     camera_y: float
     camera_size: float
@@ -372,7 +372,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         self._layer_caches[layer] = _LayerCache(
             surface=surface,
-            artist_names=set(names),
+            artist_names=tuple(names),
             camera_x=rm.camera_x,
             camera_y=rm.camera_y,
             camera_size=rm.camera_size,
@@ -383,7 +383,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
     def _blit_layer_cache(self, layer: int, names: List[str]) -> None:
         rm = self._render_manager
         cache = self._layer_caches.get(layer)
-        expected_names = set(names)
+        expected_names = tuple(names)
 
         if (cache is None
             or cache.artist_names != expected_names
