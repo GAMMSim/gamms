@@ -1,7 +1,7 @@
 from gamms.VisualizationEngine import RenderMode
 from gamms.typing import ArtistType, IContext, IArtist
 
-from typing import Callable, Set, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 
 class RenderManager:
@@ -19,7 +19,6 @@ class RenderManager:
         self._artists: Dict[str, IArtist] = {}
         # This will call drawer on all artists in the respective layer
         self._layer_artists: Dict[int, List[str]] = {}
-        self._static_layers: Set[int] = set()
         self._current_drawing_artist: Optional[IArtist] = None
         self._cached_layer_handler: Optional[Callable[[int, List[str]], None]] = None
 
@@ -254,9 +253,6 @@ class RenderManager:
         else:
             self._layer_artists[artist.get_layer()].append(name)
 
-        if artist.get_artist_type() == ArtistType.STATIC:
-            self._static_layers.add(artist.get_layer())
-
     def remove_artist(self, name: str):
         """
         Remove an artist from the render manager.
@@ -277,15 +273,11 @@ class RenderManager:
 
     def rebuild_artist_layer(self):
         self._layer_artists.clear()
-        self._static_layers.clear()
         for name, artist in self._artists.items():
             if artist.get_layer() not in self._layer_artists:
                 self._layer_artists[artist.get_layer()] = [name]
             else:
                 self._layer_artists[artist.get_layer()].append(name)
-
-            if artist.get_artist_type() == ArtistType.STATIC:
-                self._static_layers.add(artist.get_layer())
 
         self._layer_artists = {k: self._layer_artists[k] for k in sorted(self._layer_artists.keys())}
 
