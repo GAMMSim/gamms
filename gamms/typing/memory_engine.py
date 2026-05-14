@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Type
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Type, Mapping
 from enum import IntEnum
 
 
@@ -61,8 +61,13 @@ class IStore(ABC):
         pass
 
     @abstractmethod
-    def path(self) -> IPathLike:
-        """The path to the store."""
+    def path(self) -> Optional[IPathLike]:
+        """
+        The path associated with this store, if applicable.
+
+        Returns:
+            An IPathLike object if the store has an associated path, or None if the store is purely in-memory.
+        """
         pass
 
     @property
@@ -72,13 +77,13 @@ class IStore(ABC):
         pass
 
     @abstractmethod
-    def create_map(self, map_name: str, struct: Dict[str, Type], primary_key: str) -> None:
+    def create_map(self, map_name: str, schema: Dict[str, Type], primary_key: str) -> None:
         """
         Create a new key/value map within the store.
 
         Args:
             map_name: Unique name of the map within this store.
-            struct: Defines the schema for the map.
+            schema: Defines the schema for the map.
             primary_key: The key to use as the primary key for the map. It needs to be unique within the map.
 
         Raises:
@@ -116,14 +121,14 @@ class IStore(ABC):
             struct: A dictionary containing the key-value pairs to insert.
 
         Raises:
-            KeyError: If the map does not exist.
-            IndexError: If there is an issue with the primary key.
+            IndexError: If the map does not exist.
+            KeyError: If there is an issue with the primary key.
             ValueError: If there is an issue with struct insertion
         """
         pass
 
     @abstractmethod
-    def get_data(self, map_name: str, key: Any) -> Tuple[Tuple[str, Any], ...]:
+    def get_data(self, map_name: str, key: Any) -> Mapping[str, Any]:
         """
         Retrieve the value associated with the key
 
@@ -132,8 +137,8 @@ class IStore(ABC):
             key: The key for which to retrieve the value.
 
         Raises:
-            KeyError: If the map does not exist.
-            IndexError: If the key is not found in the map.
+            IndexError: If the map does not exist.
+            KeyError: If the key is not found in the map.
         """
         pass
 
@@ -147,9 +152,9 @@ class IStore(ABC):
             struct: A dictionary containing the key-value pairs to update.
 
         Raises:
-            KeyError: If the map does not exist.
-            IndexError: If there is an issue with the primary key.
-            ValueError: If there is an issue with struct insertion
+            IndexError: If the map does not exist.
+            KeyError: If there is an issue with the primary key.
+            ValueError: If there is an issue with struct update
         """
         pass
 
@@ -163,8 +168,8 @@ class IStore(ABC):
             key: The key to delete.
 
         Raises:
-            KeyError: If the map does not exist.
-            IndexError: If the key is not found in the map.
+            IndexError: If the map does not exist.
+            KeyError: If the key is not found in the map.
         """
         pass
 
@@ -177,8 +182,13 @@ class IStore(ABC):
             map_name: Name of the target map.
 
         Raises:
-            KeyError: If the map does not exist.
+            IndexError: If the map does not exist.
         """
+        pass
+
+    @abstractmethod
+    def close(self) -> None:
+        """Release any resources held by the store."""
         pass
 
 

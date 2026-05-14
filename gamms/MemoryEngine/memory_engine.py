@@ -26,7 +26,7 @@ class MemoryEngine(IMemoryEngine):
                 raise ValueError("DATABASE store requires a path.")
             return SqliteStore(name, path)  # type: ignore[arg-type]
         if store_type == StoreType.FILESYSTEM:
-            return MemoryStore(name, path)  # type: ignore[arg-type]
+            raise NotImplementedError("FILESYSTEM store type is not implemented yet.")
         raise ValueError(f"Unsupported store type: {store_type}")
 
     def create_store(
@@ -47,16 +47,11 @@ class MemoryEngine(IMemoryEngine):
         return self._stores[name]
 
     def list_stores(self) -> Iterator[str]:
-        return iter(list(self._stores.keys()))
+        return iter(self._stores.keys())
 
     def terminate(self) -> None:
         for store in self._stores.values():
-            close = getattr(store, "close", None)
-            if callable(close):
-                try:
-                    close()
-                except Exception:
-                    pass
+            store.close()
         self._stores.clear()
 
 
