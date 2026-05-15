@@ -41,6 +41,25 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
+    def set_obstacle_visual(self, **kwargs: Dict[str, Any]) -> IArtist:
+        """
+        Configure the visual representation of obstacles in the graph.
+        This method sets up visual parameters for obstacles, allowing customization
+        of how they are displayed within the visualization.
+
+        Args:
+            **kwargs: Arbitrary keyword arguments representing visual settings for obstacles.
+                Possible keys include:
+                - `color_map` (Dict[int, ColorType]): A mapping of obstacle types to their corresponding colors.
+                - `boundary_thickness` (float): The thickness of the obstacle boundaries in the visualization.
+                - Additional visual parameters specific to obstacles as needed.
+        Raises:
+            ValueError: If any of the provided visual settings are invalid.
+            TypeError: If the types of the provided settings do not match expected types.
+        """
+        pass
+
+    @abstractmethod
     def set_agent_visual(self, name: str, **kwargs: Dict[str, Any]) -> IArtist:
         """
         Configure the visual representation of a specific agent.

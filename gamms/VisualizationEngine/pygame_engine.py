@@ -110,7 +110,7 @@ class PygameVisualizationEngine(IVisualizationEngine):
     def set_obstacle_visual(self, **kwargs: Dict[str, Any]) -> IArtist:
         boundary_thickness = cast(float, kwargs.get('boundary_thickness', 1.0))
         color_code = cast(Dict[int, ColorType], kwargs.get('color_map', {}))
-        artist = Artist(self.ctx, render_obstacles, 15)
+        artist = Artist(self.ctx, render_obstacles, 5)
         artist.data['boundary_thickness'] = boundary_thickness
         artist.data['color_map'] = color_code
         artist.set_artist_type(ArtistType.STATIC)

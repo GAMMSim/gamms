@@ -19,6 +19,10 @@ class NoEngine(IVisualizationEngine):
         dummy = cast(Callable[[IContext, Dict[str, Any]], None], lambda ctx, data: None)
         return Artist(self.ctx , dummy, layer=10)
     
+    def set_obstacle_visual(self, **kwargs: Dict[str, Any]) -> IArtist:
+        dummy = cast(Callable[[IContext, Dict[str, Any]], None], lambda ctx, data: None)
+        return Artist(self.ctx , dummy, layer=5)
+    
     def set_agent_visual(self, name: str, **kwargs: Dict[str, Any]) -> IArtist:
         dummy = cast(Callable[[IContext, Dict[str, Any]], None], lambda ctx, data: None)
         return Artist(self.ctx , dummy, layer=20)
