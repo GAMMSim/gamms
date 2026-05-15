@@ -1,5 +1,5 @@
 import networkx as nx
-from typing import Dict, Any, Iterator, cast, Union, Set, overload
+from typing import Dict, Any, Iterator, Mapping, Tuple, cast, Union, Set, overload
 from enum import Enum
 from gamms.typing import Node, OSMEdge, IGraph, IGraphEngine, IContext
 from gamms.typing.graph_engine import Engine
@@ -304,33 +304,7 @@ class SqliteGraph(IGraph):
         self.store.delete_data("edges", edge_id)
 
     
-    def attach_networkx_graph(self, G: nx.Graph) -> None:
-        """
-        Attaches a NetworkX graph to the SqliteGraph object.
-        """
-        for node, data in G.nodes(data=True): # type: ignore
-            node = cast(int, node)
-            data = cast(Dict[str, Any], data)
-            node_data: Dict[str, Union[int, float]] = {
-                'id': node,
-                'x': data.get('x', 0.0),
-                'y': data.get('y', 0.0)
-            }
-            self.add_node(node_data)
-        
-        for u, v, data in G.edges(data=True): # type: ignore
-            u = cast(int, u)
-            v = cast(int, v)
-            data = cast(Dict[str, Any], data)
-            linestring = data.get('linestring', None)
-            edge_data: Dict[str, Any] = {
-                'id': data.get('id', -1),
-                'source': u,
-                'target': v,
-                'length': data.get('length', 0.0),
-                'linestring': linestring
-            }
-            self.add_edge(edge_data)
+    attach_networkx_graph = Graph.attach_networkx_graph
             
     def get_neighbors(self, node_id: int) -> Iterator[int]:
         """
@@ -351,12 +325,39 @@ class GraphEngine(IGraphEngine):
             self._store = ctx.ictx.memory.create_store(StoreType.MEMORY, name="graph_store")
             self._store = cast(MemoryStore, self._store)
             self._graph = Graph(self._store)
+            self._store.create_map(
+                "obstacle_face",
+                primary_key="id",
+                schema={
+                    "id": int,
+                    "trx": float, "try": float, "trz": float,
+                    "brx": float, "bry": float, "brz": float,
+                    "tlx": float, "tly": float, "tlz": float,
+                    "blx": float, "bly": float, "blz": float,
+                    "type": int
+                }
+            )
         elif engine == Engine.SQLITE:
             self._dbdir = tempfile.TemporaryDirectory(dir=".")
             path = PathLike(f"{self._dbdir.name}/graph.db")
             self._store = ctx.ictx.memory.create_store(StoreType.DATABASE, name="graph_store", path=path)
             self._store = cast(SqliteStore, self._store)
             self._graph = SqliteGraph(self._store)
+            self._store.create_map(
+                "obstacle_face",
+                primary_key="id",
+                schema={
+                    "id": int,
+                    "trx": float, "try": float, "trz": float,
+                    "brx": float, "bry": float, "brz": float,
+                    "tlx": float, "tly": float, "tlz": float,
+                    "blx": float, "bly": float, "blz": float,
+                    "type": int
+                }
+            )
+            self._store.connection().execute(
+                "CREATE INDEX IF NOT EXISTS idx_obstacle_face ON obstacle_face (trx, try, brx, bry, tlx, tly, blx, bly)"
+            )
         else:
             raise ValueError(f"Unsupported engine type: {engine}")
         self.ctx = ctx
@@ -364,6 +365,72 @@ class GraphEngine(IGraphEngine):
     @property
     def graph(self) -> IGraph:
         return self._graph
+    
+    def add_obstacle_face(
+        self,
+        face_id: int,
+        tr: Tuple[float, float, float],
+        tl: Tuple[float, float, float],
+        br: Tuple[float, float, float],
+        bl: Tuple[float, float, float],
+        type: int
+    ) -> None:
+        self._store.insert_data("obstacle_face", {
+            "id": face_id,
+            "trx": tr[0], "try": tr[1], "trz": tr[2],
+            "brx": br[0], "bry": br[1], "brz": br[2],
+            "tlx": tl[0], "tly": tl[1], "tlz": tl[2],
+            "blx": bl[0], "bly": bl[1], "blz": bl[2],
+            "type": type
+        })
+
+    def remove_obstacle_face(self, face_id: int) -> None:
+        self._store.delete_data("obstacle_face", face_id)
+    
+    def get_obstacle_face(self, face_id: int) -> Dict[str, Union[int, Tuple[float, float, float]]]:
+        ret = self._store.get_data("obstacle_face", face_id)
+        return {
+            "id": ret["id"],
+            "tr": (ret["trx"], ret["try"], ret["trz"]),
+            "tl": (ret["tlx"], ret["tly"], ret["tlz"]),
+            "br": (ret["brx"], ret["bry"], ret["brz"]),
+            "bl": (ret["blx"], ret["bly"], ret["blz"]),
+            "type": ret["type"]
+        }
+
+    def get_obstacle_faces(self, d: float = -1.0, x: float = 0, y: float = 0) -> Iterator[int]:
+        if self._store.type == StoreType.MEMORY:
+            for key in self._store.query_keys("obstacle_face"):
+                if d >= 0:
+                    data = self._store.get_data("obstacle_face", key)
+                    if not (max(data['trx'], data['tlx'], data['brx'], data['blx']) >= x - d and
+                            min(data['trx'], data['tlx'], data['brx'], data['blx']) <= x + d and
+                            max(data['try'], data['tly'], data['bry'], data['bly']) >= y - d and
+                            min(data['try'], data['tly'], data['bry'], data['bly']) <= y + d):
+                        continue
+                yield key
+        elif self._store.type == StoreType.DATABASE:
+            cursor = self._store.connection().cursor()
+            if d >= 0:
+                cursor.execute(
+                    """SELECT id FROM obstacle_face WHERE (
+                        MAX(tlx, trx, blx, brx) >= ?
+                        AND MIN(tlx, trx, blx, brx) <= ?
+                        AND MAX(tly, try, bly, bry) >= ?
+                        AND MIN(tly, try, bly, bry) <= ?
+                    )""",
+                    (x - d, x + d, y - d, y + d)
+                )
+            else:
+                cursor.execute("SELECT id FROM obstacle_face")
+            while True:
+                row = cursor.fetchone()
+                if row is None:
+                    break
+                yield row[0]
+        else:
+            raise ValueError(f"Unsupported store type: {self._store.type}")
+
     
     def attach_networkx_graph(self, G: nx.Graph) -> IGraph:
         """

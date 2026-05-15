@@ -3,18 +3,16 @@ try:
 except ImportError:
     raise ImportError('Please install osmnx to use this feature. pip install osmnx')
 
+from geopandas import GeoDataFrame
 import networkx as nx
 from shapely.geometry import LineString, Point, Polygon, MultiPolygon
 from enum import Enum
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union, cast
 
 from copy import deepcopy as copy
 
-# Default height for an OSM building when no metadata is available.
-# Approximates a two-storey structure (~3m per storey).
-DEFAULT_OSM_BUILDING_HEIGHT = 6.0
-# Average tree canopy height for foliage polygons.
-DEFAULT_OSM_FOLIAGE_HEIGHT = 8.0
+from .osm_constants import OSM_OBSTACLE_TAGS, HEIGHT_ESTIMATES_TYPES
+
 class OSMType(Enum):
     WALK = 0
     BIKE = 1
@@ -109,131 +107,13 @@ def graph_from_xml(
     resolution: float = 10.0,
     bidirectional: bool = True,
     retain_all: bool = False,
-    tolerance: int = 1e-9,
+    tolerance: float = 1e-9,
 ) -> nx.DiGraph:
     osmg = ox.graph.graph_from_xml(filepath, bidirectional=bidirectional, simplify=False, retain_all=retain_all)
     osmg = ox.project_graph(osmg)
     osmg = ox.consolidate_intersections(osmg, tolerance=tolerance, rebuild_graph=True, dead_ends=True)
+    osmg = cast(nx.MultiDiGraph, osmg)
     return process_osm_graph(osmg, resolution=resolution, bidirectional=bidirectional)
-
-def _resolve_height(tags: Dict[str, Any], default: float) -> float:
-    """Best-effort extraction of a height in metres from OSM tags."""
-    for key in ("height", "building:height"):
-        v = tags.get(key)
-        if v is None:
-            continue
-        try:
-            return float(str(v).split()[0])
-        except (TypeError, ValueError):
-            continue
-    levels = tags.get("building:levels") or tags.get("levels")
-    if levels is not None:
-        try:
-            return float(levels) * 3.0
-        except (TypeError, ValueError):
-            pass
-    return default
-
-
-def _polygon_to_coords(geom: Any) -> List[List[Tuple[float, float]]]:
-    """Return the exterior ring(s) of a (Multi)Polygon as coord lists."""
-    if isinstance(geom, Polygon):
-        return [list(geom.exterior.coords)]
-    if isinstance(geom, MultiPolygon):
-        return [list(part.exterior.coords) for part in geom.geoms]
-    return []
-
-
-def extract_osm_polygons(
-    location: str,
-    tags: Dict[str, Any] = None,
-    project: bool = True,
-    default_height: float = DEFAULT_OSM_BUILDING_HEIGHT,
-) -> List[Dict[str, Any]]:
-    """Download polygonal features (buildings, foliage, ...) from OSM.
-
-    Each feature is converted into a record with ``coords``, ``height``,
-    ``base``, ``category``, and ``attributes``. Heights are resolved from
-    common OSM tags (``height``, ``building:levels``) and fall back to the
-    provided default. Foliage polygons get a slightly larger canopy default.
-
-    Args:
-        location: Place name passed to ``osmnx.features_from_place``.
-        tags: Optional dict of OSM tag filters. Defaults to
-            ``{"building": True, "natural": ["wood", "tree"], "landuse": "forest"}``.
-        project: Project the geometries to the same CRS osmnx uses for graphs.
-        default_height: Fallback height for buildings without metadata.
-
-    Returns:
-        List of polygon record dicts, ready to feed to
-        :meth:`IGraphEngine.add_polygon`.
-    """
-    if tags is None:
-        tags = {
-            "building": True,
-            "natural": ["wood", "tree", "tree_row"],
-            "landuse": "forest",
-        }
-    gdf = ox.features.features_from_place(location, tags=tags)
-    if project:
-        gdf = ox.projection.project_gdf(gdf)
-    records: List[Dict[str, Any]] = []
-    next_id = 0
-    for _, row in gdf.iterrows():
-        geom = row.get("geometry")
-        if geom is None or geom.is_empty:
-            continue
-        rings = _polygon_to_coords(geom)
-        if not rings:
-            continue
-        attrs = {k: v for k, v in row.items() if k != "geometry" and v is not None}
-        if "building" in attrs and attrs.get("building") not in (False, None):
-            category = "building"
-            base_default = default_height
-        elif attrs.get("natural") in ("wood", "tree", "tree_row") or attrs.get("landuse") == "forest":
-            category = "foliage"
-            base_default = DEFAULT_OSM_FOLIAGE_HEIGHT
-        else:
-            category = "obstacle"
-            base_default = default_height
-        height = _resolve_height(attrs, base_default)
-        for coords in rings:
-            records.append(
-                {
-                    "id": next_id,
-                    "coords": coords,
-                    "height": height,
-                    "base": 0.0,
-                    "category": category,
-                    "attributes": attrs,
-                }
-            )
-            next_id += 1
-    return records
-
-
-def populate_polygons_from_osm(
-    graph_engine,
-    location: str,
-    tags: Dict[str, Any] = None,
-    default_height: float = DEFAULT_OSM_BUILDING_HEIGHT,
-) -> int:
-    """Convenience helper: download OSM polygons and add them to the engine.
-
-    Returns the number of polygons that were registered with the engine.
-    """
-    records = extract_osm_polygons(location, tags=tags, default_height=default_height)
-    for rec in records:
-        graph_engine.add_polygon(
-            polygon_id=rec["id"],
-            coords=rec["coords"],
-            height=rec["height"],
-            base=rec["base"],
-            category=rec["category"],
-            attributes=rec["attributes"],
-        )
-    return len(records)
-
 
 def create_osm_graph(
     location: str,
@@ -242,8 +122,8 @@ def create_osm_graph(
     simplify: bool = True,
     retain_all: bool = False,
     truncate_by_edge: bool = True,
-    custom_filter: str = None,
-    tolerance: int =10.0
+    custom_filter: Optional[str] = None,
+    tolerance: float = 10.0
 ) -> nx.DiGraph:
     resolution = float(resolution)
     osmg = ox.graph_from_place(
@@ -261,5 +141,135 @@ def create_osm_graph(
         bidirectional = True
     else:
         bidirectional = False
-
+    osmg = cast(nx.MultiDiGraph, osmg)
     return process_osm_graph(osmg, resolution=resolution, bidirectional=bidirectional)    
+
+def extract_osm_polygon_faces(
+    gdf: GeoDataFrame,
+    height_estimates: Dict[Tuple[str, str], Tuple[float, int]] = HEIGHT_ESTIMATES_TYPES,
+    min_tolerance: float = 0.5,
+    relative_tolerance: float = 0.01,
+) -> Iterator[Dict[str, Union[int, Tuple[float, float, float]]]]:
+    """Extract polygon records from a GeoDataFrame of OSM features.
+
+    Each record is a dict with ``id``, ``coords``, ``height``, ``base``,
+    ``category``, and ``attributes``. Heights are resolved from common OSM
+    tags (``height``, ``building:levels``) and fall back to estimates based on
+    the feature's tags and the provided mapping.
+
+    Args:
+        gdf: GeoDataFrame containing OSM features, typically obtained via
+            :func:`osmnx.features_from_place` or similar.
+        height_estimates: Mapping of (key, value) tag pairs to (height, type_code)
+            tuples used as fallbacks when explicit height data is missing.
+        min_tolerance: Minimum tolerance for the polygon's simplification.
+        relative_tolerance: Relative tolerance fraction for the polygon's simplification.
+            Fraction is based on polygon's length, so larger polygons get more aggressive simplification.
+
+    Yields:
+            Dict with keys:
+                face_id: int,
+                tr: Tuple[float, float, float],
+                tl: Tuple[float, float, float],
+                br: Tuple[float, float, float],
+                bl: Tuple[float, float, float],
+                type: int,
+    """
+    # Filter all non-polygon features
+    gdf = gdf[gdf.geometry.type.isin(["Polygon", "MultiPolygon"])]
+    # Add types in height_estimates as a new column for easier filtering
+    # If not applicable, set to NaN
+    gdf["type"] = None
+    gdf['height_estimate'] = None
+    for key, value in height_estimates.keys():
+        try:
+            mask = (gdf[key] == value)
+            gdf.loc[mask, "type"] = height_estimates[(key, value)][1]
+            gdf.loc[mask, "height_estimate"] = height_estimates[(key, value)][0]
+        except KeyError:
+            continue
+    
+    # Filter to only features with a type
+    gdf = gdf[gdf["type"].notna()]
+
+    # Fill NaN height with None for easier processing later
+    gdf["height"] = gdf["height"].where(gdf["height"].notna(), None)
+    # Fill NaN building:levels with None for easier processing later
+    gdf["building:levels"] = gdf["building:levels"].where(gdf["building:levels"].notna(), None)
+
+    next_id = 0
+    for _, row in gdf.iterrows():
+        geom = row.geometry
+        type_code = row["type"]
+        # Check for building height or levels, and use estimates if missing
+        if "height" in row and row["height"] is not None:
+            height = float(row["height"])
+        elif "building:levels" in row and row["building:levels"] is not None:
+            height = float(row["building:levels"]) * 3.0
+        else:
+            height = row["height_estimate"] if row["height_estimate"] is not None else 10.0
+        if isinstance(geom, MultiPolygon):
+            polygons = geom.geoms
+        else:
+            polygons = [geom]
+        for polygon in polygons:
+            # Simplify the polygon to reduce complexity, but ensure it remains valid and doesn't collapse
+            tolerance = max(min_tolerance, relative_tolerance * polygon.length)
+            simplified = polygon.simplify(tolerance, preserve_topology=True)
+            if not simplified.is_valid or simplified.is_empty:
+                continue
+            # Convert the simplified polygon into boundary linesegments and extract the corners
+            coords = tuple(simplified.exterior.coords)
+            coord_len = len(coords)
+            if coord_len < 3:
+                continue
+            for i in range(coord_len-1):
+                yield {
+                    "face_id": next_id,
+                    "tr": (coords[i][0], coords[i][1], height),
+                    "tl": (coords[i+1][0], coords[i+1][1], height),
+                    "br": (coords[i][0], coords[i][1], 0.0),
+                    "bl": (coords[i+1][0], coords[i+1][1], 0.0),
+                    "type": type_code,
+                }
+            next_id += 1
+
+def obstacle_from_osm(
+    location: str,
+    tags: Dict[str, List[str]] = OSM_OBSTACLE_TAGS,
+    height_estimates: Dict[Tuple[str, str], Tuple[float, int]] = HEIGHT_ESTIMATES_TYPES,
+    min_tolerance: float = 0.5,
+    relative_tolerance: float = 0.01,
+) -> Iterator[Dict[str, Union[int, Tuple[float, float, float]]]]:
+    gdf = ox.features_from_place(
+        location,
+        tags=tags,
+    )
+    gdf = ox.projection.project_gdf(gdf)
+    return extract_osm_polygon_faces(
+        gdf,
+        height_estimates=height_estimates,
+        min_tolerance=min_tolerance,
+        relative_tolerance=relative_tolerance
+    )
+
+def obstacle_from_xml(
+    filepath: str,
+    tags: Dict[str, List[str]] = OSM_OBSTACLE_TAGS,
+    height_estimates: Dict[Tuple[str, str], Tuple[float, int]] = HEIGHT_ESTIMATES_TYPES,
+    min_tolerance: float = 0.5,
+    relative_tolerance: float = 0.01,
+) -> Iterator[Dict[str, Union[int, Tuple[float, float, float]]]]:
+    gdf = ox.features_from_xml(
+        filepath,
+        tags=tags,
+    )
+    gdf = ox.projection.project_gdf(gdf)
+    return extract_osm_polygon_faces(
+        gdf,
+        height_estimates=height_estimates,
+        min_tolerance=min_tolerance,
+        relative_tolerance=relative_tolerance
+    )
+
+__all__ = ["create_osm_graph", "graph_from_xml", "obstacle_from_osm", "obstacle_from_xml", "OSMType"]
