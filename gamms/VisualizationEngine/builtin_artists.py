@@ -45,11 +45,13 @@ class AgentData:
         name (str): The name of the agent.
         color (ColorType): The color of the agent.
         size (float): The size of the agent.
+        image (Optional[object]): The image of the agent, if any.
         current_position (Optional[Tuple[float, float]]): The current position of the agent.
     """
     name: str
     color: ColorType
     size: float
+    image: Optional[object] = field(default=None, init=False)
     current_position: Optional[Tuple[float, float]] = field(default=None, init=False)
 
 

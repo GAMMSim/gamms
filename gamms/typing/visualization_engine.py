@@ -55,6 +55,7 @@ class IVisualizationEngine(ABC):
                 - `color` (str): The color to represent the agent.
                 - `shape` (str): The shape to use for the agent's representation.
                 - `size` (float): The size of the agent in the visualization.
+                - `image_path` (str): The file path to an image representing the agent.
         """
         pass
 
@@ -243,6 +244,22 @@ class IVisualizationEngine(ABC):
             color (Tuple[Union[int, float], Union[int, float], Union[int, float]]): The color of the polygon in RGB format.
             width (int): The width of the polygon outline in pixels. If equal to 0, the polygon is filled.
             perform_culling_test (bool): Whether to perform culling.
+        """
+        pass
+
+    @abstractmethod
+    def render_image(self, x: float, y: float, image: Any, size: float, angle: float = 0.0,
+                     perform_culling_test: bool = True):
+        """
+        Render an image centered on a world-space position.
+
+        Args:
+            x (float): The x-coordinate of the image center.
+            y (float): The y-coordinate of the image center.
+            image (Any): The loaded image surface.
+            size (float): The image size in world units, treated like an agent radius.
+            angle (float): Rotation angle in radians.
+            perform_culling_test (bool): Whether to cull the image before drawing.
         """
         pass
 
