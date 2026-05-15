@@ -9,7 +9,7 @@ from gamms.typing.opcodes import OpCodes
 from gamms.VisualizationEngine.artist import Artist
 from gamms.VisualizationEngine import Color
 
-from typing import Dict, Any, List, Tuple, Callable, cast, Union
+from typing import Dict, Any, List, Tuple, Callable, Optional, cast, Union
 
 class NoEngine(IVisualizationEngine):
     def __init__(self, ctx: IContext, **kwargs: Dict[str, Any]) -> None:
@@ -79,3 +79,6 @@ class NoEngine(IVisualizationEngine):
     
     def render_layer(self, layer_id: int) -> None:
         return
+
+    def get_viewport(self) -> Optional[Tuple[float, float, float, float, float]]:
+        return None

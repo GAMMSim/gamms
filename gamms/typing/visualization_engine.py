@@ -270,3 +270,16 @@ class IVisualizationEngine(ABC):
             layer_id (int): The layer number to render.
         """
         pass
+
+    @abstractmethod
+    def get_viewport(self) -> Optional[Tuple[float, float, float, float, float]]:
+        """
+        Return the current viewport as (left, right, top, bottom, scale) in world
+        coordinates, where scale is the pixels-per-world-unit factor at the
+        current camera zoom.
+
+        Returns:
+            Optional[Tuple[float, float, float, float, float]]: (left, right, top,
+            bottom, scale) in world coordinates, or None if there is no valid viewport.
+        """
+        pass

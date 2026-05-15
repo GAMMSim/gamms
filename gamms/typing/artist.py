@@ -78,26 +78,6 @@ class IArtist(ABC):
         pass
 
     @abstractmethod
-    def get_will_draw(self) -> bool:
-        """
-        Get whether the artist will draw.
-
-        Returns:
-            bool: True if the artist will draw, False otherwise.
-        """
-        pass
-
-    @abstractmethod
-    def set_will_draw(self, will_draw: bool) -> None:
-        """
-        Set whether the artist will draw.
-
-        Args:
-            will_draw (bool): The will_draw state to set.
-        """
-        pass
-
-    @abstractmethod
     def get_artist_type(self) -> ArtistType:
         """
         Get the type of the artist.
