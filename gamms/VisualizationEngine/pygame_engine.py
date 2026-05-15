@@ -10,10 +10,9 @@ from gamms.VisualizationEngine import (
 from gamms.VisualizationEngine.render_manager import RenderManager
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
 from gamms.VisualizationEngine.default_drawers import (
-    render_circle, render_rectangle,
     render_agent, render_graph, render_neighbor_sensor,
     render_map_sensor, render_agent_sensor, render_input_overlay,
-    render_aerial_agent_sensor,
+    render_aerial_agent_sensor, render_obstacles
 )
 from gamms.typing import (
     IVisualizationEngine,
@@ -26,7 +25,6 @@ from gamms.typing import (
     AgentType
 )
 from typing import Dict, Any, List, NamedTuple, Tuple, Union, cast, Optional, Iterator, Set
-
 
 class _LayerCache(NamedTuple):
     surface: Any
@@ -106,6 +104,18 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         #Add data for node ID and Color
         self.add_artist('graph', artist)
+
+        return artist
+    
+    def set_obstacle_visual(self, **kwargs: Dict[str, Any]) -> IArtist:
+        boundary_thickness = cast(float, kwargs.get('boundary_thickness', 1.0))
+        color_code = cast(Dict[int, ColorType], kwargs.get('color_map', {}))
+        artist = Artist(self.ctx, render_obstacles, 15)
+        artist.data['boundary_thickness'] = boundary_thickness
+        artist.data['color_map'] = color_code
+        artist.set_artist_type(ArtistType.STATIC)
+
+        self.add_artist('obstacles', artist)
 
         return artist
 

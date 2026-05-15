@@ -7,6 +7,7 @@ from gamms.VisualizationEngine import (
 )
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
 from gamms.typing import IContext, OSMEdge, Node, ColorType, AgentType
+from ..osm_constants import COLOR_TYPES
 
 from typing import Dict, Any, cast, List, Optional
 
@@ -232,6 +233,35 @@ def render_graph(ctx: IContext, data: Dict[str, Any]):
         for node_id in graph.get_nodes():
             node = graph.get_node(node_id)
             _render_graph_node(ctx, node, node_color, node_size, draw_id)
+
+
+def render_obstacles(ctx: IContext, data: Dict[str, Any]):
+    boundary_thickness = cast(float, data.get('boundary_thickness', 1.0))
+    color_code = cast(Dict[int, ColorType], data.get('color_map', {}))
+    color_code.update(
+        cast(Dict[int, ColorType],{k:tuple(int(color[i:i+2], 16) for i in (1, 3, 5)) for k, color in COLOR_TYPES.items()})
+    )
+    
+    viewport = ctx.visual.get_viewport()
+    if viewport is None:
+        return
+    
+    _, _, _, _, scale = viewport
+
+    skip_sq = _pixel_thresh_sq(SKIP_EDGE_PIXEL_THRESHOLD, scale)
+
+    for face_id in ctx.graph.get_obstacle_faces():
+        face = ctx.graph.get_obstacle_face(face_id)
+        color = color_code.get(cast(int, face.type), Color.Gray)
+        (x1, y1) = max(face.tr[0], face.br[0]), max(face.tr[1], face.br[1])
+        (x2, y2) = min(face.tl[0], face.bl[0]), min(face.tl[1], face.bl[1])
+
+        if skip_sq > 0.0 and (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1) <= skip_sq:
+            continue
+
+        # Draw a line (x1, y1) to (x2, y2) with thickness scaled by the current zoom level
+
+        ctx.visual.render_line(x1, y1, x2, y2, color, max(1, int(boundary_thickness * scale)), perform_culling_test=False, is_aa=False)
 
 def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
     """

@@ -192,22 +192,65 @@ def extract_osm_polygon_faces(
     # Filter to only features with a type
     gdf = gdf[gdf["type"].notna()]
 
-    # Fill NaN height with None for easier processing later
-    gdf["height"] = gdf["height"].where(gdf["height"].notna(), None)
-    # Fill NaN building:levels with None for easier processing later
-    gdf["building:levels"] = gdf["building:levels"].where(gdf["building:levels"].notna(), None)
+    # height -> meters
+    gdf["height"] = (
+        gdf["height"]
+        .astype(str)
+        .str.lower()
+        .str.strip()
+    )
 
+    height_ft_mask = gdf["height"].str.contains("ft|feet", na=False)
+
+    gdf["height"] = (
+        gdf["height"]
+        .str.extract(r"([-+]?\d*\.?\d+)")[0]
+        .astype(float)
+    )
+
+    gdf.loc[height_ft_mask, "height"] *= 0.3048
+
+
+    # building:levels -> numeric
+    gdf["building:levels"] = (
+        gdf["building:levels"]
+        .astype(str)
+        .str.extract(r"([-+]?\d*\.?\d+)")[0]
+        .astype(float)
+    )
+
+
+    # existing height_estimate -> meters
+    gdf["height_estimate"] = (
+        gdf["height_estimate"]
+        .astype(str)
+        .str.lower()
+        .str.strip()
+    )
+
+    he_ft_mask = gdf["height_estimate"].str.contains("ft|feet", na=False)
+
+    gdf["height_estimate"] = (
+        gdf["height_estimate"]
+        .str.extract(r"([-+]?\d*\.?\d+)")[0]
+        .astype(float)
+    )
+
+    gdf.loc[he_ft_mask, "height_estimate"] *= 0.3048
+
+
+    # priority:
+    # height > building:levels * 3 > existing height_estimate
+    gdf["height_estimate"] = (
+        gdf["height"]
+        .fillna(gdf["building:levels"] * 3.0)
+        .fillna(gdf["height_estimate"])
+    )
     next_id = 0
     for _, row in gdf.iterrows():
         geom = row.geometry
         type_code = row["type"]
-        # Check for building height or levels, and use estimates if missing
-        if "height" in row and row["height"] is not None:
-            height = float(row["height"])
-        elif "building:levels" in row and row["building:levels"] is not None:
-            height = float(row["building:levels"]) * 3.0
-        else:
-            height = row["height_estimate"] if row["height_estimate"] is not None else 10.0
+        height = row["height_estimate"]
         if isinstance(geom, MultiPolygon):
             polygons = geom.geoms
         else:
@@ -232,7 +275,7 @@ def extract_osm_polygon_faces(
                     "bl": (coords[i+1][0], coords[i+1][1], 0.0),
                     "type": type_code,
                 }
-            next_id += 1
+                next_id += 1
 
 def obstacle_from_osm(
     location: str,

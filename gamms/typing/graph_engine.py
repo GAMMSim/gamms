@@ -48,6 +48,25 @@ class OSMEdge:
     length: float
     linestring: LineString
 
+class ObsFace:
+    """
+    Represents an obstacle face within a graph engine.
+
+    Attributes:
+        id (int): The unique identifier for the obstacle face.
+        tr (Tuple[float, float, float]): Coordinates of the top-right corner of the face.
+        tl (Tuple[float, float, float]): Coordinates of the top-left corner of the face.
+        br (Tuple[float, float, float]): Coordinates of the bottom-right corner of the face.
+        bl (Tuple[float, float, float]): Coordinates of the bottom-left corner of the face.
+        type (int): An integer representing the type/category of the obstacle.
+    """
+    id: int
+    tr: Tuple[float, float, float]
+    tl: Tuple[float, float, float]
+    br: Tuple[float, float, float]
+    bl: Tuple[float, float, float]
+    type: int
+
 
 class IGraph(ABC):
     """
@@ -306,7 +325,7 @@ class IGraphEngine(ABC):
         pass
 
     @abstractmethod
-    def get_obstacle_face(self, face_id: int) -> Dict[str, Union[int, Tuple[float, float, float]]]:
+    def get_obstacle_face(self, face_id: int) -> ObsFace:
         """
         Retrieve the attributes of a specific obstacle face.
 
@@ -314,13 +333,7 @@ class IGraphEngine(ABC):
             face_id (int): The unique identifier of the obstacle face to retrieve.
 
         Returns:
-            Dict[str, Any]: A dictionary containing the obstacle face's attributes, including:
-                - 'id' (int): Unique identifier for the obstacle face.
-                - 'tr' (Tuple[float, float, float]): Coordinates of the top-right corner.
-                - 'tl' (Tuple[float, float, float]): Coordinates of the top-left corner.
-                - 'br' (Tuple[float, float, float]): Coordinates of the bottom-right corner.
-                - 'bl' (Tuple[float, float, float]): Coordinates of the bottom-left corner.
-                - 'type' (int): The type/category of the obstacle.
+            ObsFace: An instance of ObsFace containing the obstacle face's attributes.
 
         Raises:
             KeyError: If the obstacle face with the specified ID does not exist.
@@ -328,6 +341,18 @@ class IGraphEngine(ABC):
         pass
 
     @abstractmethod
+    @overload
+    def get_obstacle_faces(self) -> Iterator[int]:
+        """
+        Get the IDs of all obstacle faces in the graph engine.
+
+        Returns:
+            Iterator[int]: An iterator that yields the IDs of all obstacle faces.
+        """
+        pass
+
+    @abstractmethod
+    @overload
     def get_obstacle_faces(self, d: float, x: float, y: float) -> Iterator[int]:
         """
         Get the IDs of obstacle faces within a certain distance from a point.

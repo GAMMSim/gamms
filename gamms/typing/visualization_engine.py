@@ -171,7 +171,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_circle(self, x: float, y: float, radius: float, color: Tuple[Union[int, float], Union[int, float], Union[int, float]], width: int, perform_culling_test: bool):
+    def render_circle(self, x: float, y: float, radius: float, color: ColorType, width: int, perform_culling_test: bool):
         """
         Render a circle shape at the specified position with the given radius and color.
 
@@ -186,7 +186,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_rectangle(self, x: float, y: float, width: float, height: float, color: Tuple[Union[int, float], Union[int, float], Union[int, float]], perform_culling_test: bool):
+    def render_rectangle(self, x: float, y: float, width: float, height: float, color: ColorType, perform_culling_test: bool):
         """
         Render a rectangle shape at the specified position with the given dimensions and color.
 
@@ -201,7 +201,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: Tuple[Union[int, float], Union[int, float], Union[int, float]], width: int, is_aa: bool, perform_culling_test: bool):
+    def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: ColorType, width: int, is_aa: bool, perform_culling_test: bool):
         """
         Render a line segment between two points with the specified color and width.
 
@@ -218,7 +218,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_linestring(self, points: List[Tuple[float, float]], color: Tuple[Union[int, float], Union[int, float], Union[int, float]], width: int, closed: bool, is_aa: bool, perform_culling_test: bool):
+    def render_linestring(self, points: List[Tuple[float, float]], color: ColorType, width: int, closed: bool, is_aa: bool, perform_culling_test: bool):
         """
         Render a series of connected line segments between multiple points.
 
@@ -233,7 +233,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_polygon(self, points: List[Tuple[float, float]], color: Tuple[Union[int, float], Union[int, float], Union[int, float]], width: int,
+    def render_polygon(self, points: List[Tuple[float, float]], color: ColorType, width: int,
                        perform_culling_test: bool):
         """
         Render a polygon shape or outline defined by a list of vertices with the specified color and width.
@@ -247,7 +247,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_text(self, text: str, x: float, y: float, color: Tuple[Union[int, float], Union[int, float], Union[int, float]], perform_culling_test: bool, font_size: Optional[int]):
+    def render_text(self, text: str, x: float, y: float, color: ColorType, perform_culling_test: bool, font_size: Optional[int]):
         """
         Render text at the specified position with the given content and color.
 

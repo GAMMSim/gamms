@@ -1,7 +1,7 @@
 import networkx as nx
 from typing import Dict, Any, Iterator, Mapping, Tuple, cast, Union, Set, overload
 from enum import Enum
-from gamms.typing import Node, OSMEdge, IGraph, IGraphEngine, IContext
+from gamms.typing import Node, OSMEdge, IGraph, IGraphEngine, IContext, ObsFace
 from gamms.typing.graph_engine import Engine
 from gamms.typing.memory_engine import StoreType
 from gamms.MemoryEngine.memory_engine import MemoryStore, SqliteStore, PathLike
@@ -13,6 +13,7 @@ import tempfile
 
 _Node = dataclass()(Node)
 _OSMEdge = dataclass()(OSMEdge)
+_ObsFace = dataclass()(ObsFace)
 
 class Graph(IGraph):
     def __init__(self, store: MemoryStore):
@@ -387,16 +388,17 @@ class GraphEngine(IGraphEngine):
     def remove_obstacle_face(self, face_id: int) -> None:
         self._store.delete_data("obstacle_face", face_id)
     
-    def get_obstacle_face(self, face_id: int) -> Dict[str, Union[int, Tuple[float, float, float]]]:
+    def get_obstacle_face(self, face_id: int) -> ObsFace:
         ret = self._store.get_data("obstacle_face", face_id)
-        return {
-            "id": ret["id"],
-            "tr": (ret["trx"], ret["try"], ret["trz"]),
-            "tl": (ret["tlx"], ret["tly"], ret["tlz"]),
-            "br": (ret["brx"], ret["bry"], ret["brz"]),
-            "bl": (ret["blx"], ret["bly"], ret["blz"]),
-            "type": ret["type"]
+        ret = {
+            'id': ret['id'],
+            'tr': (ret['trx'], ret['try'], ret['trz']),
+            'br': (ret['brx'], ret['bry'], ret['brz']),
+            'tl': (ret['tlx'], ret['tly'], ret['tlz']),
+            'bl': (ret['blx'], ret['bly'], ret['blz']),
+            'type': ret['type']
         }
+        return _ObsFace(**ret)
 
     def get_obstacle_faces(self, d: float = -1.0, x: float = 0, y: float = 0) -> Iterator[int]:
         if self._store.type == StoreType.MEMORY:
