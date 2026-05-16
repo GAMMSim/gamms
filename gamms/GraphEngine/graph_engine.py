@@ -279,14 +279,12 @@ class SqliteGraph(IGraph):
         """
         Updates a node in the graph.
         """
-        self.get_node(node_data['id'])  # Ensure node exists
         self.store.update_data("nodes", node_data)
     
     def update_edge(self, edge_data: Dict[str, Any]) -> None:
         """
         Updates an edge in the graph.
         """
-        _ = self.get_edge(edge_data['id'])  # Ensure edge exists
         linestring = edge_data.get('linestring', None)
         if linestring is not None:
             edge_data['linestring'] = tuple(LineString(linestring).coords)
@@ -296,13 +294,19 @@ class SqliteGraph(IGraph):
         """
         Removes a node from the graph.
         """
-        self.store.delete_data("nodes", node_id)
-    
+        try:
+            self.store.delete_data("nodes", node_id)
+        except KeyError:
+            pass  # Node does not exist, ignore
+
     def remove_edge(self, edge_id: int) -> None:
         """
         Removes an edge from the graph.
         """
-        self.store.delete_data("edges", edge_id)
+        try:
+            self.store.delete_data("edges", edge_id)
+        except KeyError:
+            pass  # Edge does not exist, ignore
 
     
     attach_networkx_graph = Graph.attach_networkx_graph

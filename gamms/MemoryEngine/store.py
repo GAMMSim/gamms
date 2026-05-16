@@ -288,30 +288,28 @@ class SqliteStore(IStore):
         
         assignments_str = ", ".join(assignments)
         try:
-            self._conn.execute(
+            cursor = self._conn.execute(
                 f"UPDATE {map_name} SET {assignments_str} WHERE {pk} = ?",
                 tuple(values + [key]),
             )
         except sqlite3.IntegrityError as exc:
-            if "UNIQUE constraint failed" in str(exc):
-                raise KeyError(f"Key {key!r} not found in map {map_name!r}.") from exc
-            else:
-                raise ValueError(f"Unexpected error occurred while updating map {map_name!r}.") from exc
+            raise ValueError(f"Unexpected error occurred while updating map {map_name!r}.") from exc
+        if cursor.rowcount == 0:
+            raise KeyError(f"Key {key!r} not found in map {map_name!r}.")
         self._dirty = True
 
     def delete_data(self, map_name: str, key: Any) -> None:
         schema, pk = self._require_schema(map_name)
         self.flush()
         try:
-            self._conn.execute(
+            cursor = self._conn.execute(
                 f"DELETE FROM {map_name} WHERE {pk} = ?",
                 (key,),
             )
         except sqlite3.IntegrityError as exc:
-            if "UNIQUE constraint failed" in str(exc):
-                raise ValueError(f"Key {key!r} not found in map {map_name!r}.") from exc
-            else:
-                raise ValueError(f"Unexpected error occurred while deleting from map {map_name!r}.") from exc
+            raise ValueError(f"Unexpected error occurred while deleting from map {map_name!r}.") from exc
+        if cursor.rowcount == 0:
+            raise KeyError(f"Key {key!r} not found in map {map_name!r}.")
         self._dirty = True
 
     def query_keys(self, map_name: str) -> Iterator[Any]:
