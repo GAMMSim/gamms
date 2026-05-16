@@ -192,52 +192,38 @@ def extract_osm_polygon_faces(
     # Filter to only features with a type
     gdf = gdf[gdf["type"].notna()]
 
-    # height -> meters
-    gdf["height"] = (
-        gdf["height"]
-        .astype(str)
-        .str.lower()
-        .str.strip()
-    )
+    if 'height' in gdf.columns:
+        # height -> meters
+        gdf["height"] = (
+            gdf["height"]
+            .astype(str)
+            .str.lower()
+            .str.strip()
+        )
 
-    height_ft_mask = gdf["height"].str.contains("ft|feet", na=False)
+        height_ft_mask = gdf["height"].str.contains("ft|feet", na=False)
 
-    gdf["height"] = (
-        gdf["height"]
-        .str.extract(r"([-+]?\d*\.?\d+)")[0]
-        .astype(float)
-    )
+        gdf["height"] = (
+            gdf["height"]
+            .str.extract(r"([-+]?\d*\.?\d+)")[0]
+            .astype(float)
+        )
 
-    gdf.loc[height_ft_mask, "height"] *= 0.3048
+        gdf.loc[height_ft_mask, "height"] *= 0.3048
+    else:
+        gdf["height"] = float('nan')
 
 
+    if 'building:levels' in gdf.columns:
     # building:levels -> numeric
-    gdf["building:levels"] = (
-        gdf["building:levels"]
-        .astype(str)
-        .str.extract(r"([-+]?\d*\.?\d+)")[0]
-        .astype(float)
-    )
-
-
-    # existing height_estimate -> meters
-    gdf["height_estimate"] = (
-        gdf["height_estimate"]
-        .astype(str)
-        .str.lower()
-        .str.strip()
-    )
-
-    he_ft_mask = gdf["height_estimate"].str.contains("ft|feet", na=False)
-
-    gdf["height_estimate"] = (
-        gdf["height_estimate"]
-        .str.extract(r"([-+]?\d*\.?\d+)")[0]
-        .astype(float)
-    )
-
-    gdf.loc[he_ft_mask, "height_estimate"] *= 0.3048
-
+        gdf["building:levels"] = (
+            gdf["building:levels"]
+            .astype(str)
+            .str.extract(r"([-+]?\d*\.?\d+)")[0]
+            .astype(float)
+        )
+    else:
+        gdf["building:levels"] = float('nan')
 
     # priority:
     # height > building:levels * 3 > existing height_estimate
