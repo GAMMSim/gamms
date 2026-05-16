@@ -14,6 +14,7 @@ from gamms.VisualizationEngine.default_drawers import (
     render_map_sensor, render_agent_sensor, render_input_overlay,
     render_aerial_agent_sensor, render_obstacles
 )
+from ..osm_constants import COLOR_TYPES
 from gamms.typing import (
     IVisualizationEngine,
     IArtist,
@@ -110,6 +111,10 @@ class PygameVisualizationEngine(IVisualizationEngine):
     def set_obstacle_visual(self, **kwargs: Dict[str, Any]) -> IArtist:
         boundary_thickness = cast(float, kwargs.get('boundary_thickness', 1.0))
         color_code = cast(Dict[int, ColorType], kwargs.get('color_map', {}))
+        color_code.update(
+            cast(Dict[int, ColorType],{k:tuple(int(color[i:i+2], 16) for i in (1, 3, 5)) for k, color in COLOR_TYPES.items()})
+        )
+
         artist = Artist(self.ctx, render_obstacles, 5)
         artist.data['boundary_thickness'] = boundary_thickness
         artist.data['color_map'] = color_code

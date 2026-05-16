@@ -7,7 +7,6 @@ from gamms.VisualizationEngine import (
 )
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
 from gamms.typing import IContext, OSMEdge, Node, ColorType, AgentType
-from ..osm_constants import COLOR_TYPES
 
 from typing import Dict, Any, cast, List, Optional
 
@@ -219,38 +218,42 @@ def render_graph(ctx: IContext, data: Dict[str, Any]):
     viewport = ctx.visual.get_viewport()
     if viewport is None:
         return
-    _, _, _, _, scale = viewport
+    top, left, bottom, right, scale = viewport
+
+    x = (right + left) / 2
+    y = (top + bottom) / 2
+    d = max(right - left, bottom - top)
 
     short_sq = _pixel_thresh_sq(SHORT_EDGE_PIXEL_THRESHOLD, scale)
     skip_sq = _pixel_thresh_sq(SKIP_EDGE_PIXEL_THRESHOLD, scale)
 
-    for edge_id in graph.get_edges():
+    for edge_id in graph.get_edges(d=d, x=x, y=y):
         edge = graph.get_edge(edge_id)
         _render_graph_edge(ctx, graph_data, edge, edge_color, short_sq, skip_sq)
 
     node_pixel_radius = node_size * scale
     if node_pixel_radius >= SKIP_NODE_PIXEL_THRESHOLD:
-        for node_id in graph.get_nodes():
+        for node_id in graph.get_nodes(d=d, x=x, y=y):
             node = graph.get_node(node_id)
             _render_graph_node(ctx, node, node_color, node_size, draw_id)
 
 
 def render_obstacles(ctx: IContext, data: Dict[str, Any]):
     boundary_thickness = cast(float, data.get('boundary_thickness', 1.0))
-    color_code = cast(Dict[int, ColorType], data.get('color_map', {}))
-    color_code.update(
-        cast(Dict[int, ColorType],{k:tuple(int(color[i:i+2], 16) for i in (1, 3, 5)) for k, color in COLOR_TYPES.items()})
-    )
-    
+    color_code = cast(Dict[int, ColorType], data.get('color_map', {}))    
     viewport = ctx.visual.get_viewport()
     if viewport is None:
         return
     
-    _, _, _, _, scale = viewport
+    top, left, bottom, right, scale = viewport
+
+    x = (right + left) / 2
+    y = (top + bottom) / 2
+    d = max(right - left, bottom - top)
 
     skip_sq = _pixel_thresh_sq(SKIP_EDGE_PIXEL_THRESHOLD, scale)
 
-    for face_id in ctx.graph.get_obstacle_faces():
+    for face_id in ctx.graph.get_obstacle_faces(d=d, x=x, y=y):
         face = ctx.graph.get_obstacle_face(face_id)
         color = color_code.get(cast(int, face.type), Color.Gray)
         (x1, y1) = max(face.tr[0], face.br[0]), max(face.tr[1], face.br[1])
