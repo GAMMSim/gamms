@@ -50,9 +50,9 @@ class _StoreContractMixin:
         self.assertEqual(list(self.store.query_keys('items')), [1])
 
         self.store.delete_data('items', 1)
-        with self.assertRaises(IndexError):
+        with self.assertRaises(KeyError):
             self.store.get_data('items', 1)
-        with self.assertRaises(IndexError):
+        with self.assertRaises(KeyError):
             self.store.delete_data('items', 1)
 
     def test_duplicate_key_raises(self):
