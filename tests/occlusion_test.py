@@ -3,7 +3,7 @@ import unittest
 
 import gamms
 import gamms.typing
-from gamms.SensorEngine.occlusion import (
+from gamms.SensorEngine.sensors_occluded import (
     segment_blocked_by_polygon,
     segment_blocked_by_polygons,
     segment_intersects_polygon_top,
@@ -81,11 +81,19 @@ class OccludedSensorTest(unittest.TestCase):
 
     def _add_blocking_wall(self):
         # A thin tall wall between (0, 0) and (10, 0).
-        self.ctx.graph.add_polygon(
-            0,
-            coords=[(4.5, -3.0), (5.5, -3.0), (5.5, 3.0), (4.5, 3.0)],
-            height=8.0,
-        )
+        coords = [(4.5, -3.0), (5.5, -3.0), (5.5, 3.0), (4.5, 3.0)]
+        height = 8.0
+        n = len(coords)
+        for i in range(n):
+            p1, p2 = coords[i], coords[(i + 1) % n]
+            self.ctx.graph.add_obstacle_face(
+                i,
+                tr=(p2[0], p2[1], height),
+                tl=(p1[0], p1[1], height),
+                br=(p2[0], p2[1], 0.0),
+                bl=(p1[0], p1[1], 0.0),
+                type=0,
+            )
 
     def test_occluded_range_drops_blocked_node(self):
         self._add_blocking_wall()
@@ -155,11 +163,17 @@ class OccludedSensorTest(unittest.TestCase):
         # A polygon far outside the sensor range must not affect the result.
         self._add_blocking_wall()  # the relevant occluder near the agent
         # An unrelated polygon way off to the side, well outside any sensor range.
-        self.ctx.graph.add_polygon(
-            99,
-            coords=[(500, 500), (510, 500), (510, 510), (500, 510)],
-            height=20.0,
-        )
+        far_coords = [(500, 500), (510, 500), (510, 510), (500, 510)]
+        for i in range(4):
+            p1, p2 = far_coords[i], far_coords[(i + 1) % 4]
+            self.ctx.graph.add_obstacle_face(
+                99 * 10000 + i,
+                tr=(p2[0], p2[1], 20.0),
+                tl=(p1[0], p1[1], 20.0),
+                br=(p2[0], p2[1], 0.0),
+                bl=(p1[0], p1[1], 0.0),
+                type=0,
+            )
         sensor = self.ctx.sensor.create_sensor(
             'occluded_filtered',
             gamms.typing.SensorType.OCCLUDED_RANGE,
