@@ -173,3 +173,5 @@ cython_debug/
 
 # OS files
 .DS_Store
+
+.claude/

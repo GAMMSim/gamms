@@ -7,9 +7,6 @@ Obstacle faces are general planar quadrilaterals stored as four 3-D corners
 triangle of the two-triangle decomposition of the quad — no trapezoid
 assumption is made.
 
-The legacy prism-based helpers (``segment_blocked_by_polygon`` etc.) are kept
-for the geometry unit tests that exercise the old coord+height API.
-
 Sensor classes
 --------------
 ``OccludedMapSensor`` / ``OccludedAerialSensor``
@@ -23,7 +20,7 @@ Sensor classes
 """
 
 import math
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, cast
+from typing import Any, Dict, Iterator, List, Optional, Tuple, cast
 
 import numpy as np
 
@@ -45,97 +42,6 @@ from gamms.SensorEngine.sensors_aerial import AerialAgentSensor, AerialSensor
 
 Vec3 = Tuple[float, float, float]
 Vec2 = Tuple[float, float]
-
-
-# ---------------------------------------------------------------------------
-# Legacy prism-based geometry (kept for geometry unit tests)
-# ---------------------------------------------------------------------------
-
-def segment_intersects_trapezoid(
-    a: Vec3, b: Vec3, p1: Vec2, p2: Vec2, base: float, height: float,
-) -> bool:
-    """True if segment a-b crosses the vertical trapezoidal face (p1, p2, base, height)."""
-    top = base + height
-    ax, ay, az = a
-    bx, by, bz = b
-    dx, dy, dz = bx - ax, by - ay, bz - az
-    wx, wy = p2[0] - p1[0], p2[1] - p1[1]
-    nx, ny = -wy, wx
-    denom = nx * dx + ny * dy
-    rhs = nx * (p1[0] - ax) + ny * (p1[1] - ay)
-    if abs(denom) < 1e-12:
-        return False
-    t = rhs / denom
-    if t < 0.0 or t > 1.0:
-        return False
-    wlen_sq = wx * wx + wy * wy
-    if wlen_sq == 0.0:
-        return False
-    px = ax + t * dx
-    py = ay + t * dy
-    u = ((px - p1[0]) * wx + (py - p1[1]) * wy) / wlen_sq
-    if u < 0.0 or u > 1.0:
-        return False
-    z = az + t * dz
-    return base <= z <= top
-
-
-def _point_in_polygon(point: Vec2, polygon: Sequence[Vec2]) -> bool:
-    x, y = point
-    inside = False
-    n = len(polygon)
-    j = n - 1
-    for i in range(n):
-        xi, yi = polygon[i]
-        xj, yj = polygon[j]
-        if ((yi > y) != (yj > y)) and (x < (xj - xi) * (y - yi) / (yj - yi + 1e-30) + xi):
-            inside = not inside
-        j = i
-    return inside
-
-
-def segment_intersects_polygon_top(
-    a: Vec3, b: Vec3, polygon: Sequence[Vec2], base: float, height: float,
-) -> bool:
-    """True if segment crosses the top face (z = base+height) inside polygon footprint."""
-    top = base + height
-    az, bz = a[2], b[2]
-    if (az - top) * (bz - top) > 0:
-        return False
-    if az == bz:
-        return False
-    t = (top - az) / (bz - az)
-    if t < 0.0 or t > 1.0:
-        return False
-    px = a[0] + t * (b[0] - a[0])
-    py = a[1] + t * (b[1] - a[1])
-    return _point_in_polygon((px, py), polygon)
-
-
-def segment_blocked_by_polygon(
-    a: Vec3, b: Vec3, polygon: Sequence[Vec2], base: float, height: float,
-) -> bool:
-    """True if segment a-b is blocked by the prism (polygon footprint, base, height)."""
-    if len(polygon) < 3:
-        return False
-    if segment_intersects_polygon_top(a, b, polygon, base, height):
-        return True
-    n = len(polygon)
-    for i in range(n):
-        if segment_intersects_trapezoid(a, b, polygon[i], polygon[(i + 1) % n], base, height):
-            return True
-    return False
-
-
-def segment_blocked_by_polygons(a: Vec3, b: Vec3, polygons: Iterable) -> bool:
-    """True if any polygon prism in the iterable blocks segment a-b."""
-    for poly in polygons:
-        coords = poly.get("coords") if isinstance(poly, dict) else poly[0]
-        base   = poly.get("base", 0.0) if isinstance(poly, dict) else poly[1]
-        height = poly.get("height", 0.0) if isinstance(poly, dict) else poly[2]
-        if segment_blocked_by_polygon(a, b, coords, base, height):
-            return True
-    return False
 
 
 # ---------------------------------------------------------------------------

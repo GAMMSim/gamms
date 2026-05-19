@@ -185,15 +185,17 @@ class PygameVisualizationEngine(IVisualizationEngine):
             drawer = render_neighbor_sensor
             data['color'] = kwargs.pop('color', Color.Cyan)
             data['size'] = kwargs.pop('size', 8)
-        elif sensor_type in (SensorType.MAP, SensorType.RANGE, SensorType.ARC, SensorType.AERIAL):
+        elif sensor_type in (SensorType.MAP, SensorType.RANGE, SensorType.ARC, SensorType.AERIAL,
+                              SensorType.OCCLUDED_MAP, SensorType.OCCLUDED_AERIAL):
             drawer = render_map_sensor
             data['node_color'] = kwargs.pop('node_color', Color.Cyan)
             data['edge_color'] = kwargs.pop('edge_color', Color.Cyan)
-        elif sensor_type in (SensorType.AGENT, SensorType.AGENT_RANGE, SensorType.AGENT_ARC):
+        elif sensor_type in (SensorType.AGENT, SensorType.AGENT_RANGE, SensorType.AGENT_ARC,
+                              SensorType.OCCLUDED_AGENT):
             drawer = render_agent_sensor
             data['color'] = kwargs.pop('color', Color.Cyan)
             data['size'] = kwargs.pop('size', 8)
-        elif sensor_type == SensorType.AERIAL_AGENT:
+        elif sensor_type in (SensorType.AERIAL_AGENT, SensorType.OCCLUDED_AERIAL_AGENT):
             drawer = render_aerial_agent_sensor
             data['color'] = kwargs.pop('color', Color.Cyan)
             data['size'] = kwargs.pop('size', 8)
