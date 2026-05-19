@@ -80,6 +80,10 @@ class NoEngine(IVisualizationEngine):
     def render_polygon(self, points: List[Tuple[float, float]], color: ColorType = Color.Black, width: int=0,
                        perform_culling_test: bool=True):
         return
+
+    def render_image(self, x: float, y: float, image: Any, size: float, angle: float = 0.0,
+                     perform_culling_test: bool = True):
+        return
     
     def render_layer(self, layer_id: int) -> None:
         return
