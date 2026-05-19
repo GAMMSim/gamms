@@ -26,6 +26,8 @@ from gamms.typing import (
     AgentType
 )
 from typing import Dict, Any, List, NamedTuple, Tuple, Union, cast, Optional, Iterator, Set
+from pathlib import Path
+import math
 
 
 class _LayerCache(NamedTuple):
@@ -128,12 +130,12 @@ class PygameVisualizationEngine(IVisualizationEngine):
         return artist
     
     def set_agent_visual(self, name: str, **kwargs: Dict[str, Any]) -> IArtist:
-        
         agent_data = AgentData(
             name=name,
             color=cast(ColorType, kwargs.get('color', Color.Black)),
             size=cast(int,kwargs.get('size', 8))
         )
+        agent_data.image = self._load_agent_image(kwargs.get('image_path'))
 
         artist = Artist(self.ctx, render_agent, 20)
         artist.data['agent_data'] = agent_data
@@ -143,6 +145,18 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self.add_artist(name, artist)
 
         return artist
+
+    def _load_agent_image(self, image_path: str):
+        if image_path is None:
+            return None
+
+        path = Path(str(image_path))
+        if not path.exists():
+            raise FileNotFoundError(f"Agent image not found: {path}")
+
+        image = self._pygame.image.load(str(path))
+
+        return image.convert_alpha()
 
     def set_sensor_visual(self, name: str, **kwargs: Dict[str, Any]) -> IArtist:
         sensor = self.ctx.sensor.get_sensor(name)
@@ -615,6 +629,40 @@ class PygameVisualizationEngine(IVisualizationEngine):
 
         surface = self._get_target_surface()
         self._pygame.draw.polygon(surface, color, points, width)
+
+    def render_image(self, x: float, y: float, image: Any, size: float, angle: float = 0.0,
+                     perform_culling_test: bool = True):
+        if image is None:
+            return
+
+        diameter = size * 2
+        if perform_culling_test and self._render_manager.check_rectangle_culled(x, y, diameter, diameter):
+            return
+
+        if self._render_manager.current_drawing_artist is None:
+            raise ValueError("No current drawing artist set.")
+
+        base_image = image
+        if angle != 0.0:
+            base_image = self._pygame.transform.rotate(base_image, -math.degrees(angle))
+
+        target_width = max(1, int(round(self._render_manager.world_to_screen_scale(diameter))))
+        image_rect = base_image.get_rect()
+        if image_rect.width <= 0 or image_rect.height <= 0:
+            return
+
+        scale_factor = min(target_width / image_rect.width, target_width / image_rect.height)
+        scaled_size = (
+            max(1, int(round(image_rect.width * scale_factor))),
+            max(1, int(round(image_rect.height * scale_factor))),
+        )
+        scaled_image = self._pygame.transform.smoothscale(base_image, scaled_size)
+
+        screen_x, screen_y = self._render_manager.world_to_screen(x, y)
+        draw_rect = scaled_image.get_rect(center=(screen_x, screen_y))
+
+        surface = self._get_target_surface()
+        surface.blit(scaled_image, draw_rect)
 
     def clear_layer(self, layer_id: int):
         return
