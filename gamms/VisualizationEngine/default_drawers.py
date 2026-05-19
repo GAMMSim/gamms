@@ -60,6 +60,7 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
 
     agent = ctx.agent.get_agent(agent_data.name)
     waiting_simulation = data.get('_waiting_simulation', False)
+    image = agent_data.image
 
     if agent.type == AgentType.BASIC:
         target_node = ctx.graph.graph.get_node(agent.current_node_id)
@@ -121,6 +122,10 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
         
         agent_data.current_position = position
 
+        if image is not None:
+            ctx.visual.render_image(position[0], position[1], image, size)
+            return
+
         # Draw each agent as a triangle at its current position
         angle = math.radians(45)
 
@@ -147,6 +152,10 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
         z = quat[3]
         w = quat[0]
         angle = math.atan2(2 * (w * z + x * y), 1 - 2 * (y ** 2 + z **2))
+
+        if image is not None:
+            ctx.visual.render_image(position[0], position[1], image, size, angle=angle)
+            return
 
         render_aerial_agent(ctx, position, angle, size, color)
 
@@ -218,7 +227,7 @@ def render_graph(ctx: IContext, data: Dict[str, Any]):
     viewport = ctx.visual.get_viewport()
     if viewport is None:
         return
-    top, left, bottom, right, scale = viewport
+    left, right, top, bottom, scale = viewport
 
     x = (right + left) / 2
     y = (top + bottom) / 2
@@ -245,7 +254,7 @@ def render_obstacles(ctx: IContext, data: Dict[str, Any]):
     if viewport is None:
         return
     
-    top, left, bottom, right, scale = viewport
+    left, right, top, bottom, scale = viewport
 
     x = (right + left) / 2
     y = (top + bottom) / 2
