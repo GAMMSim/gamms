@@ -1,23 +1,4 @@
-"""Occlusion-aware sensors and the geometry primitives they depend on.
-
-Geometry helpers
-----------------
-Obstacle faces are general planar quadrilaterals stored as four 3-D corners
-(tl, tr, br, bl).  Ray/segment intersection uses Möller-Trumbore on each
-triangle of the two-triangle decomposition of the quad — no trapezoid
-assumption is made.
-
-Sensor classes
---------------
-``OccludedMapSensor`` / ``OccludedAerialSensor``
-    Build a numpy array from the initial node set then stream faces from the
-    graph engine iterator.  Each face triggers a vectorised visibility update;
-    iteration stops as soon as the visible set is empty.
-
-``OccludedAgentSensor`` / ``OccludedAerialAgentSensor``
-    Collect face IDs once, then for each detected entity check faces with
-    scalar Möller-Trumbore and break on the first hit.
-"""
+"""Occlusion-aware sensors and the geometry primitives they depend on."""
 
 import math
 from typing import Any, Dict, Iterator, List, Optional, Tuple, cast

@@ -1,10 +1,3 @@
-"""
-UCSD occlusion test game.
-Human-controlled agent on the UCSD walking network with OSM buildings loaded.
-Sensor output is printed to terminal each turn.
-Close the Pygame window to quit.
-"""
-
 import gamms
 from gamms import osm as gamms_osm
 
