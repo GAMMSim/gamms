@@ -218,7 +218,7 @@ def render_graph(ctx: IContext, data: Dict[str, Any]):
     viewport = ctx.visual.get_viewport()
     if viewport is None:
         return
-    top, left, bottom, right, scale = viewport
+    left, right, top, bottom, scale = viewport
 
     x = (right + left) / 2
     y = (top + bottom) / 2
@@ -245,7 +245,7 @@ def render_obstacles(ctx: IContext, data: Dict[str, Any]):
     if viewport is None:
         return
     
-    top, left, bottom, right, scale = viewport
+    left, right, top, bottom, scale = viewport
 
     x = (right + left) / 2
     y = (top + bottom) / 2
