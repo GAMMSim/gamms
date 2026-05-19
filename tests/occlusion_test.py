@@ -1,3 +1,11 @@
+"""
+Occlusion sensor tests.
+
+Coordinate system: x/y are projected metres (UTM), z is height in metres.
+Observer eye-level defaults to 1.6 m.  All geometry is exact — no tolerances
+unless the test is specifically probing a boundary.
+"""
+
 import math
 import unittest
 
@@ -5,18 +13,22 @@ import numpy as np
 
 import gamms
 import gamms.typing
+import gamms.typing.agent_engine
 from gamms.SensorEngine.sensors_occluded import (
-    _segment_triangle,
     _quad_blocks,
     _quad_blocks_batch,
+    _segment_triangle,
 )
 
 
 # ---------------------------------------------------------------------------
-# Minimal face stub
+# Reusable geometry fixtures
 # ---------------------------------------------------------------------------
 
 class _Face:
+    """Minimal ObsFace stub: four 3-D corners (tl, tr, br, bl)."""
+    __slots__ = ("tl", "tr", "br", "bl")
+
     def __init__(self, tl, tr, br, bl):
         self.tl = tl
         self.tr = tr
@@ -24,9 +36,7 @@ class _Face:
         self.bl = bl
 
 
-# A 1×1 vertical wall at x=5, spanning y in [-0.5, 0.5], z in [0, 2].
-#   tl=(5,-0.5,2)  tr=(5, 0.5,2)
-#   bl=(5,-0.5,0)  br=(5, 0.5,0)
+# 1 m wide × 2 m tall vertical wall sitting at x=5, centred on y=0.
 WALL = _Face(
     tl=(5.0, -0.5, 2.0),
     tr=(5.0,  0.5, 2.0),
@@ -34,14 +44,37 @@ WALL = _Face(
     bl=(5.0, -0.5, 0.0),
 )
 
+# Larger wall — 10 m wide × 8 m tall — for end-to-end sensor tests.
+def _blocking_wall_faces():
+    """Four ObsFace quads forming a box wall between x=4.5 and x=5.5."""
+    coords = [(4.5, -3.0), (5.5, -3.0), (5.5, 3.0), (4.5, 3.0)]
+    height = 8.0
+    faces = []
+    n = len(coords)
+    for i in range(n):
+        p1, p2 = coords[i], coords[(i + 1) % n]
+        faces.append({
+            "id": i,
+            "tr": (p2[0], p2[1], height),
+            "tl": (p1[0], p1[1], height),
+            "br": (p2[0], p2[1], 0.0),
+            "bl": (p1[0], p1[1], 0.0),
+        })
+    return faces
+
 
 # ---------------------------------------------------------------------------
-# _segment_triangle  (scalar Möller-Trumbore)
+# _segment_triangle — scalar Möller-Trumbore
 # ---------------------------------------------------------------------------
+#
+# Triangle lives in the plane x = 5:
+#   v0 = (5, -1, 0)   bottom-left
+#   v1 = (5,  1, 0)   bottom-right
+#   v2 = (5,  0, 2)   apex
+#
 
 class SegmentTriangleTest(unittest.TestCase):
 
-    # Triangle in the plane x=5, y in [-1,1], z in [0,2]
     V0 = (5.0, -1.0, 0.0)
     V1 = (5.0,  1.0, 0.0)
     V2 = (5.0,  0.0, 2.0)
@@ -49,99 +82,222 @@ class SegmentTriangleTest(unittest.TestCase):
     def _hit(self, a, b):
         return _segment_triangle(a, b, self.V0, self.V1, self.V2)
 
-    def test_direct_hit(self):
-        self.assertTrue(self._hit((0, 0, 1), (10, 0, 1)))
+    # --- basic hits ---
 
-    def test_miss_beside(self):
-        self.assertFalse(self._hit((0, 5, 1), (10, 5, 1)))
+    def test_centre_hit(self):
+        # Straight through the centroid of the triangle.
+        self.assertTrue(self._hit((0, 0, 0.67), (10, 0, 0.67)))
 
-    def test_miss_over(self):
-        self.assertFalse(self._hit((0, 0, 3), (10, 0, 3)))
+    def test_near_apex(self):
+        self.assertTrue(self._hit((0, 0, 1.9), (10, 0, 1.9)))
 
-    def test_miss_under(self):
-        self.assertFalse(self._hit((0, 0, -1), (10, 0, -1)))
+    def test_near_base_left(self):
+        self.assertTrue(self._hit((0, -0.9, 0.05), (10, -0.9, 0.05)))
 
-    def test_segment_too_short(self):
-        # Segment stops at x=4 — never reaches x=5.
-        self.assertFalse(self._hit((0, 0, 1), (4, 0, 1)))
+    # --- misses ---
 
-    def test_parallel_ray(self):
-        # Ray parallel to the triangle plane; no intersection.
-        self.assertFalse(self._hit((0, 0, 1), (0, 1, 1)))
+    def test_miss_above_apex(self):
+        # z=2.1 clears the apex (z=2).
+        self.assertFalse(self._hit((0, 0, 2.1), (10, 0, 2.1)))
 
-    def test_origin_on_triangle_plane(self):
-        # Start exactly on the triangle plane — t=0 is valid.
-        self.assertTrue(self._hit((5, 0, 1), (10, 0, 1)))
+    def test_miss_below_base(self):
+        self.assertFalse(self._hit((0, 0, -0.1), (10, 0, -0.1)))
+
+    def test_miss_left_of_triangle(self):
+        # y=-1.1 is outside the base edge.
+        self.assertFalse(self._hit((0, -1.1, 0.5), (10, -1.1, 0.5)))
+
+    def test_miss_right_of_triangle(self):
+        self.assertFalse(self._hit((0, 1.1, 0.5), (10, 1.1, 0.5)))
+
+    # --- segment length ---
+
+    def test_segment_stops_before_plane(self):
+        # Segment ends at x=4.99 — doesn't quite reach x=5.
+        self.assertFalse(self._hit((0, 0, 0.67), (4.99, 0, 0.67)))
+
+    def test_segment_endpoint_exactly_on_triangle(self):
+        # b lies on the triangle — t=1 is the boundary, should count.
+        self.assertTrue(self._hit((0, 0, 0.67), (5, 0, 0.67)))
+
+    def test_segment_starts_past_triangle(self):
+        # Both endpoints are on the far side; t would be negative.
+        self.assertFalse(self._hit((6, 0, 0.67), (10, 0, 0.67)))
+
+    # --- degenerate / edge cases ---
+
+    def test_parallel_to_plane(self):
+        # Ray runs parallel to x=5 — should never hit.
+        self.assertFalse(self._hit((0, 0, 1), (0, 10, 1)))
+
+    def test_zero_length_segment(self):
+        # Degenerate: a == b, direction is zero — effectively parallel.
+        self.assertFalse(self._hit((5, 0, 0.67), (5, 0, 0.67)))
+
+    def test_ray_in_triangle_plane(self):
+        # Segment lies entirely within x=5; Möller-Trumbore treats this as
+        # parallel (determinant → 0).
+        self.assertFalse(self._hit((5, -0.5, 0.5), (5, 0.5, 0.5)))
+
+    def test_reversed_direction_still_hits(self):
+        # Möller-Trumbore is direction-agnostic for segment tests; going from
+        # x=10 back toward x=0 should still find the intersection.
+        self.assertTrue(self._hit((10, 0, 0.67), (0, 0, 0.67)))
+
+    def test_origin_on_triangle(self):
+        # Observer starts exactly on the triangle surface — t=0 is valid.
+        self.assertTrue(self._hit((5, 0, 0.67), (10, 0, 0.67)))
 
 
 # ---------------------------------------------------------------------------
-# _quad_blocks  (scalar, two-triangle decomp)
+# _quad_blocks — scalar two-triangle decomposition
 # ---------------------------------------------------------------------------
 
 class QuadBlocksTest(unittest.TestCase):
+    """Tests against the unit WALL fixture (x=5, y∈[-0.5,0.5], z∈[0,2])."""
 
-    def test_ray_hits_wall(self):
+    # --- definite hits ---
+
+    def test_horizontal_ray_through_centre(self):
         self.assertTrue(_quad_blocks((0, 0, 1), (10, 0, 1), WALL))
 
-    def test_ray_misses_beside(self):
-        self.assertFalse(_quad_blocks((0, 5, 1), (10, 5, 1), WALL))
+    def test_angled_ray_still_hits(self):
+        # Diagonal approach — not purely horizontal.
+        self.assertTrue(_quad_blocks((0, -0.4, 0.5), (10, 0.4, 1.5), WALL))
 
-    def test_ray_passes_over(self):
-        self.assertFalse(_quad_blocks((0, 0, 3), (10, 0, 3), WALL))
+    def test_hit_lower_triangle(self):
+        # The lower-left triangle (tl-br-bl) of the quad.
+        # Low z, slightly negative y — only the second triangle covers this.
+        self.assertTrue(_quad_blocks((0, -0.4, 0.1), (10, -0.4, 0.1), WALL))
 
-    def test_ray_passes_under(self):
-        self.assertFalse(_quad_blocks((0, 0, -1), (10, 0, -1), WALL))
+    def test_hit_upper_triangle(self):
+        # The upper-right triangle (tl-tr-br).  High z, positive y.
+        self.assertTrue(_quad_blocks((0, 0.4, 1.8), (10, 0.4, 1.8), WALL))
 
-    def test_segment_stops_before_wall(self):
-        self.assertFalse(_quad_blocks((0, 0, 1), (4, 0, 1), WALL))
+    # --- definite misses ---
 
-    def test_both_endpoints_same_side(self):
-        # Both points behind the wall — segment does not cross it.
-        self.assertFalse(_quad_blocks((6, 0, 1), (8, 0, 1), WALL))
+    def test_miss_wide_left(self):
+        self.assertFalse(_quad_blocks((0, -2, 1), (10, -2, 1), WALL))
 
-    def test_origin_behind_wall(self):
-        # Observer already past the wall — segment goes further away.
-        self.assertFalse(_quad_blocks((7, 0, 1), (10, 0, 1), WALL))
+    def test_miss_wide_right(self):
+        self.assertFalse(_quad_blocks((0, 2, 1), (10, 2, 1), WALL))
+
+    def test_miss_above_wall(self):
+        # z=2.5 > wall top (z=2).
+        self.assertFalse(_quad_blocks((0, 0, 2.5), (10, 0, 2.5), WALL))
+
+    def test_miss_below_wall(self):
+        self.assertFalse(_quad_blocks((0, 0, -0.5), (10, 0, -0.5), WALL))
+
+    # --- segment boundary ---
+
+    def test_segment_does_not_reach_wall(self):
+        self.assertFalse(_quad_blocks((0, 0, 1), (4.9, 0, 1), WALL))
+
+    def test_both_endpoints_behind_wall(self):
+        # Observer and target are both past x=5; no crossing.
+        self.assertFalse(_quad_blocks((6, 0, 1), (9, 0, 1), WALL))
+
+    def test_observer_is_behind_wall(self):
+        # Observer already on the far side; ray travels further away.
+        self.assertFalse(_quad_blocks((7, 0, 1), (12, 0, 1), WALL))
+
+    # --- non-axis-aligned face ---
+
+    def test_diagonal_wall(self):
+        # Wall tilted 45° in plan view, spanning from (3,3) to (7,7) at z∈[0,4].
+        diag = _Face(
+            tl=(3.0, 3.0, 4.0),
+            tr=(7.0, 7.0, 4.0),
+            br=(7.0, 7.0, 0.0),
+            bl=(3.0, 3.0, 0.0),
+        )
+        # Ray goes straight through the middle of the diagonal wall.
+        self.assertTrue(_quad_blocks((0, 5, 2), (10, 5, 2), diag))
+
+    def test_diagonal_wall_miss_parallel(self):
+        diag = _Face(
+            tl=(3.0, 3.0, 4.0),
+            tr=(7.0, 7.0, 4.0),
+            br=(7.0, 7.0, 0.0),
+            bl=(3.0, 3.0, 0.0),
+        )
+        # Ray runs parallel to the diagonal wall and doesn't cross.
+        self.assertFalse(_quad_blocks((0, 8, 2), (10, 8, 2), diag))
 
 
 # ---------------------------------------------------------------------------
-# _quad_blocks_batch  (numpy)
+# _quad_blocks_batch — numpy vectorised
 # ---------------------------------------------------------------------------
 
 class QuadBlocksBatchTest(unittest.TestCase):
 
     O = np.array([0.0, 0.0, 1.0])
 
+    # --- trivial size cases ---
+
+    def test_empty_input_returns_empty(self):
+        result = _quad_blocks_batch(self.O, np.zeros((0, 3)), WALL)
+        self.assertEqual(len(result), 0)
+        self.assertEqual(result.dtype, bool)
+
+    def test_single_target_blocked(self):
+        T = np.array([[10.0, 0.0, 1.0]])
+        self.assertTrue(_quad_blocks_batch(self.O, T, WALL)[0])
+
+    def test_single_target_not_blocked(self):
+        T = np.array([[10.0, 5.0, 1.0]])
+        self.assertFalse(_quad_blocks_batch(self.O, T, WALL)[0])
+
+    # --- batch correctness ---
+
     def test_all_blocked(self):
-        # Multiple targets behind the wall at x=5, all along y=0.
-        T = np.array([[10.0, 0.0, 1.0], [12.0, 0.0, 1.0]])
+        T = np.array([
+            [10.0, 0.0, 0.5],
+            [12.0, 0.0, 1.0],
+            [15.0, 0.2, 1.5],
+        ])
         result = _quad_blocks_batch(self.O, T, WALL)
         self.assertTrue(result.all())
 
     def test_none_blocked(self):
-        # Targets beside the wall.
-        T = np.array([[10.0, 5.0, 1.0], [10.0, -5.0, 1.0]])
+        T = np.array([
+            [10.0,  5.0, 1.0],   # way off to the side
+            [10.0, -5.0, 1.0],
+            [ 3.0,  0.0, 1.0],   # in front of wall
+            [10.0,  0.0, 5.0],   # over the wall (z=5 clears top edge at z=2)
+        ])
         result = _quad_blocks_batch(self.O, T, WALL)
         self.assertFalse(result.any())
 
-    def test_mixed(self):
+    def test_mixed_results(self):
         T = np.array([
-            [10.0,  0.0, 1.0],   # blocked
-            [10.0,  5.0, 1.0],   # not blocked (beside)
-            [10.0,  0.0, 5.0],   # not blocked (well above wall top at z=2)
+            [10.0,  0.0, 1.0],   # blocked — straight through
+            [10.0,  5.0, 1.0],   # not blocked — beside
+            [10.0,  0.0, 5.0],   # not blocked — well above (ray passes over z=2 top)
+            [10.0, -0.4, 0.2],   # blocked — lower triangle
+            [ 3.0,  0.0, 1.0],   # not blocked — doesn't reach wall
         ])
         result = _quad_blocks_batch(self.O, T, WALL)
-        self.assertEqual(list(result), [True, False, False])
+        expected = [True, False, False, True, False]
+        self.assertEqual(list(result), expected)
 
-    def test_empty_input(self):
-        T = np.zeros((0, 3))
+    def test_result_is_boolean_array(self):
+        T = np.array([[10.0, 0.0, 1.0], [10.0, 5.0, 1.0]])
         result = _quad_blocks_batch(self.O, T, WALL)
-        self.assertEqual(len(result), 0)
+        self.assertEqual(result.dtype, bool)
+        self.assertEqual(result.shape, (2,))
 
-    def test_single_blocked(self):
-        T = np.array([[10.0, 0.0, 1.0]])
-        result = _quad_blocks_batch(self.O, T, WALL)
-        self.assertTrue(result[0])
+    def test_large_batch_consistent_with_scalar(self):
+        # Generate 200 targets and verify batch == scalar for each.
+        rng = np.random.default_rng(42)
+        targets = rng.uniform(low=[6, -3, 0], high=[15, 3, 4], size=(200, 3))
+        O = self.O
+        batch = _quad_blocks_batch(O, targets, WALL)
+        for i, t in enumerate(targets):
+            expected = _quad_blocks(tuple(O), tuple(t), WALL)  # type: ignore[arg-type]
+            self.assertEqual(bool(batch[i]), expected,
+                             msg=f"Mismatch at target {i}: {t}")
 
 
 # ---------------------------------------------------------------------------
@@ -149,143 +305,240 @@ class QuadBlocksBatchTest(unittest.TestCase):
 # ---------------------------------------------------------------------------
 
 class OccludedSensorTest(unittest.TestCase):
+    """
+    Graph topology:
+
+        0 ——— 1         wall lives between x=4.5 and x=5.5
+        |
+        2 (at y=10, diagonal from 0)
+
+    Node 1 is directly behind the wall from node 0's perspective.
+    Node 2 is off to the side — visible even with the wall present.
+    """
 
     def setUp(self):
         self.ctx = gamms.create_context(
             vis_engine=gamms.visual.Engine.NO_VIS,
-            logger_config={'level': 'CRITICAL'},
+            logger_config={"level": "CRITICAL"},
             graph_engine=gamms.graph.Engine.MEMORY,
         )
-        # Two nodes: one behind a wall, one off to the side.
-        self.ctx.graph.graph.add_node({'id': 0, 'x': 0.0,  'y': 0.0})
-        self.ctx.graph.graph.add_node({'id': 1, 'x': 10.0, 'y': 0.0})
-        self.ctx.graph.graph.add_node({'id': 2, 'x': 10.0, 'y': 10.0})
-        self.ctx.graph.graph.add_edge({'id': 0, 'source': 0, 'target': 1, 'length': 10})
-        self.ctx.graph.graph.add_edge({'id': 1, 'source': 0, 'target': 2, 'length': 14.14})
+        g = self.ctx.graph.graph
+        g.add_node({"id": 0, "x":  0.0, "y":  0.0})
+        g.add_node({"id": 1, "x": 10.0, "y":  0.0})
+        g.add_node({"id": 2, "x": 10.0, "y": 10.0})
+        g.add_edge({"id": 0, "source": 0, "target": 1, "length": 10.0})
+        g.add_edge({"id": 1, "source": 0, "target": 2, "length": 14.14})
 
     def tearDown(self):
         self.ctx.terminate()
 
-    def _add_blocking_wall(self):
-        coords = [(4.5, -3.0), (5.5, -3.0), (5.5, 3.0), (4.5, 3.0)]
-        height = 8.0
-        n = len(coords)
-        for i in range(n):
-            p1, p2 = coords[i], coords[(i + 1) % n]
+    def _add_wall(self):
+        for f in _blocking_wall_faces():
             self.ctx.graph.add_obstacle_face(
-                i,
-                tr=(p2[0], p2[1], height),
-                tl=(p1[0], p1[1], height),
+                f["id"], tr=f["tr"], tl=f["tl"], br=f["br"], bl=f["bl"], type=0,
+            )
+
+    # --- baseline behaviour ---
+
+    def test_no_faces_occluded_sensor_matches_range_sensor(self):
+        # Without any obstacle faces the occluded sensor must be identical
+        # to the plain range sensor.
+        baseline = self.ctx.sensor.create_sensor(
+            "base", gamms.typing.SensorType.RANGE, sensor_range=20.0,
+        )
+        occluded = self.ctx.sensor.create_sensor(
+            "occ", gamms.typing.SensorType.OCCLUDED_MAP, sensor_range=20.0,
+        )
+        baseline.sense(0)
+        occluded.sense(0)
+        self.assertEqual(
+            set(baseline.data["nodes"].keys()),
+            set(occluded.data["nodes"].keys()),
+        )
+
+    def test_observer_node_always_visible(self):
+        # The node the agent is standing on must never be filtered out.
+        self._add_wall()
+        sensor = self.ctx.sensor.create_sensor(
+            "occ", gamms.typing.SensorType.OCCLUDED_MAP, sensor_range=20.0,
+        )
+        sensor.sense(0)
+        self.assertIn(0, sensor.data["nodes"])
+
+    # --- wall occlusion ---
+
+    def test_wall_hides_node_directly_behind(self):
+        self._add_wall()
+        sensor = self.ctx.sensor.create_sensor(
+            "occ", gamms.typing.SensorType.OCCLUDED_MAP, sensor_range=20.0,
+        )
+        sensor.sense(0)
+        self.assertNotIn(1, sensor.data["nodes"])
+
+    def test_wall_does_not_hide_node_to_the_side(self):
+        self._add_wall()
+        sensor = self.ctx.sensor.create_sensor(
+            "occ", gamms.typing.SensorType.OCCLUDED_MAP, sensor_range=20.0,
+        )
+        sensor.sense(0)
+        self.assertIn(2, sensor.data["nodes"])
+
+    def test_edge_hidden_when_both_endpoints_occluded(self):
+        # Add a third node also directly behind the wall.
+        self.ctx.graph.graph.add_node({"id": 3, "x": 12.0, "y": 0.5})
+        self.ctx.graph.graph.add_edge(
+            {"id": 2, "source": 1, "target": 3, "length": 2.1}
+        )
+        self._add_wall()
+        sensor = self.ctx.sensor.create_sensor(
+            "occ", gamms.typing.SensorType.OCCLUDED_MAP, sensor_range=25.0,
+        )
+        sensor.sense(0)
+        visible_ids = set(sensor.data["nodes"].keys())
+        # Both endpoints hidden → edge must not appear either.
+        for edge in sensor.data["edges"]:
+            self.assertTrue(
+                edge.source in visible_ids and edge.target in visible_ids,
+                msg=f"Edge {edge.source}→{edge.target} leaked into sensor output",
+            )
+
+    # --- range filtering ---
+
+    def test_wall_outside_sensor_range_ignored(self):
+        # Wall is at x≈5, sensor range only 4 m — the wall is outside range
+        # but both nodes 1 and 2 are also outside range.  We use a separate
+        # far wall to ensure range filtering is working.
+        far = [(100.0, -3.0), (101.0, -3.0), (101.0, 3.0), (100.0, 3.0)]
+        for i in range(4):
+            p1, p2 = far[i], far[(i + 1) % 4]
+            self.ctx.graph.add_obstacle_face(
+                200 + i,
+                tr=(p2[0], p2[1], 8.0),
+                tl=(p1[0], p1[1], 8.0),
                 br=(p2[0], p2[1], 0.0),
                 bl=(p1[0], p1[1], 0.0),
                 type=0,
             )
-
-    def test_no_faces_matches_baseline(self):
+        # The far wall is 100 m away; sensor range is 20 m — it must be ignored.
+        self._add_wall()
         sensor = self.ctx.sensor.create_sensor(
-            'no_faces', gamms.typing.SensorType.OCCLUDED_MAP, sensor_range=20.0,
+            "occ", gamms.typing.SensorType.OCCLUDED_MAP, sensor_range=20.0,
         )
         sensor.sense(0)
-        self.assertIn(1, sensor.data['nodes'])
-        self.assertIn(2, sensor.data['nodes'])
+        self.assertNotIn(1, sensor.data["nodes"])   # near wall still occludes
+        self.assertIn(2, sensor.data["nodes"])      # side node still visible
 
-    def test_wall_hides_node_behind_it(self):
-        self._add_blocking_wall()
-        baseline = self.ctx.sensor.create_sensor(
-            'baseline', gamms.typing.SensorType.RANGE, sensor_range=20.0,
-        )
-        baseline.sense(0)
-        self.assertIn(1, baseline.data['nodes'])
+    # --- agent sensor ---
 
-        occluded = self.ctx.sensor.create_sensor(
-            'occluded', gamms.typing.SensorType.OCCLUDED_MAP, sensor_range=20.0,
-        )
-        occluded.sense(0)
-        self.assertNotIn(1, occluded.data['nodes'])
-        self.assertIn(2, occluded.data['nodes'])
-
-    def test_wall_hides_agent_behind_it(self):
-        self._add_blocking_wall()
-        self.ctx.agent.create_agent('hidden',  start_node_id=1)
-        self.ctx.agent.create_agent('visible', start_node_id=2)
+    def test_agent_sensor_hides_agent_behind_wall(self):
+        self._add_wall()
+        self.ctx.agent.create_agent("behind_wall", start_node_id=1)
+        self.ctx.agent.create_agent("clear_los",   start_node_id=2)
 
         sensor = self.ctx.sensor.create_sensor(
-            'occluded_agent',
+            "occ_agent",
             gamms.typing.SensorType.OCCLUDED_AGENT,
             sensor_range=30.0,
         )
         sensor.sense(0)
-        self.assertNotIn('hidden',  sensor.data)
-        self.assertIn('visible', sensor.data)
+        self.assertNotIn("behind_wall", sensor.data)
+        self.assertIn("clear_los", sensor.data)
 
-    def test_face_outside_range_ignored(self):
-        self._add_blocking_wall()
-        far = [(500.0, 500.0), (510.0, 500.0), (510.0, 510.0), (500.0, 510.0)]
-        for i in range(4):
-            p1, p2 = far[i], far[(i + 1) % 4]
-            self.ctx.graph.add_obstacle_face(
-                99 * 10000 + i,
-                tr=(p2[0], p2[1], 20.0),
-                tl=(p1[0], p1[1], 20.0),
-                br=(p2[0], p2[1], 0.0),
-                bl=(p1[0], p1[1], 0.0),
-                type=0,
-            )
+    def test_agent_sensor_no_false_positives_without_wall(self):
+        self.ctx.agent.create_agent("a1", start_node_id=1)
+        self.ctx.agent.create_agent("a2", start_node_id=2)
+
         sensor = self.ctx.sensor.create_sensor(
-            'filtered', gamms.typing.SensorType.OCCLUDED_MAP, sensor_range=20.0,
+            "occ_agent",
+            gamms.typing.SensorType.OCCLUDED_AGENT,
+            sensor_range=30.0,
         )
         sensor.sense(0)
-        self.assertNotIn(1, sensor.data['nodes'])
-        self.assertIn(2, sensor.data['nodes'])
+        # No walls → both agents visible.
+        self.assertIn("a1", sensor.data)
+        self.assertIn("a2", sensor.data)
 
-    def test_aerial_above_wall_sees_blocked_node(self):
-        self._add_blocking_wall()
-        aerial = self.ctx.agent.create_agent(
-            name='drone',
+    # --- aerial sensor ---
+
+    def test_aerial_high_above_wall_sees_occluded_node(self):
+        # A drone at z=20 m sends rays nearly straight down — they miss the
+        # 8 m wall and node 1 should remain visible.
+        self._add_wall()
+        drone = self.ctx.agent.create_agent(
+            "drone",
             type=gamms.typing.agent_engine.AgentType.AERIAL,
             start_node_id=0,
             speed=5.0,
         )
-        aerial.position = (0.0, 0.0, 20.0)
+        drone.position = (0.0, 0.0, 20.0)
 
         sensor = self.ctx.sensor.create_sensor(
-            'aerial_high',
+            "aerial_occ",
             gamms.typing.SensorType.OCCLUDED_AERIAL,
             sensor_range=50.0,
             fov=math.pi,
         )
-        sensor.set_owner(aerial.name)
+        sensor.set_owner(drone.name)
         sensor.sense(0)
-        self.assertIn(1, sensor.data['nodes'])
+        self.assertIn(1, sensor.data["nodes"])
 
-    def test_aerial_low_loses_node_behind_wall(self):
-        self._add_blocking_wall()
-        aerial = self.ctx.agent.create_agent(
-            name='drone_low',
+    def test_aerial_at_eye_level_loses_node_behind_wall(self):
+        # Same drone, now hovering at 1 m — its sightline to node 1 is nearly
+        # horizontal and the 8 m wall blocks it.
+        self._add_wall()
+        drone = self.ctx.agent.create_agent(
+            "drone_low",
             type=gamms.typing.agent_engine.AgentType.AERIAL,
             start_node_id=0,
             speed=5.0,
         )
-        aerial.position = (0.0, 0.0, 1.0)
+        drone.position = (0.0, 0.0, 1.0)
 
         sensor = self.ctx.sensor.create_sensor(
-            'aerial_low',
+            "aerial_low",
             gamms.typing.SensorType.OCCLUDED_AERIAL,
             sensor_range=50.0,
             fov=math.pi,
             quat=(math.sqrt(0.5), 0.0, math.sqrt(0.5), 0.0),
         )
-        sensor.set_owner(aerial.name)
+        sensor.set_owner(drone.name)
         sensor.sense(0)
-        self.assertNotIn(1, sensor.data['nodes'])
+        self.assertNotIn(1, sensor.data["nodes"])
+
+    def test_aerial_intermediate_height_side_node_visible(self):
+        # Node 2 is off to the side — wall never occludes it regardless of
+        # drone altitude.
+        self._add_wall()
+        drone = self.ctx.agent.create_agent(
+            "drone_mid",
+            type=gamms.typing.agent_engine.AgentType.AERIAL,
+            start_node_id=0,
+            speed=5.0,
+        )
+        drone.position = (0.0, 0.0, 3.0)
+
+        sensor = self.ctx.sensor.create_sensor(
+            "aerial_mid",
+            gamms.typing.SensorType.OCCLUDED_AERIAL,
+            sensor_range=50.0,
+            fov=math.pi,
+        )
+        sensor.set_owner(drone.name)
+        sensor.sense(0)
+        self.assertIn(2, sensor.data["nodes"])
 
 
 def suite():
     s = unittest.TestSuite()
-    for cls in (SegmentTriangleTest, QuadBlocksTest, QuadBlocksBatchTest, OccludedSensorTest):
+    for cls in (
+        SegmentTriangleTest,
+        QuadBlocksTest,
+        QuadBlocksBatchTest,
+        OccludedSensorTest,
+    ):
         s.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(cls))
     return s
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.TextTestRunner(verbosity=2).run(suite())
