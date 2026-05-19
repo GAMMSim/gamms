@@ -105,7 +105,7 @@ class OccludedSensorTest(unittest.TestCase):
         self.assertIn(1, baseline.data['nodes'])
 
         occluded = self.ctx.sensor.create_sensor(
-            'occluded', gamms.typing.SensorType.OCCLUDED_RANGE, sensor_range=20.0,
+            'occluded', gamms.typing.SensorType.OCCLUDED_MAP, sensor_range=20.0,
         )
         occluded.sense(0)
         # Node 1 is hidden behind the wall, node 2 is off to the side.
@@ -114,7 +114,7 @@ class OccludedSensorTest(unittest.TestCase):
 
     def test_occluded_no_polygons_matches_baseline(self):
         sensor = self.ctx.sensor.create_sensor(
-            'no_polys', gamms.typing.SensorType.OCCLUDED_RANGE, sensor_range=20.0,
+            'no_polys', gamms.typing.SensorType.OCCLUDED_MAP, sensor_range=20.0,
         )
         sensor.sense(0)
         # Without polygons the occluded sensor must behave exactly like the
@@ -129,7 +129,7 @@ class OccludedSensorTest(unittest.TestCase):
 
         sensor = self.ctx.sensor.create_sensor(
             'occluded_agent',
-            gamms.typing.SensorType.OCCLUDED_AGENT_RANGE,
+            gamms.typing.SensorType.OCCLUDED_AGENT,
             sensor_range=30.0,
         )
         sensor.sense(0)
@@ -176,7 +176,7 @@ class OccludedSensorTest(unittest.TestCase):
             )
         sensor = self.ctx.sensor.create_sensor(
             'occluded_filtered',
-            gamms.typing.SensorType.OCCLUDED_RANGE,
+            gamms.typing.SensorType.OCCLUDED_MAP,
             sensor_range=20.0,
         )
         sensor.sense(0)

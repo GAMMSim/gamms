@@ -90,42 +90,14 @@ class SensorEngine(ISensorEngine):
         elif sensor_type == SensorType.OCCLUDED_MAP:
             sensor = OccludedMapSensor(
                 self.ctx, sensor_id, sensor_type,
-                sensor_range=float('inf'),
-                fov=2 * math.pi,
-                observer_height=cast(float, kwargs.get('observer_height', 1.6)),
-            )
-        elif sensor_type == SensorType.OCCLUDED_RANGE:
-            sensor = OccludedMapSensor(
-                self.ctx, sensor_id, sensor_type,
-                sensor_range=cast(float, kwargs.get('sensor_range', 30.0)),
-                fov=2 * math.pi,
-                observer_height=cast(float, kwargs.get('observer_height', 1.6)),
-            )
-        elif sensor_type == SensorType.OCCLUDED_ARC:
-            sensor = OccludedMapSensor(
-                self.ctx, sensor_id, sensor_type,
-                sensor_range=cast(float, kwargs.get('sensor_range', 30.0)),
+                sensor_range=cast(float, kwargs.get('sensor_range', float('inf'))),
                 fov=cast(float, kwargs.get('fov', 2 * math.pi)),
                 observer_height=cast(float, kwargs.get('observer_height', 1.6)),
             )
         elif sensor_type == SensorType.OCCLUDED_AGENT:
             sensor = OccludedAgentSensor(
                 self.ctx, sensor_id, sensor_type,
-                sensor_range=float('inf'),
-                fov=cast(float, kwargs.get('fov', 2 * math.pi)),
-                observer_height=cast(float, kwargs.get('observer_height', 1.6)),
-            )
-        elif sensor_type == SensorType.OCCLUDED_AGENT_RANGE:
-            sensor = OccludedAgentSensor(
-                self.ctx, sensor_id, sensor_type,
-                sensor_range=cast(float, kwargs.get('sensor_range', 30.0)),
-                fov=2 * math.pi,
-                observer_height=cast(float, kwargs.get('observer_height', 1.6)),
-            )
-        elif sensor_type == SensorType.OCCLUDED_AGENT_ARC:
-            sensor = OccludedAgentSensor(
-                self.ctx, sensor_id, sensor_type,
-                sensor_range=cast(float, kwargs.get('sensor_range', 30.0)),
+                sensor_range=cast(float, kwargs.get('sensor_range', float('inf'))),
                 fov=cast(float, kwargs.get('fov', 2 * math.pi)),
                 observer_height=cast(float, kwargs.get('observer_height', 1.6)),
             )
