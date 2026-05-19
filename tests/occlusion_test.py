@@ -528,6 +528,394 @@ class OccludedSensorTest(unittest.TestCase):
         self.assertIn(2, sensor.data["nodes"])
 
 
+# ---------------------------------------------------------------------------
+# FOV + occlusion interaction
+# ---------------------------------------------------------------------------
+
+class FovOcclusionTest(unittest.TestCase):
+    """
+    Graph:
+
+        3(-10,0) --- 0(0,0) --- 1(10,0)
+                        |
+                     2(0,10)
+
+    Sensor orientation=(1,0) — facing +x.  FOV=π/2 (±45°).
+
+    Node 1 is in the cone AND behind the wall.
+    Node 2 is off to the side — outside the cone, clear LOS.
+    Node 3 is directly behind the observer — outside the cone, clear LOS.
+    """
+
+    def setUp(self):
+        self.ctx = gamms.create_context(
+            vis_engine=gamms.visual.Engine.NO_VIS,
+            logger_config={"level": "CRITICAL"},
+            graph_engine=gamms.graph.Engine.MEMORY,
+        )
+        g = self.ctx.graph.graph
+        g.add_node({"id": 0, "x":   0.0, "y":  0.0})
+        g.add_node({"id": 1, "x":  10.0, "y":  0.0})
+        g.add_node({"id": 2, "x":   0.0, "y": 10.0})
+        g.add_node({"id": 3, "x": -10.0, "y":  0.0})
+        g.add_edge({"id": 0, "source": 0, "target": 1, "length": 10.0})
+        g.add_edge({"id": 1, "source": 0, "target": 2, "length": 10.0})
+        g.add_edge({"id": 2, "source": 0, "target": 3, "length": 10.0})
+
+    def tearDown(self):
+        self.ctx.terminate()
+
+    def _add_wall(self):
+        for f in _blocking_wall_faces():
+            self.ctx.graph.add_obstacle_face(
+                f["id"], tr=f["tr"], tl=f["tl"], br=f["br"], bl=f["bl"], type=0,
+            )
+
+    def _make_sensor(self, fov):
+        return self.ctx.sensor.create_sensor(
+            "occ",
+            gamms.typing.SensorType.OCCLUDED_MAP,
+            sensor_range=20.0,
+            fov=fov,
+            orientation=(1.0, 0.0),   # fixed +x facing, no owner needed
+        )
+
+    def test_fov_excludes_side_node_without_wall(self):
+        # Node 2 is at 90° from the +x orientation — outside π/2 cone.
+        sensor = self._make_sensor(math.pi / 2)
+        sensor.sense(0)
+        self.assertNotIn(2, sensor.data["nodes"])
+
+    def test_fov_excludes_behind_node_without_wall(self):
+        # Node 3 is directly behind the observer.
+        sensor = self._make_sensor(math.pi / 2)
+        sensor.sense(0)
+        self.assertNotIn(3, sensor.data["nodes"])
+
+    def test_fov_keeps_forward_node_without_wall(self):
+        # Node 1 is straight ahead — inside the cone.
+        sensor = self._make_sensor(math.pi / 2)
+        sensor.sense(0)
+        self.assertIn(1, sensor.data["nodes"])
+
+    def test_fov_and_wall_both_exclude(self):
+        # Node 1 is inside the cone but behind the wall.
+        # Node 2 is outside the cone and has clear LOS.
+        # Both must be absent from the output, for different reasons.
+        self._add_wall()
+        sensor = self._make_sensor(math.pi / 2)
+        sensor.sense(0)
+        self.assertNotIn(1, sensor.data["nodes"])   # blocked by wall
+        self.assertNotIn(2, sensor.data["nodes"])   # cut by FOV
+        self.assertNotIn(3, sensor.data["nodes"])   # cut by FOV (behind)
+
+    def test_full_fov_with_wall_only_blocks_occluded_node(self):
+        # 2π FOV — FOV filter is completely off, only the wall matters.
+        self._add_wall()
+        sensor = self._make_sensor(2 * math.pi)
+        sensor.sense(0)
+        self.assertNotIn(1, sensor.data["nodes"])   # wall occludes
+        self.assertIn(2, sensor.data["nodes"])      # side — clear LOS
+        self.assertIn(3, sensor.data["nodes"])      # behind observer — clear LOS
+
+    def test_wide_fov_includes_diagonal_node(self):
+        # 3π/2 cone (270°) should include node 2 at 90° and node 1 straight ahead.
+        sensor = self._make_sensor(3 * math.pi / 2)
+        sensor.sense(0)
+        self.assertIn(1, sensor.data["nodes"])
+        self.assertIn(2, sensor.data["nodes"])
+        self.assertNotIn(3, sensor.data["nodes"])   # 180° is still outside 270÷2=135° half-angle
+
+
+# ---------------------------------------------------------------------------
+# Multiple walls — accumulation path
+# ---------------------------------------------------------------------------
+
+class MultipleWallsTest(unittest.TestCase):
+    """
+    Two independent walls, each occluding a different node.
+
+        0(0,0) ——— 1(10,0)      wall A at x≈5 blocks node 1
+           \
+            2(10,10)             wall B at the midpoint blocks node 2
+
+    Verifies that the per-face accumulation loop correctly applies both
+    walls, and that early-exit doesn't fire too soon.
+    """
+
+    def setUp(self):
+        self.ctx = gamms.create_context(
+            vis_engine=gamms.visual.Engine.NO_VIS,
+            logger_config={"level": "CRITICAL"},
+            graph_engine=gamms.graph.Engine.MEMORY,
+        )
+        g = self.ctx.graph.graph
+        g.add_node({"id": 0, "x":  0.0, "y":  0.0})
+        g.add_node({"id": 1, "x": 10.0, "y":  0.0})
+        g.add_node({"id": 2, "x": 10.0, "y": 10.0})
+        g.add_edge({"id": 0, "source": 0, "target": 1, "length": 10.0})
+        g.add_edge({"id": 1, "source": 0, "target": 2, "length": 14.14})
+
+    def tearDown(self):
+        self.ctx.terminate()
+
+    def _add_wall_a(self):
+        """Blocks node 1 (along +x axis)."""
+        for f in _blocking_wall_faces():   # wall at x≈5, y∈[-3,3]
+            self.ctx.graph.add_obstacle_face(
+                f["id"], tr=f["tr"], tl=f["tl"], br=f["br"], bl=f["bl"], type=0,
+            )
+
+    def _add_wall_b(self):
+        """Blocks node 2 (diagonal at ~45°).
+        Wall sits at (5,5), perpendicular to the x=y diagonal."""
+        # A wide slab spanning x∈[2,8] at y≈5, tall enough to matter.
+        coords = [(2.0, 4.5), (8.0, 4.5), (8.0, 5.5), (2.0, 5.5)]
+        height = 8.0
+        n = len(coords)
+        for i in range(n):
+            p1, p2 = coords[i], coords[(i + 1) % n]
+            self.ctx.graph.add_obstacle_face(
+                100 + i,
+                tr=(p2[0], p2[1], height),
+                tl=(p1[0], p1[1], height),
+                br=(p2[0], p2[1], 0.0),
+                bl=(p1[0], p1[1], 0.0),
+                type=0,
+            )
+
+    def test_single_wall_a_blocks_only_node1(self):
+        self._add_wall_a()
+        s = self.ctx.sensor.create_sensor(
+            "occ", gamms.typing.SensorType.OCCLUDED_MAP, sensor_range=20.0,
+        )
+        s.sense(0)
+        self.assertNotIn(1, s.data["nodes"])
+        self.assertIn(2, s.data["nodes"])
+
+    def test_single_wall_b_blocks_only_node2(self):
+        self._add_wall_b()
+        s = self.ctx.sensor.create_sensor(
+            "occ", gamms.typing.SensorType.OCCLUDED_MAP, sensor_range=20.0,
+        )
+        s.sense(0)
+        self.assertIn(1, s.data["nodes"])
+        self.assertNotIn(2, s.data["nodes"])
+
+    def test_both_walls_block_both_nodes(self):
+        # Both walls present — accumulation must apply both independently.
+        self._add_wall_a()
+        self._add_wall_b()
+        s = self.ctx.sensor.create_sensor(
+            "occ", gamms.typing.SensorType.OCCLUDED_MAP, sensor_range=20.0,
+        )
+        s.sense(0)
+        self.assertNotIn(1, s.data["nodes"])
+        self.assertNotIn(2, s.data["nodes"])
+
+    def test_observer_node_survives_both_walls(self):
+        self._add_wall_a()
+        self._add_wall_b()
+        s = self.ctx.sensor.create_sensor(
+            "occ", gamms.typing.SensorType.OCCLUDED_MAP, sensor_range=20.0,
+        )
+        s.sense(0)
+        self.assertIn(0, s.data["nodes"])
+
+
+# ---------------------------------------------------------------------------
+# Infinite sensor range
+# ---------------------------------------------------------------------------
+
+class InfiniteRangeTest(unittest.TestCase):
+    """
+    Verifies the _iter_faces / _face_ids_in_range code path that fires when
+    sensor_range == inf.  In that branch get_obstacle_faces() is called with
+    no spatial arguments, so all faces in the store are returned.
+    """
+
+    def setUp(self):
+        self.ctx = gamms.create_context(
+            vis_engine=gamms.visual.Engine.NO_VIS,
+            logger_config={"level": "CRITICAL"},
+            graph_engine=gamms.graph.Engine.MEMORY,
+        )
+        g = self.ctx.graph.graph
+        g.add_node({"id": 0, "x":  0.0, "y":  0.0})
+        g.add_node({"id": 1, "x": 10.0, "y":  0.0})
+        g.add_node({"id": 2, "x": 10.0, "y": 10.0})
+        # Far node — only reachable with infinite range.
+        g.add_node({"id": 3, "x": 500.0, "y": 0.0})
+        g.add_edge({"id": 0, "source": 0, "target": 1, "length": 10.0})
+        g.add_edge({"id": 1, "source": 0, "target": 2, "length": 14.14})
+        g.add_edge({"id": 2, "source": 0, "target": 3, "length": 500.0})
+
+    def tearDown(self):
+        self.ctx.terminate()
+
+    def _add_wall(self):
+        for f in _blocking_wall_faces():
+            self.ctx.graph.add_obstacle_face(
+                f["id"], tr=f["tr"], tl=f["tl"], br=f["br"], bl=f["bl"], type=0,
+            )
+
+    def test_infinite_range_sees_far_node_without_wall(self):
+        s = self.ctx.sensor.create_sensor(
+            "occ_inf", gamms.typing.SensorType.OCCLUDED_MAP,
+            sensor_range=float("inf"),
+        )
+        s.sense(0)
+        self.assertIn(3, s.data["nodes"])
+
+    def test_infinite_range_still_occludes_near_node(self):
+        # The wall is within the scene; even with infinite range it must
+        # still block node 1.
+        self._add_wall()
+        s = self.ctx.sensor.create_sensor(
+            "occ_inf", gamms.typing.SensorType.OCCLUDED_MAP,
+            sensor_range=float("inf"),
+        )
+        s.sense(0)
+        self.assertNotIn(1, s.data["nodes"])
+
+    def test_infinite_range_side_node_still_visible(self):
+        self._add_wall()
+        s = self.ctx.sensor.create_sensor(
+            "occ_inf", gamms.typing.SensorType.OCCLUDED_MAP,
+            sensor_range=float("inf"),
+        )
+        s.sense(0)
+        self.assertIn(2, s.data["nodes"])
+
+    def test_infinite_range_far_node_clear_of_wall(self):
+        # Node 3 is 500 m away along +x.  The wall at x≈5 IS between
+        # node 0 and node 3 — it should occlude node 3 too.
+        self._add_wall()
+        s = self.ctx.sensor.create_sensor(
+            "occ_inf", gamms.typing.SensorType.OCCLUDED_MAP,
+            sensor_range=float("inf"),
+        )
+        s.sense(0)
+        self.assertNotIn(3, s.data["nodes"])
+
+    def test_infinite_range_agent_sensor(self):
+        # OccludedAgentSensor with infinite range — takes the _face_ids_in_range
+        # no-arg branch.
+        self._add_wall()
+        self.ctx.agent.create_agent("hidden",  start_node_id=1)
+        self.ctx.agent.create_agent("visible", start_node_id=2)
+        s = self.ctx.sensor.create_sensor(
+            "occ_agent_inf", gamms.typing.SensorType.OCCLUDED_AGENT,
+            sensor_range=float("inf"),
+        )
+        s.sense(0)
+        self.assertNotIn("hidden",  s.data)
+        self.assertIn("visible", s.data)
+
+
+# ---------------------------------------------------------------------------
+# OccludedAerialAgentSensor
+# ---------------------------------------------------------------------------
+
+class OccludedAerialAgentSensorTest(unittest.TestCase):
+    """
+    Drone observing ground agents through (or not through) the blocking wall.
+    The sensor data format is Dict[str, (AgentType, (x, y, z))].
+    """
+
+    def setUp(self):
+        self.ctx = gamms.create_context(
+            vis_engine=gamms.visual.Engine.NO_VIS,
+            logger_config={"level": "CRITICAL"},
+            graph_engine=gamms.graph.Engine.MEMORY,
+        )
+        g = self.ctx.graph.graph
+        g.add_node({"id": 0, "x":  0.0, "y":  0.0})
+        g.add_node({"id": 1, "x": 10.0, "y":  0.0})   # behind wall
+        g.add_node({"id": 2, "x": 10.0, "y": 10.0})   # clear LOS
+        g.add_edge({"id": 0, "source": 0, "target": 1, "length": 10.0})
+        g.add_edge({"id": 1, "source": 0, "target": 2, "length": 14.14})
+
+    def tearDown(self):
+        self.ctx.terminate()
+
+    def _add_wall(self):
+        for f in _blocking_wall_faces():
+            self.ctx.graph.add_obstacle_face(
+                f["id"], tr=f["tr"], tl=f["tl"], br=f["br"], bl=f["bl"], type=0,
+            )
+
+    def _make_drone(self, name, z):
+        drone = self.ctx.agent.create_agent(
+            name,
+            type=gamms.typing.agent_engine.AgentType.AERIAL,
+            start_node_id=0,
+            speed=5.0,
+        )
+        drone.position = (0.0, 0.0, z)
+        return drone
+
+    def _make_sensor(self, drone_name, label="aerial_agent_occ"):
+        s = self.ctx.sensor.create_sensor(
+            label,
+            gamms.typing.SensorType.OCCLUDED_AERIAL_AGENT,
+            sensor_range=50.0,
+            fov=math.pi,
+        )
+        s.set_owner(drone_name)
+        return s
+
+    def test_no_wall_drone_sees_all_agents(self):
+        self.ctx.agent.create_agent("a1", start_node_id=1)
+        self.ctx.agent.create_agent("a2", start_node_id=2)
+        drone = self._make_drone("drone", z=5.0)
+        s = self._make_sensor(drone.name)
+        s.sense(0)
+        self.assertIn("a1", s.data)
+        self.assertIn("a2", s.data)
+
+    def test_high_drone_sees_agent_behind_wall(self):
+        # At 20 m the ray descends steeply enough to clear the 8 m wall.
+        self._add_wall()
+        self.ctx.agent.create_agent("behind", start_node_id=1)
+        drone = self._make_drone("drone", z=20.0)
+        s = self._make_sensor(drone.name)
+        s.sense(0)
+        self.assertIn("behind", s.data)
+
+    def test_low_drone_loses_agent_behind_wall(self):
+        # At 1 m the sightline is almost horizontal — wall blocks it.
+        self._add_wall()
+        self.ctx.agent.create_agent("behind", start_node_id=1)
+        drone = self._make_drone("drone_low", z=1.0)
+        s = self._make_sensor(drone.name, label="aerial_agent_low")
+        s.sense(0)
+        self.assertNotIn("behind", s.data)
+
+    def test_low_drone_keeps_agent_with_clear_los(self):
+        self._add_wall()
+        self.ctx.agent.create_agent("clear", start_node_id=2)
+        drone = self._make_drone("drone_low2", z=1.0)
+        s = self._make_sensor(drone.name, label="aerial_agent_clear")
+        s.sense(0)
+        self.assertIn("clear", s.data)
+
+    def test_drone_does_not_detect_itself(self):
+        drone = self._make_drone("drone", z=5.0)
+        s = self._make_sensor(drone.name)
+        s.sense(0)
+        self.assertNotIn("drone", s.data)
+
+    def test_data_contains_position_tuple(self):
+        self.ctx.agent.create_agent("a1", start_node_id=2)
+        drone = self._make_drone("drone", z=5.0)
+        s = self._make_sensor(drone.name)
+        s.sense(0)
+        self.assertIn("a1", s.data)
+        atype, pos = s.data["a1"]
+        self.assertEqual(len(pos), 3)
+
+
 def suite():
     s = unittest.TestSuite()
     for cls in (
@@ -535,6 +923,10 @@ def suite():
         QuadBlocksTest,
         QuadBlocksBatchTest,
         OccludedSensorTest,
+        FovOcclusionTest,
+        MultipleWallsTest,
+        InfiniteRangeTest,
+        OccludedAerialAgentSensorTest,
     ):
         s.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(cls))
     return s
