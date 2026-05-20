@@ -10,30 +10,26 @@ from gamms.typing import (
     IAerialAgent,
     IContext,
     Node,
-    OSMEdge,
     SensorType,
 )
 from gamms.SensorEngine.sensors_basic import AgentSensor, MapSensor
 from gamms.SensorEngine.sensors_aerial import AerialAgentSensor, AerialSensor
 
 
-# ---------------------------------------------------------------------------
-# Type aliases
-# ---------------------------------------------------------------------------
-
 Vec3 = Tuple[float, float, float]
-Vec2 = Tuple[float, float]
+
+_FACE_BATCH = 64   # faces processed per numpy kernel call
 
 
 # ---------------------------------------------------------------------------
-# General quadrilateral intersection — Möller-Trumbore
+# Scalar Möller-Trumbore — used by agent sensors (early-exit per agent)
 # ---------------------------------------------------------------------------
 
 def _segment_triangle(
     a: Vec3, b: Vec3,
     v0: Vec3, v1: Vec3, v2: Vec3,
 ) -> bool:
-    """True if segment a→b intersects triangle v0-v1-v2 (Möller-Trumbore)."""
+    """True if segment a→b intersects triangle v0-v1-v2."""
     EPS = 1e-9
     dx, dy, dz = b[0] - a[0], b[1] - a[1], b[2] - a[2]
     e1x = v1[0] - v0[0]; e1y = v1[1] - v0[1]; e1z = v1[2] - v0[2]
@@ -60,13 +56,13 @@ def _segment_triangle(
 
 
 def _quad_blocks(a: Vec3, b: Vec3, face: Any) -> bool:
-    """True if segment a→b is blocked by the ObsFace quad (two-triangle split)."""
+    """True if segment a→b is blocked by the ObsFace quad."""
     tl, tr, br, bl = face.tl, face.tr, face.br, face.bl
     return _segment_triangle(a, b, tl, tr, br) or _segment_triangle(a, b, tl, br, bl)
 
 
 # ---------------------------------------------------------------------------
-# Vectorised quad intersection (numpy) — used by map / aerial node sensors
+# Vectorised kernels — N nodes × 1 face  (kept for tests)
 # ---------------------------------------------------------------------------
 
 def _triangle_blocks_batch(
@@ -76,23 +72,23 @@ def _triangle_blocks_batch(
     v1: np.ndarray,  # (3,)
     v2: np.ndarray,  # (3,)
 ) -> np.ndarray:     # (N,) bool
-    """Vectorised Möller-Trumbore: which of the N segments O→T[i] hit the triangle."""
+    """Which of the N segments O→T[i] hit the triangle."""
     EPS = 1e-9
-    D  = T - O          # (N, 3)
-    e1 = v1 - v0        # (3,)
-    e2 = v2 - v0        # (3,)
-    h  = np.cross(D, e2)         # (N, 3)
-    a  = h @ e1                  # (N,)
+    D  = T - O
+    e1 = v1 - v0
+    e2 = v2 - v0
+    h  = np.cross(D, e2)
+    a  = h @ e1
     valid = np.abs(a) > EPS
     result = np.zeros(len(T), dtype=bool)
     if not valid.any():
         return result
     inv_a = np.where(valid, 1.0 / np.where(valid, a, 1.0), 0.0)
-    s = O - v0                   # (3,)
-    u = inv_a * (h @ s)          # (N,)
-    q = np.cross(s, e1)          # (3,)
-    v = inv_a * (D @ q)          # (N,)
-    t = inv_a * float(np.dot(e2, q))  # (N,)
+    s = O - v0
+    u = inv_a * (h @ s)
+    q = np.cross(s, e1)
+    v = inv_a * (D @ q)
+    t = inv_a * float(np.dot(e2, q))
     return valid & (u >= 0.0) & (u <= 1.0) & (v >= 0.0) & (u + v <= 1.0) & (t >= 0.0) & (t <= 1.0)
 
 
@@ -116,6 +112,52 @@ def _quad_blocks_batch(
 
 
 # ---------------------------------------------------------------------------
+# Vectorised kernel — F faces × N nodes  (map/aerial sensor batch path)
+# ---------------------------------------------------------------------------
+
+def _tri_block_FN(
+    obs: np.ndarray,      # (3,)
+    targets: np.ndarray,  # (N, 3)
+    v0: np.ndarray,       # (F, 3)
+    v1: np.ndarray,       # (F, 3)
+    v2: np.ndarray,       # (F, 3)
+) -> np.ndarray:          # (F, N) bool
+    """Möller-Trumbore for F triangles against N segments simultaneously."""
+    EPS = 1e-9
+    D  = targets - obs
+    e1 = v1 - v0
+    e2 = v2 - v0
+    h  = np.cross(D[np.newaxis], e2[:, np.newaxis])        # (F, N, 3)
+    a  = np.einsum('fni,fi->fn', h, e1)                    # (F, N)
+    valid = np.abs(a) > EPS
+    inv_a = np.where(valid, 1.0 / np.where(valid, a, 1.0), 0.0)
+    s = obs - v0                                            # (F, 3)
+    u = inv_a * np.einsum('fni,fi->fn', h, s)              # (F, N)
+    q = np.cross(s, e1)                                    # (F, 3)
+    v = inv_a * (D @ q.T).T                                # (F, N)
+    t = inv_a * np.einsum('fi,fi->f', e2, q)[:, np.newaxis]
+    return valid & (u >= 0) & (u <= 1) & (v >= 0) & (u + v <= 1) & (t >= 0) & (t <= 1)
+
+
+def _chunk_blocks(
+    obs: np.ndarray,      # (3,)
+    targets: np.ndarray,  # (N, 3)
+    faces: list,
+) -> np.ndarray:          # (N,) bool
+    """Vectorise a batch of ≤ _FACE_BATCH faces against N targets."""
+    if not faces or len(targets) == 0:
+        return np.zeros(len(targets), dtype=bool)
+    tl = np.array([f.tl for f in faces], dtype=float)
+    tr = np.array([f.tr for f in faces], dtype=float)
+    br = np.array([f.br for f in faces], dtype=float)
+    bl = np.array([f.bl for f in faces], dtype=float)
+    return (
+        _tri_block_FN(obs, targets, tl, tr, br) |
+        _tri_block_FN(obs, targets, tl, br, bl)
+    ).any(axis=0)
+
+
+# ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
 
@@ -136,14 +178,37 @@ def _iter_faces(graph_engine: Any, x: float, y: float, radius: float) -> Iterato
             continue
 
 
-def _face_ids_in_range(graph_engine: Any, x: float, y: float, radius: float) -> List[int]:
-    """Collect face IDs (cheap ints) for repeated per-entity checks."""
-    try:
-        if math.isfinite(radius) and radius >= 0:
-            return list(graph_engine.get_obstacle_faces(radius, x, y))
-        return list(graph_engine.get_obstacle_faces())
-    except (RuntimeError, TypeError):
-        return []
+def _apply_occlusion(
+    obs: np.ndarray,
+    targets: np.ndarray,
+    face_iter: Iterator[Any],
+) -> np.ndarray:
+    """Stream faces in chunks, returning a (N,) visible bool array."""
+    visible = np.ones(len(targets), dtype=bool)
+    chunk: List[Any] = []
+    for face in face_iter:
+        chunk.append(face)
+        if len(chunk) == _FACE_BATCH:
+            idx = np.where(visible)[0]
+            visible[idx[_chunk_blocks(obs, targets[idx], chunk)]] = False
+            chunk.clear()
+            if not visible.any():
+                return visible
+    if chunk:
+        idx = np.where(visible)[0]
+        if len(idx):
+            visible[idx[_chunk_blocks(obs, targets[idx], chunk)]] = False
+    return visible
+
+
+def _filter_data(data: dict, node_ids: list, visible: np.ndarray) -> dict:
+    """Rebuild sensor _data keeping only visible nodes and edges between them."""
+    visible_ids = {node_ids[i] for i, v in enumerate(visible) if v}
+    return {
+        'nodes': {nid: data['nodes'][nid] for nid in visible_ids},
+        'edges': [e for e in data.get('edges', [])
+                  if e.source in visible_ids and e.target in visible_ids],
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -151,12 +216,7 @@ def _face_ids_in_range(graph_engine: Any, x: float, y: float, radius: float) -> 
 # ---------------------------------------------------------------------------
 
 class OccludedMapSensor(MapSensor):
-    """MapSensor that drops nodes/edges occluded by obstacle faces.
-
-    Builds a numpy position array from the initial visible-node set, then
-    streams faces from the graph engine iterator and removes blocked nodes
-    in a vectorised pass per face.  Stops early when the visible set empties.
-    """
+    """MapSensor that drops nodes/edges occluded by obstacle faces."""
 
     def __init__(
         self,
@@ -171,13 +231,6 @@ class OccludedMapSensor(MapSensor):
         super().__init__(ctx, sensor_id, sensor_type, sensor_range, fov, orientation)
         self.observer_height = observer_height
 
-    def _origin(self, current_node: Node) -> Tuple[float, float, float]:
-        if self._owner is not None:
-            agent = self.ctx.agent.get_agent(self._owner)
-            if getattr(agent, "type", None) == AgentType.AERIAL:
-                return cast(IAerialAgent, agent).position
-        return (current_node.x, current_node.y, self.observer_height)
-
     def sense(self, node_id: int) -> None:
         super().sense(node_id)
         nodes: Dict[int, Node] = self._data.get('nodes', {})
@@ -185,38 +238,22 @@ class OccludedMapSensor(MapSensor):
             return
 
         current_node = self.ctx.graph.graph.get_node(node_id)
-        origin = self._origin(current_node)
-        graph_engine = self.ctx.graph
-
-        node_ids = list(nodes.keys())
-        O = np.array(origin, dtype=float)
-        T = np.array(
+        origin: Vec3 = (current_node.x, current_node.y, self.observer_height)
+        node_ids = list(nodes)
+        obs     = np.array(origin, dtype=float)
+        targets = np.array(
             [(nodes[nid].x, nodes[nid].y, self.observer_height) for nid in node_ids],
             dtype=float,
         )
-        visible = np.ones(len(node_ids), dtype=bool)
-
-        for face in _iter_faces(graph_engine, origin[0], origin[1], self.range):
-            idx = np.where(visible)[0]
-            if len(idx) == 0:
-                break
-            newly_blocked = _quad_blocks_batch(O, T[idx], face)
-            visible[idx[newly_blocked]] = False
-
-        visible_ids = {node_ids[i] for i in range(len(node_ids)) if visible[i]}
-        self._data = {
-            'nodes': {nid: nodes[nid] for nid in visible_ids},
-            'edges': [e for e in self._data.get('edges', [])
-                      if e.source in visible_ids and e.target in visible_ids],
-        }
+        visible = _apply_occlusion(
+            obs, targets,
+            _iter_faces(self.ctx.graph, origin[0], origin[1], self.range),
+        )
+        self._data = _filter_data(self._data, node_ids, visible)
 
 
 class OccludedAgentSensor(AgentSensor):
-    """AgentSensor that drops agents hidden behind obstacle faces.
-
-    For each detected agent, iterates faces and breaks on the first hit
-    (no need to enumerate all faces once one blocks).
-    """
+    """AgentSensor that drops agents hidden behind obstacle faces."""
 
     def __init__(
         self,
@@ -232,37 +269,20 @@ class OccludedAgentSensor(AgentSensor):
         super().__init__(ctx, sensor_id, sensor_type, sensor_range, fov, orientation, owner)
         self.observer_height = observer_height
 
-    def _origin(self, current_node: Node) -> Tuple[float, float, float]:
-        if self._owner is not None:
-            agent = self.ctx.agent.get_agent(self._owner)
-            if getattr(agent, "type", None) == AgentType.AERIAL:
-                return cast(IAerialAgent, agent).position
-        return (current_node.x, current_node.y, self.observer_height)
-
     def sense(self, node_id: int) -> None:
         super().sense(node_id)
         if not self._data:
             return
 
         current_node = self.ctx.graph.graph.get_node(node_id)
-        origin = self._origin(current_node)
-        graph_engine = self.ctx.graph
-        face_ids = _face_ids_in_range(graph_engine, origin[0], origin[1], self.range)
+        origin: Vec3 = (current_node.x, current_node.y, self.observer_height)
+        faces  = list(_iter_faces(self.ctx.graph, origin[0], origin[1], self.range))
 
         kept: Dict[str, int] = {}
         for agent_name, agent_node_id in self._data.items():
             agent_node = self.ctx.graph.graph.get_node(agent_node_id)
             target = (agent_node.x, agent_node.y, self.observer_height)
-            occluded = False
-            for fid in face_ids:
-                try:
-                    face = graph_engine.get_obstacle_face(fid)
-                except KeyError:
-                    continue
-                if _quad_blocks(origin, target, face):
-                    occluded = True
-                    break
-            if not occluded:
+            if not any(_quad_blocks(origin, target, f) for f in faces):
                 kept[agent_name] = agent_node_id
         self._data = kept
 
@@ -278,31 +298,18 @@ class OccludedAerialSensor(AerialSensor):
         if not nodes:
             return
 
-        agent = cast(IAerialAgent, self.ctx.agent.get_agent(self._owner))
-        origin = agent.position
-        graph_engine = self.ctx.graph
-
-        node_ids = list(nodes.keys())
-        O = np.array(origin, dtype=float)
-        T = np.array(
+        origin   = cast(IAerialAgent, self.ctx.agent.get_agent(self._owner)).position
+        node_ids = list(nodes)
+        obs      = np.array(origin, dtype=float)
+        targets  = np.array(
             [(nodes[nid].x, nodes[nid].y, 0.0) for nid in node_ids],
             dtype=float,
         )
-        visible = np.ones(len(node_ids), dtype=bool)
-
-        for face in _iter_faces(graph_engine, origin[0], origin[1], self.range):
-            idx = np.where(visible)[0]
-            if len(idx) == 0:
-                break
-            newly_blocked = _quad_blocks_batch(O, T[idx], face)
-            visible[idx[newly_blocked]] = False
-
-        visible_ids = {node_ids[i] for i in range(len(node_ids)) if visible[i]}
-        self._data = {
-            'nodes': {nid: nodes[nid] for nid in visible_ids},
-            'edges': [e for e in self._data.get('edges', [])
-                      if e.source in visible_ids and e.target in visible_ids],
-        }
+        visible = _apply_occlusion(
+            obs, targets,
+            _iter_faces(self.ctx.graph, origin[0], origin[1], self.range),
+        )
+        self._data = _filter_data(self._data, node_ids, visible)
 
 
 class OccludedAerialAgentSensor(AerialAgentSensor):
@@ -315,23 +322,11 @@ class OccludedAerialAgentSensor(AerialAgentSensor):
         if not self._data:
             return
 
-        agent = cast(IAerialAgent, self.ctx.agent.get_agent(self._owner))
-        origin = agent.position
-        graph_engine = self.ctx.graph
-        face_ids = _face_ids_in_range(graph_engine, origin[0], origin[1], self.range)
+        origin = cast(IAerialAgent, self.ctx.agent.get_agent(self._owner)).position
+        faces  = list(_iter_faces(self.ctx.graph, origin[0], origin[1], self.range))
 
         kept: Dict[str, Tuple[AgentType, Tuple[float, float, float]]] = {}
         for name, (atype, pos) in self._data.items():
-            target = (pos[0], pos[1], pos[2])
-            occluded = False
-            for fid in face_ids:
-                try:
-                    face = graph_engine.get_obstacle_face(fid)
-                except KeyError:
-                    continue
-                if _quad_blocks(origin, target, face):
-                    occluded = True
-                    break
-            if not occluded:
+            if not any(_quad_blocks(origin, pos, f) for f in faces):
                 kept[name] = (atype, pos)
         self._data = kept
