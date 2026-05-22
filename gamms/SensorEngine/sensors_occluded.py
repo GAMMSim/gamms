@@ -183,7 +183,7 @@ def _apply_occlusion(
             if not visible.any():
                 return visible
     if idx > 0:
-        visible &= ~_chunk_blocks(obs, targets, chunk[:idx])
+        visible &= ~_chunk_blocks(obs, targets, chunk[:, :idx])
     return visible
 
 
