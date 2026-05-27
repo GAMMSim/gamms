@@ -300,10 +300,10 @@ class IGraphEngine(ABC):
 
         Args:
             face_id (int): Unique identifier for the obstacle face.
-            tr (Tuple[float, float]): Coordinates of the top-right corner of the face.
-            tl (Tuple[float, float]): Coordinates of the top-left corner of the face.
-            br (Tuple[float, float]): Coordinates of the bottom-right corner of the face.
-            bl (Tuple[float, float]): Coordinates of the bottom-left corner of the face.
+            tr (Tuple[float, float, float]): Coordinates of the top-right corner of the face.
+            tl (Tuple[float, float, float]): Coordinates of the top-left corner of the face.
+            br (Tuple[float, float, float]): Coordinates of the bottom-right corner of the face.
+            bl (Tuple[float, float, float]): Coordinates of the bottom-left corner of the face.
             type (int): An integer representing the type/category of the obstacle.
 
         Raises:
