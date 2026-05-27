@@ -380,14 +380,21 @@ class GraphEngine(IGraphEngine):
         bl: Tuple[float, float, float],
         type: int
     ) -> None:
-        self._store.insert_data("obstacle_face", {
-            "id": face_id,
-            "trx": tr[0], "try": tr[1], "trz": tr[2],
-            "brx": br[0], "bry": br[1], "brz": br[2],
-            "tlx": tl[0], "tly": tl[1], "tlz": tl[2],
-            "blx": bl[0], "bly": bl[1], "blz": bl[2],
-            "type": type
-        })
+        try:
+            self._store.insert_data("obstacle_face", {
+                "id": face_id,
+                "trx": tr[0], "try": tr[1], "trz": tr[2],
+                "brx": br[0], "bry": br[1], "brz": br[2],
+                "tlx": tl[0], "tly": tl[1], "tlz": tl[2],
+                "blx": bl[0], "bly": bl[1], "blz": bl[2],
+                "type": type
+            })
+        except ValueError as e:
+            raise ValueError(f"Failed to add obstacle face with ID {face_id}: {e}") from e
+        except KeyError:
+            raise KeyError(f"Obstacle face with ID {face_id} already exists.")
+        except Exception as e:
+            raise ValueError(f"Unexpected error occurred while adding obstacle face with ID {face_id}.") from e
 
     def remove_obstacle_face(self, face_id: int) -> None:
         self._store.delete_data("obstacle_face", face_id)
