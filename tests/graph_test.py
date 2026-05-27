@@ -178,6 +178,59 @@ class GraphTest(unittest.TestCase):
         self.assertIn(1, neighbors)
         self.assertIn(3, neighbors)
     
+    def test_obstacle_face(self):
+        self.ctx.graph.add_obstacle_face(
+            face_id=1,
+            tr=(1.0, 1.0, 0.0),
+            tl=(0.0, 1.0, 0.0),
+            br=(1.0, 0.0, 0.0),
+            bl=(0.0, 0.0, 0.0),
+            type=0
+        )
+
+        with self.assertRaises(KeyError):
+            self.ctx.graph.add_obstacle_face(
+                face_id=1,
+                tr=(1.0, 1.0, 0.0),
+                tl=(0.0, 1.0, 0.0),
+                br=(1.0, 0.0, 0.0),
+                bl=(0.0, 0.0, 0.0),
+                type=0
+            )
+        
+        with self.assertRaises(ValueError):
+            self.ctx.graph.add_obstacle_face(
+                face_id=2,
+                tr=(1.0, 1.0),
+                tl=(0.0, 1.0, 0.0),
+                br=(1.0, 0.0, 0.0),
+                bl=(0.0, 0.0, 0.0),
+                type=-1
+            )
+        
+        with self.assertRaises(KeyError):
+            self.ctx.graph.remove_obstacle_face(2)
+        
+        with self.assertRaises(KeyError):
+            self.ctx.graph.get_obstacle_face(2)
+        
+        self.ctx.graph.get_obstacle_face(1)
+
+        face_ids = list(self.ctx.graph.get_obstacle_faces())
+        self.assertEqual(len(face_ids), 1)
+        self.assertIn(1, face_ids)
+
+        face_ids = list(self.ctx.graph.get_obstacle_faces(d=10, x=0, y=0))
+        self.assertEqual(len(face_ids), 1)
+        self.assertIn(1, face_ids)
+
+        face_ids = list(self.ctx.graph.get_obstacle_faces(d=2.0, x=100, y=100))
+        self.assertEqual(len(face_ids), 0)
+
+        self.ctx.graph.remove_obstacle_face(1)
+        with self.assertRaises(KeyError):
+            self.ctx.graph.get_obstacle_face(1)
+
     def test_attach_network(self):
         with self.assertRaises(ValueError):
             self.ctx.graph.attach_networkx_graph(None)
