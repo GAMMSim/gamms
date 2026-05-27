@@ -212,7 +212,7 @@ class SqliteStore(IStore):
 
     def delete_map(self, map_name: str) -> None:
         if map_name not in self._schemas:
-            raise IndexError(f"Map {map_name!r} does not exist in store {self._name!r}.")
+            raise KeyError(f"Map {map_name!r} does not exist in store {self._name!r}.")
         self._conn.execute(f"DROP TABLE {map_name}")
         del self._schemas[map_name]
 
