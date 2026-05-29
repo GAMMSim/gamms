@@ -142,8 +142,9 @@ class AgentEngineTest(unittest.TestCase):
 
 def suite():
     suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(AgentTest))
-    suite.addTest(unittest.makeSuite(AgentEngineTest))
+    loader = unittest.TestLoader()
+    suite.addTest(loader.loadTestsFromTestCase(AgentTest))
+    suite.addTest(loader.loadTestsFromTestCase(AgentEngineTest))
     return suite
 
 if __name__ == '__main__':
