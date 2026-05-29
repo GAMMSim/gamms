@@ -92,9 +92,6 @@ def main() -> None:
     ctx.visual.add_artist("moving_dot", moving_dot)
 
     while not ctx.is_terminated():
-        if getattr(ctx.visual, "_will_quit", False):
-            break
-
         ctx.visual.simulate()
         moving_dot.data["start"], moving_dot.data["end"] = moving_dot.data["end"], moving_dot.data["start"]
 
