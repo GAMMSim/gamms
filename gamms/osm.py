@@ -3,11 +3,16 @@ try:
 except ImportError:
     raise ImportError('Please install osmnx to use this feature. pip install osmnx')
 
+from geopandas import GeoDataFrame
 import networkx as nx
-from shapely.geometry import LineString, Point
+from shapely.geometry import LineString, Point, Polygon, MultiPolygon
 from enum import Enum
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union, cast
 
 from copy import deepcopy as copy
+
+from .osm_constants import OSM_OBSTACLE_TAGS, HEIGHT_ESTIMATES_TYPES
+
 class OSMType(Enum):
     WALK = 0
     BIKE = 1
@@ -102,11 +107,12 @@ def graph_from_xml(
     resolution: float = 10.0,
     bidirectional: bool = True,
     retain_all: bool = False,
-    tolerance: int = 1e-9,
+    tolerance: float = 1e-9,
 ) -> nx.DiGraph:
     osmg = ox.graph.graph_from_xml(filepath, bidirectional=bidirectional, simplify=False, retain_all=retain_all)
     osmg = ox.project_graph(osmg)
     osmg = ox.consolidate_intersections(osmg, tolerance=tolerance, rebuild_graph=True, dead_ends=True)
+    osmg = cast(nx.MultiDiGraph, osmg)
     return process_osm_graph(osmg, resolution=resolution, bidirectional=bidirectional)
 
 def create_osm_graph(
@@ -116,8 +122,8 @@ def create_osm_graph(
     simplify: bool = True,
     retain_all: bool = False,
     truncate_by_edge: bool = True,
-    custom_filter: str = None,
-    tolerance: int =10.0
+    custom_filter: Optional[str] = None,
+    tolerance: float = 10.0
 ) -> nx.DiGraph:
     resolution = float(resolution)
     osmg = ox.graph_from_place(
@@ -135,5 +141,164 @@ def create_osm_graph(
         bidirectional = True
     else:
         bidirectional = False
-
+    osmg = cast(nx.MultiDiGraph, osmg)
     return process_osm_graph(osmg, resolution=resolution, bidirectional=bidirectional)    
+
+def extract_osm_polygon_faces(
+    gdf: GeoDataFrame,
+    height_estimates: Dict[Tuple[str, str], Tuple[float, int]] = HEIGHT_ESTIMATES_TYPES,
+    min_tolerance: float = 0.5,
+    relative_tolerance: float = 0.01,
+) -> Iterator[Dict[str, Union[int, Tuple[float, float, float]]]]:
+    """Extract polygon records from a GeoDataFrame of OSM features.
+
+    Each record is a dict with ``id``, ``coords``, ``height``, ``base``,
+    ``category``, and ``attributes``. Heights are resolved from common OSM
+    tags (``height``, ``building:levels``) and fall back to estimates based on
+    the feature's tags and the provided mapping.
+
+    Args:
+        gdf: GeoDataFrame containing OSM features, typically obtained via
+            :func:`osmnx.features_from_place` or similar.
+        height_estimates: Mapping of (key, value) tag pairs to (height, type_code)
+            tuples used as fallbacks when explicit height data is missing.
+        min_tolerance: Minimum tolerance for the polygon's simplification.
+        relative_tolerance: Relative tolerance fraction for the polygon's simplification.
+            Fraction is based on polygon's length, so larger polygons get more aggressive simplification.
+
+    Yields:
+            Dict with keys:
+                face_id: int,
+                tr: Tuple[float, float, float],
+                tl: Tuple[float, float, float],
+                br: Tuple[float, float, float],
+                bl: Tuple[float, float, float],
+                type: int,
+    """
+    # Filter all non-polygon features
+    gdf = gdf[gdf.geometry.type.isin(["Polygon", "MultiPolygon"])]
+    # Add types in height_estimates as a new column for easier filtering
+    # If not applicable, set to NaN
+    gdf["type"] = None
+    gdf['height_estimate'] = None
+    for key, value in height_estimates.keys():
+        try:
+            mask = (gdf[key] == value)
+            gdf.loc[mask, "type"] = height_estimates[(key, value)][1]
+            gdf.loc[mask, "height_estimate"] = height_estimates[(key, value)][0]
+        except KeyError:
+            continue
+    
+    # Filter to only features with a type
+    gdf = gdf[gdf["type"].notna()]
+
+    if 'height' in gdf.columns:
+        # height -> meters
+        gdf["height"] = (
+            gdf["height"]
+            .astype(str)
+            .str.lower()
+            .str.strip()
+        )
+
+        height_ft_mask = gdf["height"].str.contains("ft|feet", na=False)
+
+        gdf["height"] = (
+            gdf["height"]
+            .str.extract(r"([-+]?\d*\.?\d+)")[0]
+            .astype(float)
+        )
+
+        gdf.loc[height_ft_mask, "height"] *= 0.3048
+    else:
+        gdf["height"] = float('nan')
+
+
+    if 'building:levels' in gdf.columns:
+    # building:levels -> numeric
+        gdf["building:levels"] = (
+            gdf["building:levels"]
+            .astype(str)
+            .str.extract(r"([-+]?\d*\.?\d+)")[0]
+            .astype(float)
+        )
+    else:
+        gdf["building:levels"] = float('nan')
+
+    # priority:
+    # height > building:levels * 3 > existing height_estimate
+    gdf["height_estimate"] = (
+        gdf["height"]
+        .fillna(gdf["building:levels"] * 3.0)
+        .fillna(gdf["height_estimate"])
+    )
+    next_id = 0
+    for _, row in gdf.iterrows():
+        geom = row.geometry
+        type_code = row["type"]
+        height = row["height_estimate"]
+        if isinstance(geom, MultiPolygon):
+            polygons = geom.geoms
+        else:
+            polygons = [geom]
+        for polygon in polygons:
+            # Simplify the polygon to reduce complexity, but ensure it remains valid and doesn't collapse
+            tolerance = max(min_tolerance, relative_tolerance * polygon.length)
+            simplified = polygon.simplify(tolerance, preserve_topology=True)
+            if not simplified.is_valid or simplified.is_empty:
+                continue
+            # Convert the simplified polygon into boundary linesegments and extract the corners
+            coords = tuple(simplified.exterior.coords)
+            coord_len = len(coords)
+            if coord_len < 3:
+                continue
+            for i in range(coord_len-1):
+                yield {
+                    "face_id": next_id,
+                    "tr": (coords[i][0], coords[i][1], height),
+                    "tl": (coords[i+1][0], coords[i+1][1], height),
+                    "br": (coords[i][0], coords[i][1], 0.0),
+                    "bl": (coords[i+1][0], coords[i+1][1], 0.0),
+                    "type": type_code,
+                }
+                next_id += 1
+
+def obstacle_from_osm(
+    location: str,
+    tags: Dict[str, List[str]] = OSM_OBSTACLE_TAGS,
+    height_estimates: Dict[Tuple[str, str], Tuple[float, int]] = HEIGHT_ESTIMATES_TYPES,
+    min_tolerance: float = 0.5,
+    relative_tolerance: float = 0.01,
+) -> Iterator[Dict[str, Union[int, Tuple[float, float, float]]]]:
+    gdf = ox.features_from_place(
+        location,
+        tags=tags,
+    )
+    gdf = ox.projection.project_gdf(gdf)
+    return extract_osm_polygon_faces(
+        gdf,
+        height_estimates=height_estimates,
+        min_tolerance=min_tolerance,
+        relative_tolerance=relative_tolerance
+    )
+
+def obstacle_from_xml(
+    filepath: str,
+    tags: Dict[str, List[str]] = OSM_OBSTACLE_TAGS,
+    height_estimates: Dict[Tuple[str, str], Tuple[float, int]] = HEIGHT_ESTIMATES_TYPES,
+    min_tolerance: float = 0.5,
+    relative_tolerance: float = 0.01,
+) -> Iterator[Dict[str, Union[int, Tuple[float, float, float]]]]:
+    gdf = ox.features_from_xml(
+        filepath,
+        tags=tags,
+    )
+    gdf = ox.projection.project_gdf(gdf)
+    return extract_osm_polygon_faces(
+        gdf,
+        height_estimates=height_estimates,
+        min_tolerance=min_tolerance,
+        relative_tolerance=relative_tolerance
+    )
+
+__all__ = ["create_osm_graph", "graph_from_xml", "obstacle_from_osm", "obstacle_from_xml", "OSMType"]

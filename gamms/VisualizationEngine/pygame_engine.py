@@ -10,11 +10,11 @@ from gamms.VisualizationEngine import (
 from gamms.VisualizationEngine.render_manager import RenderManager
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
 from gamms.VisualizationEngine.default_drawers import (
-    render_circle, render_rectangle,
     render_agent, render_graph, render_neighbor_sensor,
     render_map_sensor, render_agent_sensor, render_input_overlay,
-    render_aerial_agent_sensor,
+    render_aerial_agent_sensor, render_obstacles
 )
+from ..osm_constants import COLOR_TYPES
 from gamms.typing import (
     IVisualizationEngine,
     IArtist,
@@ -28,7 +28,6 @@ from gamms.typing import (
 from typing import Dict, Any, List, NamedTuple, Tuple, Union, cast, Optional, Iterator, Set
 from pathlib import Path
 import math
-
 
 class _LayerCache(NamedTuple):
     surface: Any
@@ -110,6 +109,22 @@ class PygameVisualizationEngine(IVisualizationEngine):
         self.add_artist('graph', artist)
 
         return artist
+    
+    def set_obstacle_visual(self, **kwargs: Dict[str, Any]) -> IArtist:
+        boundary_thickness = cast(float, kwargs.get('boundary_thickness', 1.0))
+        color_code = cast(Dict[int, ColorType], {k:tuple(int(color[i:i+2], 16) for i in (1, 3, 5)) for k, color in COLOR_TYPES.items()})
+        color_code.update(
+            cast(Dict[int, ColorType], kwargs.get('color_map', {}))
+        )
+
+        artist = Artist(self.ctx, render_obstacles, 5)
+        artist.data['boundary_thickness'] = boundary_thickness
+        artist.data['color_map'] = color_code
+        artist.set_artist_type(ArtistType.STATIC)
+
+        self.add_artist('obstacles', artist)
+
+        return artist
 
     def _set_input_overlay_artist(self, args: Dict[str, Any]) -> IArtist:
         graph_data = GraphData(node_color = args.get('node_color', Color.Green),
@@ -170,15 +185,17 @@ class PygameVisualizationEngine(IVisualizationEngine):
             drawer = render_neighbor_sensor
             data['color'] = kwargs.pop('color', Color.Cyan)
             data['size'] = kwargs.pop('size', 8)
-        elif sensor_type in (SensorType.MAP, SensorType.RANGE, SensorType.ARC, SensorType.AERIAL):
+        elif sensor_type in (SensorType.MAP, SensorType.RANGE, SensorType.ARC, SensorType.AERIAL,
+                              SensorType.OCCLUDED_MAP, SensorType.OCCLUDED_AERIAL):
             drawer = render_map_sensor
             data['node_color'] = kwargs.pop('node_color', Color.Cyan)
             data['edge_color'] = kwargs.pop('edge_color', Color.Cyan)
-        elif sensor_type in (SensorType.AGENT, SensorType.AGENT_RANGE, SensorType.AGENT_ARC):
+        elif sensor_type in (SensorType.AGENT, SensorType.AGENT_RANGE, SensorType.AGENT_ARC,
+                              SensorType.OCCLUDED_AGENT):
             drawer = render_agent_sensor
             data['color'] = kwargs.pop('color', Color.Cyan)
             data['size'] = kwargs.pop('size', 8)
-        elif sensor_type == SensorType.AERIAL_AGENT:
+        elif sensor_type in (SensorType.AERIAL_AGENT, SensorType.OCCLUDED_AERIAL_AGENT):
             drawer = render_aerial_agent_sensor
             data['color'] = kwargs.pop('color', Color.Cyan)
             data['size'] = kwargs.pop('size', 8)

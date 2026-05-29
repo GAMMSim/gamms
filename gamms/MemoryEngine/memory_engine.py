@@ -1,30 +1,58 @@
-from gamms.typing.memory_engine import IMemoryEngine, StoreType
-from gamms.MemoryEngine.store import Store, PathLike
-import os
-from typing import Any, List
+from typing import Dict, Iterator, Optional
+
+from gamms.typing.memory_engine import IMemoryEngine, IPathLike, IStore, StoreType
+from gamms.MemoryEngine.store import MemoryStore, PathLike, SqliteStore
+
 
 class MemoryEngine(IMemoryEngine):
+    """Default :class:`IMemoryEngine` implementation.
+
+    Owns a registry of stores, each of which carries its own backend.
+    """
+
     def __init__(self) -> None:
-            self.stores = {}
+        self._stores: Dict[str, IStore] = {}
 
-    def create_store(self, store_type: StoreType, name: str, path: PathLike, obj: Any) -> 'Store':
-        if name in self.stores:
-            raise ValueError(f"Store with name '{name}' already exists.")
-        
-        new_store = Store(name, store_type, path)
-        new_store.save(obj)
-        self.stores[name] = new_store
-        return new_store
+    @staticmethod
+    def _build_store(
+        store_type: StoreType,
+        name: str,
+        path: Optional[IPathLike],
+    ) -> IStore:
+        if store_type == StoreType.MEMORY:
+            return MemoryStore(name, path)  # type: ignore[arg-type]
+        if store_type == StoreType.DATABASE:
+            if path is None:
+                raise ValueError("DATABASE store requires a path.")
+            return SqliteStore(name, path)  # type: ignore[arg-type]
+        if store_type == StoreType.FILESYSTEM:
+            raise NotImplementedError("FILESYSTEM store type is not implemented yet.")
+        raise ValueError(f"Unsupported store type: {store_type}")
+
+    def create_store(
+        self,
+        store_type: StoreType,
+        name: str,
+        path: Optional[IPathLike] = None,
+    ) -> IStore:
+        if name in self._stores:
+            raise ValueError(f"Store with name {name!r} already exists.")
+        store = self._build_store(store_type, name, path)
+        self._stores[name] = store
+        return store
+
+    def get_store(self, name: str) -> IStore:
+        if name not in self._stores:
+            raise KeyError(f"Store with name {name!r} does not exist.")
+        return self._stores[name]
+
+    def list_stores(self) -> Iterator[str]:
+        return iter(self._stores.keys())
+
+    def terminate(self) -> None:
+        for store in self._stores.values():
+            store.close()
+        self._stores.clear()
 
 
-    def list_store(self) -> List[str]:
-        return list(self.stores.keys)
-
-    def load_store(self, name: str) -> Any:
-        if name not in self.stores:
-            raise ValueError(f"Store with name '{name}' does not exist.")
-        
-        return self.stores[name].load()
-    
-    def terminate(self):
-         return
+__all__ = ["MemoryEngine", "MemoryStore", "SqliteStore", "PathLike"]

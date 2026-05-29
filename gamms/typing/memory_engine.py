@@ -1,150 +1,251 @@
 from abc import ABC, abstractmethod
-from typing import Any, List
-from enum import Enum
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Type, Mapping
+from enum import IntEnum
+
+
+class StoreType(IntEnum):
+    """
+    Enumeration of supported store backends.
+
+    Attributes:
+        MEMORY: Pure in-memory store backed by Python dictionaries.
+        FILESYSTEM: Filesystem-backed store (kept for compatibility with the
+            previous artefact-style API). Not used by the structured
+            map/table backends.
+        DATABASE: SQLite-backed store with on-disk persistence.
+    """
+    MEMORY = 0
+    FILESYSTEM = 1
+    DATABASE = 2
 
 
 class IPathLike(ABC):
     """
     Abstract base class representing a path-like object.
 
-    This interface defines the structure for objects that behave like filesystem paths.
-    It can be extended to support various path representations and operations.
+    PathLike objects are used to identify the on-disk (or remote) location of a
+    store. Implementations should normalise the path so that absolute paths
+    can be converted to a representation appropriate for the backend.
     """
-    pass
+
+    @abstractmethod
+    def as_str(self) -> str:
+        """
+        Return the path as a string.
+        """
+        pass
+
+    @abstractmethod
+    def exists(self) -> bool:
+        """
+        Return True if the path exists on the underlying medium.
+        """
+        pass
 
 
 class IStore(ABC):
     """
-    Abstract base class representing a generic storage mechanism.
+    Abstract base class representing a structured storage instance.
 
-    The store provides methods to save, load, and delete objects, facilitating
-    persistent storage and retrieval of data.
+    Primarily this is so that there is an abstraction over storage type
+    Based on individual implementations, there can be a variety in implementation
+
+    The objective is that there are multiple places where basic storage operations are needed
+    but want it to be agnostic to the underlying storage implementation. The base API is not
+    supposed to be optimal way to access it.
     """
 
     @abstractmethod
-    def save(self, obj: Any) -> None:
-        """
-        Save an object to the storage.
-
-        This method persists the provided object to the underlying storage medium.
-
-        Args:
-            obj (Any): The object to be saved. It can be of any type that the store supports.
-
-        Raises:
-            IOError: If an error occurs during the save operation.
-            ValueError: If the object is invalid or cannot be serialized.
-        """
+    def name(self) -> str:
+        """The unique name of this store."""
         pass
 
     @abstractmethod
-    def load(self) -> Any:
+    def path(self) -> Optional[IPathLike]:
         """
-        Load and retrieve an object from the storage.
-
-        This method fetches the stored object from the underlying storage medium.
+        The path associated with this store, if applicable.
 
         Returns:
-            Any: The retrieved object. The type depends on what was originally saved.
+            An IPathLike object if the store has an associated path, or None if the store is purely in-memory.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def type(self) -> StoreType:
+        """The backend type of this store."""
+        pass
+
+    @abstractmethod
+    def create_map(self, map_name: str, schema: Dict[str, Type], primary_key: str) -> None:
+        """
+        Create a new key/value map within the store.
+
+        Args:
+            map_name: Unique name of the map within this store.
+            schema: Defines the schema for the map.
+            primary_key: The key to use as the primary key for the map. It needs to be unique within the map.
 
         Raises:
-            IOError: If an error occurs during the load operation.
-            FileNotFoundError: If there is no object to load.
-            ValueError: If the stored data is corrupted or cannot be deserialized.
+            ValueError: If a map with the given name already exists.
+            TypeError: If there is unsupported strutures in the schema.
+            IndexError: If the primary key is not found in the schema or is not indexable
         """
         pass
 
     @abstractmethod
-    def delete(self) -> None:
+    def delete_map(self, map_name: str) -> None:
         """
-        Delete the stored object from the storage.
+        Delete a map from the store.
 
-        This method removes the persisted object from the underlying storage medium.
+        Args:
+            map_name: Name of the map to delete.
 
         Raises:
-            IOError: If an error occurs during the delete operation.
-            FileNotFoundError: If there is no object to delete.
+            KeyError: If the map does not exist.
         """
+        pass
+
+    @abstractmethod
+    def list_maps(self) -> List[str]:
+        """Return the names of all maps currently in the store."""
+        pass
+
+    @abstractmethod
+    def insert_data(self, map_name: str, struct: Dict[str, Any]) -> None:
+        """
+        Insert a key/value pair into a map.
+
+        Args:
+            map_name: Name of the target map.
+            struct: A dictionary containing the key-value pairs to insert.
+
+        Raises:
+            IndexError: If the map does not exist.
+            KeyError: If there is an issue with the primary key.
+            ValueError: If there is an issue with struct insertion
+        """
+        pass
+
+    @abstractmethod
+    def get_data(self, map_name: str, key: Any) -> Mapping[str, Any]:
+        """
+        Retrieve the value associated with the key
+
+        Args:
+            map_name: Name of the target map.
+            key: The key for which to retrieve the value.
+
+        Raises:
+            IndexError: If the map does not exist.
+            KeyError: If the key is not found in the map.
+        """
+        pass
+
+    @abstractmethod
+    def update_data(self, map_name: str, struct: Dict[str, Any]) -> None:
+        """
+        Update an entry in the map
+
+        Args:
+            map_name: Name of the target map.
+            struct: A dictionary containing the key-value pairs to update.
+
+        Raises:
+            IndexError: If the map does not exist.
+            KeyError: If there is an issue with the primary key.
+            ValueError: If there is an issue with struct update
+        """
+        pass
+
+    @abstractmethod
+    def delete_data(self, map_name: str, key: Any) -> None:
+        """
+        Delete a key from a map
+
+        Args:
+            map_name: Name of the target map.
+            key: The key to delete.
+
+        Raises:
+            IndexError: If the map does not exist.
+            KeyError: If the key is not found in the map.
+        """
+        pass
+
+    @abstractmethod
+    def query_keys(self, map_name: str) -> Iterator[Any]:
+        """
+        Query all keys in a map.
+
+        Args:
+            map_name: Name of the target map.
+
+        Raises:
+            IndexError: If the map does not exist.
+        """
+        pass
+
+    @abstractmethod
+    def close(self) -> None:
+        """Release any resources held by the store."""
         pass
 
 
 class IMemoryEngine(ABC):
     """
-    Abstract base class representing a memory engine for managing stores.
+    Abstract base class for the memory engine.
 
-    The memory engine is responsible for creating, listing, loading, and terminating
-    storage stores. It acts as a manager that oversees various storage instances.
+    The memory engine is a low level abstraction over different storage
+    backends. It owns a collection of named stores; each store is itself a
+    keyed collection of typed maps.
     """
 
     @abstractmethod
-    def create_store(self, store_type: Enum, name: str, path: IPathLike) -> IStore:
+    def create_store(
+        self,
+        store_type: StoreType,
+        name: str,
+        path: Optional[IPathLike] = None,
+    ) -> IStore:
         """
-        Create a new store within the memory engine.
-
-        This method initializes a new storage instance based on the specified type,
-        assigns it a name, and associates it with a path-like object.
+        Create a new store and register it with the engine.
 
         Args:
-            store_type (Enum): An enumeration specifying the type of store to create.
-                This could represent different storage backends or configurations.
-            name (str): The unique name identifier for the store.
-            path (IPathLike): A path-like object specifying where the store's data
-                should be located or managed.
+            store_type: Backend type for the new store.
+            name: Unique store name.
+            path: Optional path for backends that require persistence.
 
         Returns:
             IStore: The newly created store instance.
 
         Raises:
-            ValueError: If the provided store_type is unsupported or invalid.
-            FileExistsError: If a store with the given name already exists.
-            IOError: If there is an issue creating the store at the specified path.
+            ValueError: If a store with the same name already exists, or if
+                the requested ``store_type`` is unsupported.
         """
         pass
 
     @abstractmethod
-    def list_stores(self) -> List[str]:
+    def get_store(self, name: str) -> IStore:
         """
-        List all store names managed by the memory engine.
-
-        This method retrieves the names of all existing stores within the engine.
-
-        Returns:
-            List[str]: A list of store names currently managed by the engine.
-
-        Raises:
-            RuntimeError: If the memory engine is not properly initialized.
-        """
-        pass
-
-    @abstractmethod
-    def load_store(self, name: str) -> IStore:
-        """
-        Load an existing store by its name.
-
-        This method retrieves a store instance based on its unique name identifier.
+        Retrieve an existing store.
 
         Args:
-            name (str): The unique name identifier of the store to load.
-
-        Returns:
-            IStore: The loaded store instance.
+            name: Unique name of the store.
 
         Raises:
             KeyError: If no store with the specified name exists.
-            IOError: If there is an issue accessing the store's data.
+        """
+        pass
+
+    @abstractmethod
+    def list_stores(self) -> Iterator[str]:
+        """
+        Return the names of all stores.
         """
         pass
 
     @abstractmethod
     def terminate(self) -> None:
-        """
-        Terminate the memory engine and perform necessary cleanup operations.
-
-        This method ensures that all stores are properly closed and that any
-        allocated resources are released. It prepares the engine for shutdown.
-
-        Raises:
-            RuntimeError: If the engine fails to terminate gracefully.
-            IOError: If there are issues during the cleanup process.
-        """
+        """Tear down the memory engine and release all store resources."""
         pass
