@@ -49,6 +49,7 @@ def lazy(fullname: str):
     module = importlib.util.module_from_spec(spec)
     loader = importlib.util.LazyLoader(spec.loader)
     # Make module with proper locking and get it inserted into sys.modules.
+    sys.modules[fullname] = module
     loader.exec_module(module)
     return module
 

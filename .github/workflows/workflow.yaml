@@ -24,13 +24,14 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
+          python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
       - name: Build release distributions
         run: |
           # NOTE: put your own distribution build steps here.
           python -m pip install build
           python -m build
+          for file in tests/*_test.py; do python "$file"; done
 
       - name: Upload distributions
         uses: actions/upload-artifact@v4
