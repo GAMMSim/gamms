@@ -1,14 +1,4 @@
-"""Minimal example of a non-agent dynamic artist moving between two fixed points.
-
-The example follows the same pattern as the other repo examples:
-set up a context, add artists, mutate artist data in a loop, and hand
-control to the visual engine with `ctx.visual.simulate()`.
-
-The moving dot reads the engine-provided `_alpha` value, so it does not
-depend on any private timing state from the visual engine.
-"""
-
-from __future__ import annotations
+"""Minimal example of a non-agent dynamic artist moving between two fixed points."""
 
 import gamms
 from gamms.VisualizationEngine import Color, Shape
