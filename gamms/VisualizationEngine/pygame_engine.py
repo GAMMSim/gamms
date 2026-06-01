@@ -322,8 +322,8 @@ class PygameVisualizationEngine(IVisualizationEngine):
                 self._simulation_time += self._clock.get_time() / 1000
                 alpha = self._simulation_time / self._sim_time_constant
                 alpha = self._pygame.math.clamp(alpha, 0, 1)
-                for agent_artist in self._iter_agent_artists():
-                    agent_artist.data['_alpha'] = alpha
+                for artist in self._dynamic_artists.values():
+                    artist.data['_alpha'] = alpha
 
     def handle_single_draw(self):
         self._screen.fill(Color.White)
@@ -532,8 +532,9 @@ class PygameVisualizationEngine(IVisualizationEngine):
     def _toggle_waiting_simulation(self, waiting_simulation: bool):
         self._waiting_simulation = waiting_simulation
         for agent_artist in self._iter_agent_artists():
-            agent_artist.data['_alpha'] = 0.0
             agent_artist.data['_waiting_simulation'] = waiting_simulation
+        for artist in self._dynamic_artists.values():
+            artist.data['_alpha'] = 0.0
 
     def _toggle_waiting_user_input(self, waiting_user_input: bool):
         self._waiting_user_input = waiting_user_input
