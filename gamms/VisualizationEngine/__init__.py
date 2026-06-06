@@ -39,23 +39,24 @@ CACHE_ZOOM_MAX = 1.2
 
 
 import sys
-import importlib.util
+import importlib
 
-def lazy(fullname: str):
-  try:
-    return sys.modules[fullname]
-  except KeyError:
-    spec = importlib.util.find_spec(fullname)
-    module = importlib.util.module_from_spec(spec)
-    loader = importlib.util.LazyLoader(spec.loader)
-    # Make module with proper locking and get it inserted into sys.modules.
-    try:
-        # Issues with newer versions of Python
-        sys.modules[fullname] = module
-    except:
-       pass
-    loader.exec_module(module)
-    return module
+def lazy(name: str):
+    import importlib
+    module = None
+
+    class _Lazy:
+        def _load(self):
+            nonlocal module
+            if module is None:
+                module = importlib.import_module(name)
+                self.__dict__.update(module.__dict__)
+
+        def __getattr__(self, attr):
+            self._load()
+            return getattr(module, attr)
+
+    return _Lazy()
 
 from .artist import Artist, RenderMode
 from .no_engine import NoEngine
