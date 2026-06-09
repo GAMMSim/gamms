@@ -3,9 +3,8 @@ from abc import ABC, abstractmethod
 from enum import Enum, auto
 
 class ArtistType(Enum):
-    GENERAL = auto()
-    AGENT = auto()
-    GRAPH = auto()
+    STATIC = auto()
+    DYNAMIC = auto()
 
 
 class IArtist(ABC):
@@ -75,26 +74,6 @@ class IArtist(ABC):
 
         Returns:
             Optional[Callable[[IContext, Dict[str, Any]], None]]: The current drawer function, or None if not set.
-        """
-        pass
-
-    @abstractmethod
-    def get_will_draw(self) -> bool:
-        """
-        Get whether the artist will draw.
-
-        Returns:
-            bool: True if the artist will draw, False otherwise.
-        """
-        pass
-
-    @abstractmethod
-    def set_will_draw(self, will_draw: bool) -> None:
-        """
-        Set whether the artist will draw.
-
-        Args:
-            will_draw (bool): The will_draw state to set.
         """
         pass
 

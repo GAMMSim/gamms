@@ -40,6 +40,10 @@ class SensorType(Enum):
     AGENT_ARC = 7
     AERIAL = 8
     AERIAL_AGENT = 9
+    OCCLUDED_MAP = 10
+    OCCLUDED_AGENT = 11
+    OCCLUDED_AERIAL = 12
+    OCCLUDED_AERIAL_AGENT = 13
 
 
 class ISensor(ABC):

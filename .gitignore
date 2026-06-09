@@ -170,3 +170,8 @@ cython_debug/
 
 # Profile files
 *.prof
+
+# OS files
+.DS_Store
+
+.claude/

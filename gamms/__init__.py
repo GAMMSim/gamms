@@ -2,8 +2,10 @@ import gamms.AgentEngine.agent_engine as agent
 import gamms.SensorEngine.sensor_engine as sensor
 import gamms.GraphEngine.graph_engine as graph
 import gamms.VisualizationEngine as visual
+import gamms.MemoryEngine as memory
 from gamms.Recorder.recorder import Recorder
 from gamms.context import Context
+from gamms.internal_context import InternalContext
 from enum import Enum
 
 from gamms.typing import logger
@@ -34,6 +36,12 @@ def create_context(
     
     agent_engine = agent.AgentEngine(ctx)
     sensor_engine = sensor.SensorEngine(ctx)
+    memory_engine = memory.MemoryEngine()
+    ctx.internal_context = InternalContext(
+        compute_engine=None,
+        memory_engine=memory_engine,
+        message_engine=None,
+    )
     ctx.agent_engine = agent_engine
     ctx.graph_engine = graph.GraphEngine(ctx, engine=graph_engine)
     ctx.visual_engine = visual_engine
@@ -61,4 +69,4 @@ def create_context(
     ctx.set_alive()
     return ctx
 
-__version__ = "0.2.7"
+__version__ = "1.0.0"

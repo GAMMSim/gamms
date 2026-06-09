@@ -41,6 +41,25 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
+    def set_obstacle_visual(self, **kwargs: Dict[str, Any]) -> IArtist:
+        """
+        Configure the visual representation of obstacles in the graph.
+        This method sets up visual parameters for obstacles, allowing customization
+        of how they are displayed within the visualization.
+
+        Args:
+            **kwargs: Arbitrary keyword arguments representing visual settings for obstacles.
+                Possible keys include:
+                - `color_map` (Dict[int, ColorType]): A mapping of obstacle types to their corresponding colors.
+                - `boundary_thickness` (float): The thickness of the obstacle boundaries in the visualization.
+                - Additional visual parameters specific to obstacles as needed.
+        Raises:
+            ValueError: If any of the provided visual settings are invalid.
+            TypeError: If the types of the provided settings do not match expected types.
+        """
+        pass
+
+    @abstractmethod
     def set_agent_visual(self, name: str, **kwargs: Dict[str, Any]) -> IArtist:
         """
         Configure the visual representation of a specific agent.
@@ -55,6 +74,7 @@ class IVisualizationEngine(ABC):
                 - `color` (str): The color to represent the agent.
                 - `shape` (str): The shape to use for the agent's representation.
                 - `size` (float): The size of the agent in the visualization.
+                - `image_path` (str): The file path to an image representing the agent.
         """
         pass
 
@@ -171,7 +191,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_circle(self, x: float, y: float, radius: float, color: Tuple[Union[int, float], Union[int, float], Union[int, float]], width: int, perform_culling_test: bool):
+    def render_circle(self, x: float, y: float, radius: float, color: ColorType, width: int, perform_culling_test: bool):
         """
         Render a circle shape at the specified position with the given radius and color.
 
@@ -186,7 +206,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_rectangle(self, x: float, y: float, width: float, height: float, color: Tuple[Union[int, float], Union[int, float], Union[int, float]], perform_culling_test: bool):
+    def render_rectangle(self, x: float, y: float, width: float, height: float, color: ColorType, perform_culling_test: bool):
         """
         Render a rectangle shape at the specified position with the given dimensions and color.
 
@@ -201,7 +221,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: Tuple[Union[int, float], Union[int, float], Union[int, float]], width: int, is_aa: bool, perform_culling_test: bool):
+    def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color: ColorType, width: int, is_aa: bool, perform_culling_test: bool):
         """
         Render a line segment between two points with the specified color and width.
 
@@ -218,7 +238,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_linestring(self, points: List[Tuple[float, float]], color: Tuple[Union[int, float], Union[int, float], Union[int, float]], width: int, closed: bool, is_aa: bool, perform_culling_test: bool):
+    def render_linestring(self, points: List[Tuple[float, float]], color: ColorType, width: int, closed: bool, is_aa: bool, perform_culling_test: bool):
         """
         Render a series of connected line segments between multiple points.
 
@@ -233,7 +253,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_polygon(self, points: List[Tuple[float, float]], color: Tuple[Union[int, float], Union[int, float], Union[int, float]], width: int,
+    def render_polygon(self, points: List[Tuple[float, float]], color: ColorType, width: int,
                        perform_culling_test: bool):
         """
         Render a polygon shape or outline defined by a list of vertices with the specified color and width.
@@ -247,7 +267,22 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def render_text(self, text: str, x: float, y: float, color: Tuple[Union[int, float], Union[int, float], Union[int, float]], perform_culling_test: bool, font_size: Optional[int]):
+    def render_image(self, x: float, y: float, image: Any, size: float, angle: float, perform_culling_test: bool):
+        """
+        Render an image centered on a world-space position.
+
+        Args:
+            x (float): The x-coordinate of the image center.
+            y (float): The y-coordinate of the image center.
+            image (Any): The loaded image surface.
+            size (float): The image size in world units, treated like an agent radius.
+            angle (float): Rotation angle in radians.
+            perform_culling_test (bool): Whether to cull the image before drawing.
+        """
+        pass
+
+    @abstractmethod
+    def render_text(self, text: str, x: float, y: float, color: ColorType, perform_culling_test: bool, font_size: Optional[int]):
         """
         Render text at the specified position with the given content and color.
 
@@ -268,5 +303,18 @@ class IVisualizationEngine(ABC):
 
         Args:
             layer_id (int): The layer number to render.
+        """
+        pass
+
+    @abstractmethod
+    def get_viewport(self) -> Optional[Tuple[float, float, float, float, float]]:
+        """
+        Return the current viewport as (left, right, top, bottom, scale) in world
+        coordinates, where scale is the pixels-per-world-unit factor at the
+        current camera zoom.
+
+        Returns:
+            Optional[Tuple[float, float, float, float, float]]: (left, right, top,
+            bottom, scale) in world coordinates, or None if there is no valid viewport.
         """
         pass

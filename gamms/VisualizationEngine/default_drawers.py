@@ -1,12 +1,16 @@
 from gamms.AgentEngine.agent_engine import AerialAgent
-from gamms.VisualizationEngine import Color
+from gamms.VisualizationEngine import (
+    Color,
+    SHORT_EDGE_PIXEL_THRESHOLD,
+    SKIP_EDGE_PIXEL_THRESHOLD,
+    SKIP_NODE_PIXEL_THRESHOLD,
+)
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
 from gamms.typing import IContext, OSMEdge, Node, ColorType, AgentType
 
 from typing import Dict, Any, cast, List, Optional
 
 import math
-
 
 def render_circle(ctx: IContext, data: Dict[str, Any]):
     """
@@ -56,6 +60,7 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
 
     agent = ctx.agent.get_agent(agent_data.name)
     waiting_simulation = data.get('_waiting_simulation', False)
+    image = agent_data.image
 
     if agent.type == AgentType.BASIC:
         target_node = ctx.graph.graph.get_node(agent.current_node_id)
@@ -63,23 +68,63 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
             prev_node = ctx.graph.graph.get_node(agent.prev_node_id)
             prev_position = (prev_node.x, prev_node.y)
             target_position = (target_node.x, target_node.y)
-            current_edge = None
-            for edge_id in ctx.graph.graph.get_edges():
-                edge = ctx.graph.graph.get_edge(edge_id)
-                if edge.source == agent.prev_node_id and edge.target == agent.current_node_id:
-                    current_edge = edge
-
             alpha = cast(float, data.get('_alpha'))
-            if current_edge is not None:
-                point = current_edge.linestring.interpolate(alpha, True)
-                position = (point.x, point.y)
-            else:
-                position = (prev_position[0] + alpha * (target_position[0] - prev_position[0]),
-                            prev_position[1] + alpha * (target_position[1] - prev_position[1]))
 
-            agent_data.current_position = position
+            viewport = ctx.visual.get_viewport()
+            if viewport is None:
+                return
+            
+            _, _, _, _, scale = viewport
+            dx = target_position[0] - prev_position[0]
+            dy = target_position[1] - prev_position[1]
+            d_sq = dx * dx + dy * dy
+            short_sq = _pixel_thresh_sq(SHORT_EDGE_PIXEL_THRESHOLD, scale)
+            skip_sq = _pixel_thresh_sq(SKIP_EDGE_PIXEL_THRESHOLD, scale)
+
+            if skip_sq > 0.0 and d_sq <= skip_sq:
+                position = ((1 - alpha) * prev_position[0] + alpha * target_position[0],
+                            (1 - alpha) * prev_position[1] + alpha * target_position[1])
+            elif short_sq > 0.0 and d_sq <= short_sq:
+                position = ((1 - alpha) * prev_position[0] + alpha * target_position[0],
+                            (1 - alpha) * prev_position[1] + alpha * target_position[1])
+            else:
+                current_edge = None
+                cache_key = (agent.prev_node_id, agent.current_node_id)
+                cached_edge_entry = data.get('_current_edge_cache')
+                if cached_edge_entry is not None:
+                    cached_edge_key, cached_edge = cached_edge_entry
+                    if cached_edge_key == cache_key:
+                        current_edge = cached_edge
+
+                if current_edge is None:
+                    neighbors = set(ctx.graph.graph.get_neighbors(agent.prev_node_id))
+                    if agent.current_node_id in neighbors:
+                        midpoint_x = (prev_position[0] + target_position[0]) / 2
+                        midpoint_y = (prev_position[1] + target_position[1]) / 2
+                        max_dist = math.sqrt((target_position[0] - prev_position[0])**2 +
+                                             (target_position[1] - prev_position[1])**2) / 2 + 1.0
+                        for edge_id in ctx.graph.graph.get_edges(max_dist, midpoint_x, midpoint_y):
+                            edge = ctx.graph.graph.get_edge(edge_id)
+                            if edge.source == agent.prev_node_id and edge.target == agent.current_node_id:
+                                current_edge = edge
+                                data['_current_edge_cache'] = (cache_key, edge)
+                                break
+
+                if current_edge is not None:
+                    point = current_edge.linestring.interpolate(alpha, True)
+                    position = (point.x, point.y)
+                else:
+                    position = ((1 - alpha) * prev_position[0] + alpha * target_position[0],
+                                (1 - alpha) * prev_position[1] + alpha * target_position[1])
         else:
             position = (target_node.x, target_node.y)
+            data.pop('_current_edge_cache', None)
+        
+        agent_data.current_position = position
+
+        if image is not None:
+            ctx.visual.render_image(position[0], position[1], image, size)
+            return
 
         # Draw each agent as a triangle at its current position
         angle = math.radians(45)
@@ -107,6 +152,10 @@ def render_agent(ctx: IContext, data: Dict[str, Any]):
         z = quat[3]
         w = quat[0]
         angle = math.atan2(2 * (w * z + x * y), 1 - 2 * (y ** 2 + z **2))
+
+        if image is not None:
+            ctx.visual.render_image(position[0], position[1], image, size, angle=angle)
+            return
 
         render_aerial_agent(ctx, position, angle, size, color)
 
@@ -142,6 +191,23 @@ def render_aerial_agent(ctx: IContext, position: tuple[float, float], angle: flo
     ctx.visual.render_polygon(points, color)
 
 
+def _pixel_thresh_sq(pixel_thresh: float, scale: float) -> float:
+    """
+    Return the squared world-space distance that corresponds to a given number of screen pixels at the current camera zoom.
+
+    Args:
+        pixel_thresh (float): Length in screen pixels to convert.
+        scale (float): Pixels-per-world-unit factor from the current viewport.
+
+    Returns:
+        float: The squared world-space distance. Returns 0.0 if scale is non-positive.
+    """
+    if scale <= 0:
+        return 0.0
+    thresh_world = pixel_thresh / scale
+    return thresh_world * thresh_world
+
+
 def render_graph(ctx: IContext, data: Dict[str, Any]):
     """
     Render the graph by drawing its nodes and edges on the screen. This is the default rendering method for graphs.
@@ -156,13 +222,58 @@ def render_graph(ctx: IContext, data: Dict[str, Any]):
     edge_color = graph_data.edge_color
     draw_id = graph_data.draw_id
 
-    for edge_id in ctx.graph.graph.get_edges():
-        edge = ctx.graph.graph.get_edge(edge_id)
-        _render_graph_edge(ctx, graph_data, edge, edge_color)
-        
-    for node_id in ctx.graph.graph.get_nodes():
-        node = ctx.graph.graph.get_node(node_id)
-        _render_graph_node(ctx, node, node_color, node_size, draw_id)
+    graph = ctx.graph.graph
+
+    viewport = ctx.visual.get_viewport()
+    if viewport is None:
+        return
+    left, right, top, bottom, scale = viewport
+
+    x = (right + left) / 2
+    y = (top + bottom) / 2
+    d = max(right - left, bottom - top)
+
+    short_sq = _pixel_thresh_sq(SHORT_EDGE_PIXEL_THRESHOLD, scale)
+    skip_sq = _pixel_thresh_sq(SKIP_EDGE_PIXEL_THRESHOLD, scale)
+
+    for edge_id in graph.get_edges(d=d, x=x, y=y):
+        edge = graph.get_edge(edge_id)
+        _render_graph_edge(ctx, graph_data, edge, edge_color, short_sq, skip_sq)
+
+    node_pixel_radius = node_size * scale
+    if node_pixel_radius >= SKIP_NODE_PIXEL_THRESHOLD:
+        for node_id in graph.get_nodes(d=d, x=x, y=y):
+            node = graph.get_node(node_id)
+            _render_graph_node(ctx, node, node_color, node_size, draw_id)
+
+
+def render_obstacles(ctx: IContext, data: Dict[str, Any]):
+    boundary_thickness = cast(float, data.get('boundary_thickness', 1.0))
+    color_code = cast(Dict[int, ColorType], data.get('color_map', {}))    
+    viewport = ctx.visual.get_viewport()
+    if viewport is None:
+        return
+    
+    left, right, top, bottom, scale = viewport
+
+    x = (right + left) / 2
+    y = (top + bottom) / 2
+    d = max(right - left, bottom - top)
+
+    skip_sq = _pixel_thresh_sq(SKIP_EDGE_PIXEL_THRESHOLD, scale)
+
+    for face_id in ctx.graph.get_obstacle_faces(d=d, x=x, y=y):
+        face = ctx.graph.get_obstacle_face(face_id)
+        color = color_code.get(cast(int, face.type), Color.Gray)
+        (x1, y1) = max(face.tr[0], face.br[0]), max(face.tr[1], face.br[1])
+        (x2, y2) = min(face.tl[0], face.bl[0]), min(face.tl[1], face.bl[1])
+
+        if skip_sq > 0.0 and (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1) <= skip_sq:
+            continue
+
+        # Draw a line (x1, y1) to (x2, y2) with thickness scaled by the current zoom level
+
+        ctx.visual.render_line(x1, y1, x2, y2, color, max(1, int(boundary_thickness * scale)), perform_culling_test=False, is_aa=False)
 
 def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
     """
@@ -195,8 +306,15 @@ def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
     draw_id = graph_data.draw_id
     target_node_id_set = set(input_options.values())
 
-    for node in target_node_id_set:
-        _render_graph_node(ctx, graph.get_node(node), node_color, node_size, draw_id)
+    viewport = ctx.visual.get_viewport()
+    if viewport is None:
+        return
+    _, _, _, _, scale = viewport
+
+    node_pixel_radius = node_size * scale
+    if node_pixel_radius >= SKIP_NODE_PIXEL_THRESHOLD:
+        for node in target_node_id_set:
+            _render_graph_node(ctx, graph.get_node(node), node_color, node_size, draw_id)
 
     active_edges: List[OSMEdge] = []
     for edge_id in graph.get_edges():
@@ -204,26 +322,56 @@ def render_input_overlay(ctx: IContext, data: Dict[str, Any]):
         if edge.source == current_waiting_agent.current_node_id and edge.target in target_node_id_set:
             active_edges.append(edge)
 
+    short_sq = _pixel_thresh_sq(SHORT_EDGE_PIXEL_THRESHOLD, scale)
+    skip_sq = _pixel_thresh_sq(SKIP_EDGE_PIXEL_THRESHOLD, scale)
     for edge in active_edges:
-        _render_graph_edge(ctx, graph_data, edge, edge_color)
+        _render_graph_edge(ctx, graph_data, edge, edge_color, short_sq, skip_sq)
 
-def _render_graph_edge(ctx: IContext, graph_data: GraphData, edge: OSMEdge, color: ColorType):
-    """Draw an edge as a curve or straight line based on the linestring."""
+def _render_graph_edge(ctx: IContext, graph_data: GraphData, edge: OSMEdge, color: ColorType,
+                       short_edge_thresh_sq: float = 0.0,
+                       skip_edge_thresh_sq: float = 0.0):
+    """
+    Draw an edge as a curve or straight line based on the linestring.
+
+    The squared world-space distance between the edge's endpoints drives
+    three mutually exclusive paths:
+
+    * endpoints within sqrt(skip_edge_thresh_sq) world units -> drop
+      the edge entirely (sub-pixel on screen).
+    * linestring edge within sqrt(short_edge_thresh_sq) world units ->
+      draw as a single straight segment, skipping Shapely deserialization
+      and the multi-segment renderer call.
+    * otherwise -> draw the full linestring.
+    """
     source = ctx.graph.graph.get_node(edge.source)
     target = ctx.graph.graph.get_node(edge.target)
 
-    if edge.linestring:
-        edge_line_points = graph_data.edge_line_points
-        if edge.id not in edge_line_points:
-            # linestring[1:-1]
-            linestring = ([(source.x, source.y)] + [(x, y) for (x, y) in edge.linestring.coords] +
-                            [(target.x, target.y)])
-            edge_line_points[edge.id] = linestring
+    dx = target.x - source.x
+    dy = target.y - source.y
+    d_sq = dx * dx + dy * dy
 
-        line_points = edge_line_points[edge.id]
-        ctx.visual.render_linestring(line_points, color, is_aa=True, perform_culling_test=False)
-    else:
-        ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2, perform_culling_test=False, is_aa=False)
+    if skip_edge_thresh_sq > 0.0 and d_sq <= skip_edge_thresh_sq:
+        return
+
+    if short_edge_thresh_sq > 0.0 and d_sq <= short_edge_thresh_sq:
+        ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2,
+                               perform_culling_test=False, is_aa=False)
+        return
+
+    edge_line_points = graph_data.edge_line_points
+    line_points = edge_line_points.get(edge.id)
+
+    if line_points is None:
+        linestring = edge.linestring
+        if not linestring:
+            ctx.visual.render_line(source.x, source.y, target.x, target.y, color, 2,
+                                   perform_culling_test=False, is_aa=False)
+            return
+        line_points = ([(source.x, source.y)] + [(x, y) for (x, y) in linestring.coords] +
+                       [(target.x, target.y)])
+        edge_line_points[edge.id] = line_points
+
+    ctx.visual.render_linestring(line_points, color, is_aa=True, perform_culling_test=False)
 
 
 def _render_graph_node(ctx: IContext, node: Node, color: ColorType, radius: float, draw_id: bool):
@@ -269,10 +417,29 @@ def render_map_sensor(ctx: IContext, data: Dict[str, Any]):
 
     edge_color = data.get('edge_color', Color.Cyan)
     sensed_edges = sensor_data.get('edges', [])
-    
+
+    viewport = ctx.visual.get_viewport()
+    if viewport is None:
+        return
+    _, _, _, _, scale = viewport
+    short_sq = _pixel_thresh_sq(SHORT_EDGE_PIXEL_THRESHOLD, scale)
+    skip_sq = _pixel_thresh_sq(SKIP_EDGE_PIXEL_THRESHOLD, scale)
+
     for edge in sensed_edges:
         source = ctx.graph.graph.get_node(edge.source)
         target = ctx.graph.graph.get_node(edge.target)
+
+        dx = target.x - source.x
+        dy = target.y - source.y
+        d_sq = dx * dx + dy * dy
+
+        if skip_sq > 0.0 and d_sq <= skip_sq:
+            continue
+
+        if short_sq > 0.0 and d_sq <= short_sq:
+            ctx.visual.render_line(source.x, source.y, target.x, target.y, edge_color, 4,
+                                   perform_culling_test=False, is_aa=False)
+            continue
 
         if edge.linestring:
             # linestring[1:-1]

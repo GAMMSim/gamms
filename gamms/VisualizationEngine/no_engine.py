@@ -9,7 +9,7 @@ from gamms.typing.opcodes import OpCodes
 from gamms.VisualizationEngine.artist import Artist
 from gamms.VisualizationEngine import Color
 
-from typing import Dict, Any, List, Tuple, Callable, cast, Union
+from typing import Dict, Any, List, Tuple, Callable, Optional, cast, Union
 
 class NoEngine(IVisualizationEngine):
     def __init__(self, ctx: IContext, **kwargs: Dict[str, Any]) -> None:
@@ -18,6 +18,10 @@ class NoEngine(IVisualizationEngine):
     def set_graph_visual(self, **kwargs: Dict[str, Any]) -> IArtist:
         dummy = cast(Callable[[IContext, Dict[str, Any]], None], lambda ctx, data: None)
         return Artist(self.ctx , dummy, layer=10)
+    
+    def set_obstacle_visual(self, **kwargs: Dict[str, Any]) -> IArtist:
+        dummy = cast(Callable[[IContext, Dict[str, Any]], None], lambda ctx, data: None)
+        return Artist(self.ctx , dummy, layer=5)
     
     def set_agent_visual(self, name: str, **kwargs: Dict[str, Any]) -> IArtist:
         dummy = cast(Callable[[IContext, Dict[str, Any]], None], lambda ctx, data: None)
@@ -76,6 +80,13 @@ class NoEngine(IVisualizationEngine):
     def render_polygon(self, points: List[Tuple[float, float]], color: ColorType = Color.Black, width: int=0,
                        perform_culling_test: bool=True):
         return
+
+    def render_image(self, x: float, y: float, image: Any, size: float, angle: float = 0.0,
+                     perform_culling_test: bool = True):
+        return
     
     def render_layer(self, layer_id: int) -> None:
         return
+
+    def get_viewport(self) -> Optional[Tuple[float, float, float, float, float]]:
+        return None

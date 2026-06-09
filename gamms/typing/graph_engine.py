@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Iterator, overload
+from typing import Any, Dict, Iterator, Mapping, Tuple, Union, overload
 from shapely.geometry import LineString
 import networkx as nx
 
@@ -48,6 +48,25 @@ class OSMEdge:
     length: float
     linestring: LineString
 
+class ObsFace:
+    """
+    Represents an obstacle face within a graph engine.
+
+    Attributes:
+        id (int): The unique identifier for the obstacle face.
+        tr (Tuple[float, float, float]): Coordinates of the top-right corner of the face.
+        tl (Tuple[float, float, float]): Coordinates of the top-left corner of the face.
+        br (Tuple[float, float, float]): Coordinates of the bottom-right corner of the face.
+        bl (Tuple[float, float, float]): Coordinates of the bottom-left corner of the face.
+        type (int): An integer representing the type/category of the obstacle.
+    """
+    id: int
+    tr: Tuple[float, float, float]
+    tl: Tuple[float, float, float]
+    br: Tuple[float, float, float]
+    bl: Tuple[float, float, float]
+    type: int
+
 
 class IGraph(ABC):
     """
@@ -87,7 +106,7 @@ class IGraph(ABC):
                 - 'linestring' (List[Tuple[float, float]], optional): Geometry of the edge.
 
         Raises:
-            ValueError: If the edge_data is missing required fields, contains invalid data, or references non-existent nodes.
+            ValueError: If the edge_data is missing required fields, contains invalid data.
             KeyError: If an edge with the same ID already exists in the graph.
             KeyError: If source or target nodes do not exist in the graph.
         """
@@ -263,6 +282,87 @@ class IGraphEngine(ABC):
 
         Raises:
             RuntimeError: If the graph has not been initialized.
+        """
+        pass
+
+    @abstractmethod
+    def add_obstacle_face(
+        self,
+        face_id: int,
+        tr: Tuple[float, float, float],
+        tl: Tuple[float, float, float],
+        br: Tuple[float, float, float],
+        bl: Tuple[float, float, float],
+        type: int
+    ) -> None:
+        """
+        Add an obstacle face to the graph engine.
+
+        Args:
+            face_id (int): Unique identifier for the obstacle face.
+            tr (Tuple[float, float, float]): Coordinates of the top-right corner of the face.
+            tl (Tuple[float, float, float]): Coordinates of the top-left corner of the face.
+            br (Tuple[float, float, float]): Coordinates of the bottom-right corner of the face.
+            bl (Tuple[float, float, float]): Coordinates of the bottom-left corner of the face.
+            type (int): An integer representing the type/category of the obstacle.
+
+        Raises:
+            ValueError: If any of the provided coordinates are invalid or if the type is not recognized.
+            KeyError: If an obstacle face with the same ID already exists in the engine.
+        """
+        pass
+
+    @abstractmethod
+    def remove_obstacle_face(self, face_id: int) -> None:
+        """
+        Remove an obstacle face from the graph engine.
+
+        Args:
+            face_id (int): The unique identifier of the obstacle face to be removed.
+        Raises:
+            KeyError: If the obstacle face with the specified ID does not exist.
+        """
+        pass
+
+    @abstractmethod
+    def get_obstacle_face(self, face_id: int) -> ObsFace:
+        """
+        Retrieve the attributes of a specific obstacle face.
+
+        Args:
+            face_id (int): The unique identifier of the obstacle face to retrieve.
+
+        Returns:
+            ObsFace: An instance of ObsFace containing the obstacle face's attributes.
+
+        Raises:
+            KeyError: If the obstacle face with the specified ID does not exist.
+        """
+        pass
+
+    @abstractmethod
+    @overload
+    def get_obstacle_faces(self) -> Iterator[int]:
+        """
+        Get the IDs of all obstacle faces in the graph engine.
+
+        Returns:
+            Iterator[int]: An iterator that yields the IDs of all obstacle faces.
+        """
+        pass
+
+    @abstractmethod
+    @overload
+    def get_obstacle_faces(self, d: float, x: float, y: float) -> Iterator[int]:
+        """
+        Get the IDs of obstacle faces within a certain distance from a point.
+
+        Args:
+            d (float): The distance threshold. If d is non-negative, it returns obstacle faces within distance d from the point (x, y).
+            x (float): The x-coordinate of the reference point.
+            y (float): The y-coordinate of the reference point.
+        Returns:
+            Iterator[int]: An iterator that yields the IDs of obstacle faces within the specified distance.
         """
         pass
 
