@@ -1,12 +1,20 @@
 from gamms.typing.artist import IArtist
-from typing import Dict, Any, List, Tuple, Union, Optional
-import numpy as np
+from typing import Dict, Any, List, Tuple, Union, Optional, NewType, Protocol
 from abc import ABC, abstractmethod
 
 ColorType = Union[
     Tuple[Union[int, float], Union[int, float], Union[int, float]],
     Tuple[Union[int, float], Union[int, float], Union[int, float], Union[int, float]]
 ]
+
+UInt8 = NewType("UInt8", int)
+
+class UInt8Array(Protocol):
+    @property
+    def shape(self) -> Tuple[int, ...]: ...
+
+    def __getitem__(self, index: Tuple[int, ...]) -> UInt8: ...
+
 
 class IVisualizationEngine(ABC):
     """
@@ -131,7 +139,7 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def simulate(self) -> Optional[np.ndarray]:
+    def simulate(self) -> Optional[UInt8Array]:
         """
         Execute a simulation step to update the visualization.
 
@@ -140,7 +148,7 @@ class IVisualizationEngine(ABC):
         called repeatedly within a loop to animate the visualization in real-time.
 
         Returns:
-            Optional[np.ndarray]: HxWx3 uint8 frame on headless engines that
+            Optional[UInt8Array]: NxHxWx3 uint8 frames on headless engines that
             render off-screen, or None on interactive engines that draw to
             a display instead.
 
