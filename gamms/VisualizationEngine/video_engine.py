@@ -14,7 +14,7 @@ from gamms.typing import (
     ColorType,
     AgentType,
 )
-from gamms.VisualizationEngine import Color, Shape
+from gamms.VisualizationEngine import Color, Shape, lazy
 from gamms.VisualizationEngine.artist import Artist
 from gamms.VisualizationEngine.builtin_artists import AgentData, GraphData
 from gamms.VisualizationEngine.default_drawers import (
@@ -46,6 +46,12 @@ class VideoBack(IVisualizationEngine):
     off-screen with the Agg backend. ``simulate`` advances one turn and
     returns the frame as an HxWx3 uint8 array. Callers own saving: files,
     video encoding and streaming live outside this engine.
+
+    Static artists render once per camera into per-layer transparent
+    bitmaps, composited in layer order under the dynamics (same
+    partition the pygame engine uses for its layer caches, minus the
+    display). Overlapping translucency blends; opaque art occludes by
+    layer exactly as pygame paints it.
     """
 
     def __init__(self, ctx: IContext, width: int = 1280, height: int = 720,
@@ -67,27 +73,49 @@ class VideoBack(IVisualizationEngine):
         self._simulation_time = 0.0
         self._dynamic_artists: Dict[str, IArtist] = {}
         self._dynamic_agent_artist_names: Set[str] = set()
+        self._static_names: Set[str] = set()
+        self._dynamic_names: Set[str] = set()
+        self._seq: Dict[str, int] = {}
+        self._seq_next = 0
+        self._static_key: Any = None
+        self._static_layers: Dict[int, Any] = {}
+        self._renders = 0
         self._turn_frames: List[np.ndarray] = []
         self._terminated = False
-        try:
-            import matplotlib
-            matplotlib.use("Agg")
-            from matplotlib.figure import Figure
-            from matplotlib.backends.backend_agg import FigureCanvasAgg
-        except ImportError as e:
-            raise ImportError(
-                "VideoBack requires matplotlib, which is not installed. "
-                "Install it with `pip install matplotlib`."
-            ) from e
+        matplotlib = lazy('matplotlib')
+        repr(matplotlib)
+        matplotlib.use("Agg")
+        from matplotlib.figure import Figure
+        from matplotlib.backends.backend_agg import FigureCanvasAgg
+        import matplotlib.patches
+        import matplotlib.offsetbox
+        import matplotlib.image
+        import importlib as _importlib
+        # Backend handle for future references, mirroring
+        # ``self._pygame``: every later use goes through this object,
+        # so no other matplotlib import exists in the module. (pyplot
+        # stays deferred to terminate: heavy import, death path only.)
+        self._mpl = _importlib.import_module("matplotlib")
         self._fig = Figure(figsize=(self._width / self._dpi,
                                     self._height / self._dpi),
                            dpi=self._dpi)
         self._fig.set_canvas(FigureCanvasAgg(self._fig))
-        self._fig.set_facecolor(self._bgcolor[:3])
+        self._fig.set_facecolor(self._bgcolor)
         self._fig.subplots_adjust(left=0.0, right=1.0, top=1.0, bottom=0.0)
         self._ax = self._fig.add_subplot(1, 1, 1)
-        input_overlay_args = kwargs.get('input_overlay', {})
-        self._input_overlay_artist = self._set_input_overlay_artist(input_overlay_args)
+        _overlay_args = kwargs.get('input_overlay', {})
+        _overlay_data = GraphData(node_color=_overlay_args.get('node_color', Color.Green),
+                                  node_size=_overlay_args.get('node_size', 4),
+                                  edge_color=_overlay_args.get('edge_color', Color.Green),
+                                  draw_id=False)
+        self._input_overlay_artist = Artist(self.ctx, render_input_overlay, 50)
+        self._input_overlay_artist.data['_input_options'] = {}
+        self._input_overlay_artist.data['_waiting_agent_name'] = None
+        self._input_overlay_artist.data['_waiting_user_input'] = False
+        self._input_overlay_artist.data['graph_data'] = _overlay_data
+        self._input_overlay_artist.set_visible(False)
+        self._input_overlay_artist.set_artist_type(ArtistType.DYNAMIC)
+        self.add_artist('input_overlay', self._input_overlay_artist)
 
 
 
@@ -144,20 +172,148 @@ class VideoBack(IVisualizationEngine):
         scale = rm.world_to_screen_scale(1.0)
         return (rm.bound_left, rm.bound_right, rm.bound_top, rm.bound_bottom, scale)
 
-    def _render_frame(self) -> None:
+    def _z(self, frac: float, legacy: float) -> float:
+        """z-order honoring artist layers (pygame paints layer by layer).
+
+        Inside a drawer, the current artist's layer positions the
+        primitive so cross-layer overlap matches pygame; direct calls
+        (no current artist) keep the legacy fixed depths.
+        """
+        a = self._rm.current_drawing_artist
+        if a is None:
+            return legacy
+        try:
+            return float(a.get_layer()) + frac
+        except Exception:
+            return legacy
+
+    def _layer_ordered(self, names: Any) -> Any:
+        """Names in render order: layer, then insertion sequence.
+
+        Matches pygame, which traverses each layer's list in insertion
+        order (names only break ties across layers deterministically).
+        """
+        def _key(n: str) -> Any:
+            a = self._rm.get_artist(n)
+            layer = a.get_layer() if a is not None else 0
+            return (layer, self._seq.get(n, 0))
+        return sorted(names, key=_key)
+
+    def _reset_ax(self) -> None:
         self._ax.clear()
         self._ax.set_axis_off()
         for spine in self._ax.spines.values():
             spine.set_visible(False)
-        self._ax.set_facecolor(self._bgcolor[:3])
+        self._ax.set_facecolor(self._bgcolor)
         self._ax.set_xlim(0, self._width)
         self._ax.set_ylim(self._height, 0)
         self._ax.set_xticks([])
         self._ax.set_yticks([])
-        if self._rm.camera_size <= 0.0:
+
+    def _render_frame(self) -> None:
+        self._renders += 1
+        if self._rm.camera_size <= 0.0 and self._renders % 64 == 1:
             # Default view: entire centered graph, mostly in focus.
+            # Throttled: empty graphs skip the full key scan on most
+            # frames, late-attached graphs still frame within 64.
             self.zoom_to_fit()
-        self._rm.handle_render()
+        if self._rm.camera_size <= 0.0:
+            # Nothing mappable: draw the blank frame without running
+            # artists (custom drawers calling world_to_screen directly
+            # would divide by zero on a zero-size camera).
+            self._fig.canvas.draw()
+            return
+        # Reconcile partition sets with live artist types (catches
+        # post-add set_artist_type() flips, which neither engine tracks).
+        _part_changed = False
+        for _n in list(self._static_names | self._dynamic_names):
+            _a = self._rm.get_artist(_n)
+            if _a is None:
+                if _n in self._static_names or _n in self._dynamic_names:
+                    _part_changed = True
+                self._static_names.discard(_n)
+                self._dynamic_names.discard(_n)
+                self._dynamic_artists.pop(_n, None)
+                self._dynamic_agent_artist_names.discard(_n)
+                self._seq.pop(_n, None)
+                continue
+            _want_static = _a.get_artist_type() == ArtistType.STATIC
+            if _want_static == (_n in self._static_names):
+                continue
+            _part_changed = True
+            if _want_static:
+                self._static_names.add(_n)
+                self._dynamic_names.discard(_n)
+                self._dynamic_artists.pop(_n, None)
+                self._dynamic_agent_artist_names.discard(_n)
+            else:
+                self._dynamic_names.add(_n)
+                self._static_names.discard(_n)
+                self._dynamic_artists[_n] = _a
+                if "agent_data" in _a.data:
+                    self._dynamic_agent_artist_names.add(_n)
+                else:
+                    self._dynamic_agent_artist_names.discard(_n)
+        if _part_changed:
+            self._static_key = None
+        rm = self._rm
+        # Cache key: camera + static names, layers, visibility. Artist
+        # *data* mutation is not tracked (same blindness as pygame's
+        # name-keyed cache): re-add the artist to invalidate.
+        _sst = []
+        for _n in sorted(self._static_names):
+            _a = self._rm.get_artist(_n)
+            _sst.append((_n, _a.get_layer() if _a is not None else 0,
+                         bool(_a is not None and _a.get_visible())))
+        key = (round(rm.camera_x, 3), round(rm.camera_y, 3),
+               round(rm.camera_size, 6), self._width, self._height,
+               tuple(_sst))
+        if key != self._static_key:
+            # Draw each static layer to its own transparent bitmap.
+            # Transparent so layers composite in order (a static layer
+            # above a dynamic one draws above it, as in pygame); the
+            # figure/axes facecolor underneath supplies the background.
+            _by_layer: Dict[int, Any] = {}
+            for _n in self._static_names:
+                _a = self._rm.get_artist(_n)
+                if _a is not None and _a.get_visible():
+                    _by_layer.setdefault(_a.get_layer(), []).append(_n)
+            # Transparent figure during capture: Agg composites over the
+            # opaque figure patch otherwise, baking alpha=255 everywhere
+            # and letting upper layers bury lower ones. Restored after.
+            _fig_patch = self._fig.patch
+            _old_alpha = _fig_patch.get_alpha()
+            _fig_patch.set_alpha(0.0)
+            try:
+                self._static_layers = {}
+                for _layer in sorted(_by_layer):
+                    self._reset_ax()
+                    self._ax.set_facecolor((0, 0, 0, 0))
+                    for _n in self._layer_ordered(_by_layer[_layer]):
+                        _a = self._rm.get_artist(_n)
+                        if _a is not None and _a.get_visible():
+                            self._rm.render_single_artist(_n)
+                    self._fig.canvas.draw()
+                    _buf = np.asarray(self._fig.canvas.buffer_rgba())
+                    self._static_layers[_layer] = _buf.copy()
+            finally:
+                _fig_patch.set_alpha(_old_alpha)
+            self._static_key = key
+        _dyn: Dict[int, Any] = {}
+        for _n in self._dynamic_names:
+            _a = self._rm.get_artist(_n)
+            if _a is not None and _a.get_visible():
+                _dyn.setdefault(_a.get_layer(), []).append(_n)
+        self._reset_ax()
+        for _layer in sorted(set(self._static_layers) | set(_dyn)):
+            if _layer in self._static_layers:
+                self._ax.imshow(self._static_layers[_layer],
+                                extent=(0, self._width,
+                                        self._height, 0),
+                                zorder=float(_layer), interpolation="nearest",
+                                aspect="auto")
+            for _n in self._layer_ordered(_dyn.get(_layer, [])):
+                self._rm.render_single_artist(_n)
         self._fig.canvas.draw()
 
     def handle_tick(self, dt: float) -> None:
@@ -247,31 +403,20 @@ class VideoBack(IVisualizationEngine):
 
         return artist
 
-    def _set_input_overlay_artist(self, args: Dict[str, Any]) -> IArtist:
-        graph_data = GraphData(node_color=args.get('node_color', Color.Green),
-                               node_size=args.get('node_size', 4),
-                               edge_color=args.get('edge_color', Color.Green),
-                               draw_id=False)
-
-        artist = Artist(self.ctx, render_input_overlay, 50)
-        artist.data['_input_options'] = {}
-        artist.data['_waiting_agent_name'] = None
-        artist.data['_waiting_user_input'] = False
-        artist.data['graph_data'] = graph_data
-        artist.set_visible(False)
-        artist.set_artist_type(ArtistType.DYNAMIC)
-
-        self.add_artist('input_overlay', artist)
-
-        return artist
-
     def set_agent_visual(self, name: str, **kwargs: Dict[str, Any]) -> IArtist:
         agent_data = AgentData(
             name=name,
             color=cast(ColorType, kwargs.get('color', Color.Black)),
             size=cast(int, kwargs.get('size', 8))
         )
-        agent_data.image = self._load_agent_image(kwargs.get('image_path'))
+        _image_path = kwargs.get('image_path')
+        if _image_path is None:
+            agent_data.image = None
+        else:
+            _image_file = Path(str(_image_path))
+            if not _image_file.exists():
+                raise FileNotFoundError(f"Agent image not found: {_image_file}")
+            agent_data.image = self._mpl.image.imread(str(_image_file))
 
         artist = Artist(self.ctx, render_agent, 20)
         artist.data['agent_data'] = agent_data
@@ -281,17 +426,6 @@ class VideoBack(IVisualizationEngine):
         self.add_artist(name, artist)
 
         return artist
-
-    def _load_agent_image(self, image_path: str):
-        if image_path is None:
-            return None
-
-        path = Path(str(image_path))
-        if not path.exists():
-            raise FileNotFoundError(f"Agent image not found: {path}")
-
-        from matplotlib.image import imread
-        return imread(str(path))
 
     def set_sensor_visual(self, name: str, **kwargs: Dict[str, Any]) -> IArtist:
         sensor = self.ctx.sensor.get_sensor(name)
@@ -332,6 +466,9 @@ class VideoBack(IVisualizationEngine):
         return artist
 
     def add_artist(self, name: str, artist: Union[IArtist, Dict[str, Any]]) -> IArtist:
+        """Register an artist. All registration must go through here:
+        artists added directly to the render manager are invisible to
+        the partition sets and will never draw."""
         if isinstance(artist, IArtist):
             artist_to_add = artist
         else:
@@ -353,10 +490,17 @@ class VideoBack(IVisualizationEngine):
         if self._rm.get_artist(name) is not None:
             self._rm.remove_artist(name)
         self._rm.add_artist(name, artist_to_add)
+        self._seq[name] = self._seq_next
+        self._seq_next += 1
         if artist_to_add.get_artist_type() == ArtistType.STATIC:
             self._dynamic_artists.pop(name, None)
             self._dynamic_agent_artist_names.discard(name)
+            self._static_names.add(name)
+            self._dynamic_names.discard(name)
+            self._static_key = None
         elif artist_to_add.get_artist_type() == ArtistType.DYNAMIC:
+            self._static_names.discard(name)
+            self._dynamic_names.add(name)
             self._dynamic_artists[name] = artist_to_add
             if 'agent_data' in artist_to_add.data:
                 self._dynamic_agent_artist_names.add(name)
@@ -369,51 +513,53 @@ class VideoBack(IVisualizationEngine):
             self._rm.remove_artist(name)
         self._dynamic_artists.pop(name, None)
         self._dynamic_agent_artist_names.discard(name)
-
-    def _iter_agent_artists(self):
-        stale_names: List[str] = []
-        for name in self._dynamic_agent_artist_names:
-            artist = self._dynamic_artists.get(name)
-            if artist is None or 'agent_data' not in artist.data:
-                stale_names.append(name)
-                continue
-
-            yield artist
-
-        for name in stale_names:
-            self._dynamic_agent_artist_names.discard(name)
+        self._static_names.discard(name)
+        self._dynamic_names.discard(name)
+        self._seq.pop(name, None)
+        self._static_key = None
 
     def _toggle_waiting_simulation(self, waiting_simulation: bool) -> None:
-        for agent_artist in self._iter_agent_artists():
-            agent_artist.data['_waiting_simulation'] = waiting_simulation
+        _stale_names: List[str] = []
+        for _name in self._dynamic_agent_artist_names:
+            _agent_artist = self._dynamic_artists.get(_name)
+            if _agent_artist is None or 'agent_data' not in _agent_artist.data:
+                _stale_names.append(_name)
+                continue
+            _agent_artist.data['_waiting_simulation'] = waiting_simulation
+        for _name in _stale_names:
+            self._dynamic_agent_artist_names.discard(_name)
         for artist in self._dynamic_artists.values():
             artist.data['_alpha'] = 0.0
 
     def render_circle(self, x: float, y: float, radius: float,
                       color: ColorType = Color.Black, width: int = 0,
                       perform_culling_test: bool = True) -> None:
-        from matplotlib.patches import Circle
         if perform_culling_test and self._rm.check_circle_culled(x, y, radius):
             return
         radius = self._rm.world_to_screen_scale(radius)
         if radius < 1:
             return
         sx, sy = self._rm.world_to_screen(x, y)
-        artist = Circle((sx, sy), radius, facecolor=_to_rgba(color),
-                        edgecolor=None, linewidth=0, zorder=4)
+        rgba = _to_rgba(color)
+        if width == 0:
+            artist = self._mpl.patches.Circle((sx, sy), radius, facecolor=rgba,
+                            edgecolor=None, linewidth=0, zorder=self._z(0.4, 4.0))
+        else:
+            artist = self._mpl.patches.Circle((sx, sy), radius, facecolor=(0, 0, 0, 0),
+                            edgecolor=rgba,
+                            linewidth=width * 72.0 / self._dpi, zorder=self._z(0.4, 4.0))
         self._ax.add_patch(artist)
 
     def render_rectangle(self, x: float, y: float, width: float, height: float,
                          color: ColorType = Color.Black, perform_culling_test: bool = True) -> None:
-        from matplotlib.patches import Rectangle
         if perform_culling_test and self._rm.check_rectangle_culled(x, y, width, height):
             return
         sx, sy = self._rm.world_to_screen(x, y)
         scale = self._rm.world_to_screen_scale(1.0)
-        artist = Rectangle((sx - width * scale / 2, sy - height * scale / 2),
+        artist = self._mpl.patches.Rectangle((sx - width * scale / 2, sy - height * scale / 2),
                            width * scale, height * scale,
                            facecolor=_to_rgba(color), edgecolor=None,
-                           linewidth=0, zorder=4)
+                           linewidth=0, zorder=self._z(0.4, 4.0))
         self._ax.add_patch(artist)
 
     def render_line(self, start_x: float, start_y: float, end_x: float, end_y: float,
@@ -423,8 +569,9 @@ class VideoBack(IVisualizationEngine):
             return
         x0, y0 = self._rm.world_to_screen(start_x, start_y)
         x1, y1 = self._rm.world_to_screen(end_x, end_y)
-        self._ax.plot([x0, x1], [y0, y1], color=_to_rgba(color)[:3],
-                      linewidth=width, zorder=4)
+        self._ax.plot([x0, x1], [y0, y1], color=_to_rgba(color),
+                      linewidth=width * 72.0 / self._dpi,
+                      zorder=self._z(0.4, 4.0))
 
     def render_linestring(self, points: List[Tuple[float, float]],
                           color: ColorType = Color.Black, width: int = 1,
@@ -437,13 +584,13 @@ class VideoBack(IVisualizationEngine):
             pts = pts + pts[:1]
         if pts:
             xs, ys = zip(*pts)
-            self._ax.plot(list(xs), list(ys), color=_to_rgba(color)[:3],
-                          linewidth=width, zorder=4)
+            self._ax.plot(list(xs), list(ys), color=_to_rgba(color),
+                          linewidth=width * 72.0 / self._dpi,
+                          zorder=self._z(0.4, 4.0))
 
     def render_polygon(self, points: List[Tuple[float, float]],
                        color: ColorType = Color.Black, width: int = 0,
                        perform_culling_test: bool = True) -> None:
-        from matplotlib.patches import Polygon
         if perform_culling_test and self._rm.check_polygon_culled(points):
             return
         pts = [self._rm.world_to_screen(x, y) for x, y in points]
@@ -451,34 +598,38 @@ class VideoBack(IVisualizationEngine):
             return
         rgba = _to_rgba(color)
         if width == 0:
-            artist = Polygon(pts, closed=True, facecolor=rgba, edgecolor=None,
-                             linewidth=0, zorder=4)
+            artist = self._mpl.patches.Polygon(pts, closed=True, facecolor=rgba, edgecolor=None,
+                             linewidth=0, zorder=self._z(0.4, 4.0))
         else:
-            artist = Polygon(pts, closed=True, facecolor=(0, 0, 0, 0),
-                             edgecolor=rgba, linewidth=width, zorder=4)
+            artist = self._mpl.patches.Polygon(pts, closed=True, facecolor=(0, 0, 0, 0),
+                             edgecolor=rgba,
+                             linewidth=width * 72.0 / self._dpi, zorder=self._z(0.4, 4.0))
         self._ax.add_patch(artist)
 
     def render_text(self, text: str, x: float, y: float,
                     color: ColorType = Color.Black, perform_culling_test: bool = True,
                     font_size: Optional[int] = None) -> None:
+        if perform_culling_test and self._rm.check_rectangle_culled(
+                x, y, 1.0, 1.0):
+            return
         sx, sy = self._rm.world_to_screen(x, y)
-        self._ax.text(sx, sy, str(text), fontsize=font_size or 10,
-                      color=_to_rgba(color)[:3], ha="center", va="center",
-                      zorder=6)
+        self._ax.text(sx, sy, str(text), fontsize=font_size or 36,
+                      color=_to_rgba(color), ha="center", va="center",
+                      zorder=self._z(0.6, 6.0))
 
     def render_image(self, x: float, y: float, image: Any, size: float,
                      angle: float = 0.0, perform_culling_test: bool = True) -> None:
         if image is None:
             return
-        from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+
         diameter = size * 2
         if perform_culling_test and self._rm.check_rectangle_culled(x, y, diameter, diameter):
             return
         sx, sy = self._rm.world_to_screen(x, y)
         scale = self._rm.world_to_screen_scale(1.0)
-        box = OffsetImage(image, zoom=size * scale / 72.0)
-        self._ax.add_artist(AnnotationBbox(box, (sx, sy), frameon=False,
-                                           zorder=4))
+        box = self._mpl.offsetbox.OffsetImage(image, zoom=size * scale / 72.0)
+        self._ax.add_artist(self._mpl.offsetbox.AnnotationBbox(box, (sx, sy), frameon=False,
+                                           zorder=self._z(0.4, 4.0)))
 
     def render_layer(self, layer_id: int) -> None:
         self._render_frame()
