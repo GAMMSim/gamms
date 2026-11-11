@@ -553,6 +553,48 @@ class PygameVisualizationEngine(IVisualizationEngine):
         scale = rm.world_to_screen_scale(1.0)
         return (rm.bound_left, rm.bound_right, rm.bound_top, rm.bound_bottom, scale)
 
+    def get_camera(self) -> Tuple[float, float, float]:
+        rm = self._render_manager
+        return (rm.camera_x, rm.camera_y, rm.camera_size)
+
+    def set_camera(self, x: float, y: float, size: float) -> None:
+        rm = self._render_manager
+        rm.camera_x = float(x)
+        rm.camera_y = float(y)
+        rm.camera_size = max(float(size), 0.1)
+
+    def pan(self, dx: float, dy: float) -> None:
+        rm = self._render_manager
+        rm.camera_x += float(dx)
+        rm.camera_y += float(dy)
+
+    def zoom(self, factor: float, center: Optional[Tuple[float, float]] = None) -> None:
+        rm = self._render_manager
+        if center is None:
+            cx, cy = rm.camera_x, rm.camera_y
+        else:
+            cx, cy = float(center[0]), float(center[1])
+        factor = float(factor)
+        rm.camera_x = cx + (rm.camera_x - cx) * factor
+        rm.camera_y = cy + (rm.camera_y - cy) * factor
+        rm.camera_size = max(rm.camera_size * factor, 0.1)
+
+    def zoom_to_fit(self, margin: float = 1.1) -> None:
+        x_list: List[float] = []
+        y_list: List[float] = []
+        for node_id in self.ctx.graph.graph.get_nodes():
+            node = self.ctx.graph.graph.get_node(node_id)
+            x_list.append(node.x)
+            y_list.append(node.y)
+        x_min = min(x_list, default=0.0)
+        x_max = max(x_list, default=0.0)
+        y_min = min(y_list, default=0.0)
+        y_max = max(y_list, default=0.0)
+        rm = self._render_manager
+        rm.camera_x = (x_min + x_max) / 2 if x_list else 0.0
+        rm.camera_y = (y_min + y_max) / 2 if y_list else 0.0
+        rm.camera_size = max((x_max - x_min) * margin, (y_max - y_min) * margin, 0.1)
+
     def render_text(self, text: str, x: float, y: float, color: ColorType = Color.Black, perform_culling_test: bool=True, font_size: Optional[int]=None):
         if font_size is not None:
             font = self._pygame.font.Font(None, font_size)

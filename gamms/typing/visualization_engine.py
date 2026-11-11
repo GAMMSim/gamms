@@ -1,5 +1,6 @@
 from gamms.typing.artist import IArtist
 from typing import Dict, Any, List, Tuple, Union, Optional
+import numpy as np
 from abc import ABC, abstractmethod
 
 ColorType = Union[
@@ -130,13 +131,18 @@ class IVisualizationEngine(ABC):
         pass
 
     @abstractmethod
-    def simulate(self) -> None:
+    def simulate(self) -> Optional[np.ndarray]:
         """
         Execute a simulation step to update the visualization.
 
         This method advances the simulation by one step, updating the positions,
         states, and visual representations of the graph and agents. It should be
         called repeatedly within a loop to animate the visualization in real-time.
+
+        Returns:
+            Optional[np.ndarray]: HxWx3 uint8 frame on headless engines that
+            render off-screen, or None on interactive engines that draw to
+            a display instead.
 
         Raises:
             RuntimeError: If the simulation cannot be advanced due to internal errors.
@@ -316,5 +322,63 @@ class IVisualizationEngine(ABC):
         Returns:
             Optional[Tuple[float, float, float, float, float]]: (left, right, top,
             bottom, scale) in world coordinates, or None if there is no valid viewport.
+        """
+        pass
+
+    @abstractmethod
+    def get_camera(self) -> Tuple[float, float, float]:
+        """
+        Return the current camera as an (x, y, size) triple in world units,
+        where (x, y) is the view center and size is the view half-width.
+
+        Returns:
+            Tuple[float, float, float]: Camera center x, center y and size.
+        """
+        pass
+
+    @abstractmethod
+    def set_camera(self, x: float, y: float, size: float) -> None:
+        """
+        Move the camera to a world-space center with the given view size.
+
+        Args:
+            x (float): Center x in world units.
+            y (float): Center y in world units.
+            size (float): View half-width in world units. Values below the
+                engine minimum are clamped.
+        """
+        pass
+
+    @abstractmethod
+    def pan(self, dx: float, dy: float) -> None:
+        """
+        Shift the camera by world-unit offsets.
+
+        Args:
+            dx (float): Horizontal shift in world units.
+            dy (float): Vertical shift in world units.
+        """
+        pass
+
+    @abstractmethod
+    def zoom(self, factor: float, center: Optional[Tuple[float, float]] = None) -> None:
+        """
+        Scale the view size, keeping a world point fixed.
+
+        Args:
+            factor (float): Multiplicative size change. Values above 1 zoom
+                out, values below 1 zoom in.
+            center (Optional[Tuple[float, float]]): World point to keep
+                fixed. Defaults to the current camera center.
+        """
+        pass
+
+    @abstractmethod
+    def zoom_to_fit(self, margin: float = 1.1) -> None:
+        """
+        Frame the whole graph with a margin multiplier.
+
+        Args:
+            margin (float): View size relative to the graph bounds.
         """
         pass

@@ -31,6 +31,8 @@ def create_context(
         visual_engine = visual.NoEngine(ctx, **vis_kwargs)
     elif vis_engine == visual.Engine.PYGAME:
         visual_engine = visual.PygameVisualizationEngine(ctx, **vis_kwargs)
+    elif vis_engine == visual.Engine.VIDEO:
+        visual_engine = visual.VideoBack(ctx, **vis_kwargs)
     else:
         raise NotImplementedError(f"Visualization engine {vis_engine} not implemented")
     

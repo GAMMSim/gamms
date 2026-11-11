@@ -14,6 +14,9 @@ from typing import Dict, Any, List, Tuple, Callable, Optional, cast, Union
 class NoEngine(IVisualizationEngine):
     def __init__(self, ctx: IContext, **kwargs: Dict[str, Any]) -> None:
         self.ctx = ctx
+        self._camera_x = 0.0
+        self._camera_y = 0.0
+        self._camera_size = 0.0
     
     def set_graph_visual(self, **kwargs: Dict[str, Any]) -> IArtist:
         dummy = cast(Callable[[IContext, Dict[str, Any]], None], lambda ctx, data: None)
@@ -90,3 +93,38 @@ class NoEngine(IVisualizationEngine):
 
     def get_viewport(self) -> Optional[Tuple[float, float, float, float, float]]:
         return None
+
+    def get_camera(self) -> Tuple[float, float, float]:
+        return (self._camera_x, self._camera_y, self._camera_size)
+
+    def set_camera(self, x: float, y: float, size: float) -> None:
+        self._camera_x = float(x)
+        self._camera_y = float(y)
+        self._camera_size = max(float(size), 0.0)
+
+    def pan(self, dx: float, dy: float) -> None:
+        self._camera_x += float(dx)
+        self._camera_y += float(dy)
+
+    def zoom(self, factor: float, center: Optional[Tuple[float, float]] = None) -> None:
+        if center is None:
+            cx, cy = self._camera_x, self._camera_y
+        else:
+            cx, cy = float(center[0]), float(center[1])
+        factor = float(factor)
+        self._camera_x = cx + (self._camera_x - cx) * factor
+        self._camera_y = cy + (self._camera_y - cy) * factor
+        self._camera_size = max(self._camera_size * factor, 0.0)
+
+    def zoom_to_fit(self, margin: float = 1.1) -> None:
+        x_list: List[float] = []
+        y_list: List[float] = []
+        for node_id in self.ctx.graph.graph.get_nodes():
+            node = self.ctx.graph.graph.get_node(node_id)
+            x_list.append(node.x)
+            y_list.append(node.y)
+        if x_list:
+            self._camera_x = (min(x_list) + max(x_list)) / 2
+            self._camera_y = (min(y_list) + max(y_list)) / 2
+            self._camera_size = max((max(x_list) - min(x_list)) * margin,
+                                    (max(y_list) - min(y_list)) * margin, 0.0)

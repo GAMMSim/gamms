@@ -3,6 +3,7 @@ from enum import Enum, auto, IntEnum
 class Engine(Enum):
     NO_VIS = 0
     PYGAME = 1
+    VIDEO = 2
 
 class Color:
     White = (255, 255, 255)
@@ -61,3 +62,4 @@ def lazy(name: str):
 from .artist import Artist, RenderMode
 from .no_engine import NoEngine
 from .pygame_engine import PygameVisualizationEngine
+from .video_engine import VideoBack
