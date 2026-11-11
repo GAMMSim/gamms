@@ -361,7 +361,28 @@ class GraphEngine(IGraphEngine):
                 }
             )
             self._store.connection().execute(
-                "CREATE INDEX IF NOT EXISTS idx_obstacle_face ON obstacle_face (trx, try, brx, bry, tlx, tly, blx, bly)"
+                "CREATE VIRTUAL TABLE IF NOT EXISTS obstacle_face_rtree "
+                "USING rtree(id, min_x, max_x, min_y, max_y)"
+            )
+            self._store.connection().execute(
+                "DROP TRIGGER IF EXISTS obstacle_face_insert"
+            )
+            self._store.connection().execute(
+                "CREATE TRIGGER obstacle_face_insert "
+                "AFTER INSERT ON obstacle_face BEGIN "
+                "INSERT INTO obstacle_face_rtree VALUES (NEW.id, "
+                "MIN(NEW.tlx, NEW.trx, NEW.blx, NEW.brx), "
+                "MAX(NEW.tlx, NEW.trx, NEW.blx, NEW.brx), "
+                "MIN(NEW.tly, NEW.try, NEW.bly, NEW.bry), "
+                "MAX(NEW.tly, NEW.try, NEW.bly, NEW.bry)); END"
+            )
+            self._store.connection().execute(
+                "DROP TRIGGER IF EXISTS obstacle_face_delete"
+            )
+            self._store.connection().execute(
+                "CREATE TRIGGER obstacle_face_delete "
+                "AFTER DELETE ON obstacle_face BEGIN "
+                "DELETE FROM obstacle_face_rtree WHERE id = OLD.id; END"
             )
         else:
             raise ValueError(f"Unsupported engine type: {engine}")
@@ -426,12 +447,10 @@ class GraphEngine(IGraphEngine):
             cursor = self._store.connection().cursor()
             if d >= 0:
                 cursor.execute(
-                    """SELECT id FROM obstacle_face WHERE (
-                        MAX(tlx, trx, blx, brx) >= ?
-                        AND MIN(tlx, trx, blx, brx) <= ?
-                        AND MAX(tly, try, bly, bry) >= ?
-                        AND MIN(tly, try, bly, bry) <= ?
-                    )""",
+                    """SELECT o.id FROM obstacle_face_rtree AS r
+                        JOIN obstacle_face AS o ON o.id = r.id
+                        WHERE r.max_x >= ? AND r.min_x <= ?
+                        AND r.max_y >= ? AND r.min_y <= ?""",
                     (x - d, x + d, y - d, y + d)
                 )
             else:
