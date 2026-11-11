@@ -3,11 +3,6 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union, cast
 
 import numpy as np
 
-import matplotlib
-matplotlib.use("Agg")
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_agg import FigureCanvasAgg
-
 from gamms.osm_constants import COLOR_TYPES
 from gamms.typing import (
     IVisualizationEngine,
@@ -74,6 +69,16 @@ class VideoBack(IVisualizationEngine):
         self._dynamic_agent_artist_names: Set[str] = set()
         self._turn_frames: List[np.ndarray] = []
         self._terminated = False
+        try:
+            import matplotlib
+            matplotlib.use("Agg")
+            from matplotlib.figure import Figure
+            from matplotlib.backends.backend_agg import FigureCanvasAgg
+        except ImportError as e:
+            raise ImportError(
+                "VideoBack requires matplotlib, which is not installed. "
+                "Install it with `pip install matplotlib`."
+            ) from e
         self._fig = Figure(figsize=(self._width / self._dpi,
                                     self._height / self._dpi),
                            dpi=self._dpi)
